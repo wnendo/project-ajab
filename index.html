@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>AJAB</title>
+</head>
+<body>
+
+<script type="module">
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDnjZcbhtm03HNLQHSr6Wlz6TqOfB-KU9E",
+    authDomain: "ranking-ajab.firebaseapp.com",
+    projectId: "ranking-ajab",
+  }
+
+  const app = initializeApp(firebaseConfig)
+  const auth = getAuth(app)
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // 🔐 usuário logado → dashboard
+      window.location.href = "/src/pages/dashboard.html"
+    } else {
+      // ❌ não logado → login
+      window.location.href = "/src/pages/login.html"
+    }
+  })
+</script>
+
+</body>
+</html>

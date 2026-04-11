@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Cadastro</title>
+  <link rel="stylesheet" href="/src/styles/global.css">
+</head>
+<body>
+<div class="container auth-container">
+  <div class="card auth-card">
+    <h2>Cadastro</h2>
+
+    <input id="name" placeholder="Nome completo">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Senha">
+    <input id="phone" placeholder="Telefone">
+    <input id="club" placeholder="Clube">
+    <input id="category" placeholder="Categoria">
+
+    <button onclick="register()">Cadastrar</button>
+
+    <p class="link" onclick="goToLogin()">Ja tenho conta</p>
+  </div>
+</div>
+
+<script type="module" src="/src/js/register.ts"></script>
+</body>
+</html>

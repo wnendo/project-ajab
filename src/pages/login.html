@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <link rel="stylesheet" href="/src/styles/auth.css">
+</head>
+<body class="login-page">
+<div class="login-overlay"></div>
+<div class="container login-layout">
+  <section class="login-showcase">
+    <img src="/src/res/logo.png" class="logo" alt="AJAB">
+    <p class="login-description">Acesse seu perfil, acompanhe seus torneios e fique por dentro dos proximos eventos da associacao.</p>
+    <div class="login-highlights">
+      <div class="login-highlight">Perfil do atleta com historico de torneios e partidas.</div>
+      <div class="login-highlight">Agenda com os proximos eventos organizados pela AJAB.</div>
+      <div class="login-highlight">Acesso rapido para atletas e administradores.</div>
+    </div>
+  </section>
+
+  <div class="card login-card">
+    <div class="login-card-header">
+      <span class="login-badge">Entrar</span>
+      <h2>Bem-vindo</h2>
+      <p>Use seu e-mail e senha para acessar sua conta.</p>
+    </div>
+
+    <div class="field-group">
+      <label for="email">Email</label>
+      <input id="email" placeholder="Digite seu email">
+    </div>
+
+    <div class="field-group">
+      <label for="password">Senha</label>
+      <input id="password" type="password" placeholder="Digite sua senha">
+    </div>
+
+    <button class="primary-btn" onclick="login()">Entrar</button>
+
+    <div class="login-divider"><span>ou</span></div>
+
+    <button class="google-btn" onclick="loginWithGoogle()">
+      <img src="/src/res/google.svg" class="google-icon" alt="">
+      Entrar com Google
+    </button>
+
+    <button class="link-button" onclick="goToRegister()">Criar Conta</button>
+  </div>
+</div>
+
+<script type="module" src="/src/js/login.ts"></script>
+</body>
+</html>

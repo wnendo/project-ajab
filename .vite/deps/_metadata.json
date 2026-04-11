@@ -1,0 +1,32 @@
+{
+  "hash": "fdf304fc",
+  "configHash": "1da9dbf9",
+  "lockfileHash": "e3b0c442",
+  "browserHash": "906d7e6f",
+  "optimized": {
+    "firebase/app": {
+      "src": "../../src/node_modules/firebase/app/dist/esm/index.esm.js",
+      "file": "firebase_app.js",
+      "fileHash": "c94ac02c",
+      "needsInterop": false
+    },
+    "firebase/auth": {
+      "src": "../../src/node_modules/firebase/auth/dist/esm/index.esm.js",
+      "file": "firebase_auth.js",
+      "fileHash": "0c7c26c8",
+      "needsInterop": false
+    },
+    "firebase/firestore": {
+      "src": "../../src/node_modules/firebase/firestore/dist/esm/index.esm.js",
+      "file": "firebase_firestore.js",
+      "fileHash": "be513b7b",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "index.esm-DTWbbaMc": {
+      "file": "index.esm-DTWbbaMc.js",
+      "isDynamicEntry": false
+    }
+  }
+}

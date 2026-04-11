@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Completar cadastro</title>
+  <link rel="stylesheet" href="/src/styles/global.css">
+</head>
+<body class="complete-profile-page">
+<div class="container auth-container">
+  <div class="card auth-card">
+    <div class="auth-intro">
+      <span class="auth-eyebrow">Perfil do atleta</span>
+      <h2>Complete seu cadastro</h2>
+      <p class="auth-subtitle">Preencha seus dados para liberar o acesso aos torneios e as estastísticas.</p>
+    </div>
+
+    <div class="form-group">
+      <label for="name">Nome completo</label>
+      <input id="name" placeholder="Digite seu nome completo">
+    </div>
+
+    <div class="form-group">
+      <label for="phone">Telefone</label>
+      <input id="phone" placeholder="Digite seu telefone">
+    </div>
+
+    <div class="form-group">
+      <label for="club">Clube</label>
+      <input id="club" placeholder="Digite seu clube">
+    </div>
+
+    <div class="form-group">
+      <label for="photoURL">Foto do perfil</label>
+      <input id="photoURL" placeholder="Cole a URL da sua foto">
+    </div>
+
+    <div class="form-group">
+      <label for="category">Categoria</label>
+      <select id="category">
+        <option value="">Selecione uma categoria</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+        <option value="D">D</option>
+        <option value="Iniciante">Iniciante</option>
+      </select>
+    </div>
+
+    <button  onclick="saveProfile()" style="margin-bottom: 15px;">
+      Salvar</button>
+    <button class="btn danger" onclick="logout()">Sair</button>
+  </div>
+</div>
+
+<script type="module" src="/src/js/complete-profile.ts"></script>
+</body>
+</html>

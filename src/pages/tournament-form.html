@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Torneio</title>
+  <link rel="stylesheet" href="/src/styles/global.css">
+</head>
+<body class="dashboard-page tournament-form-page">
+  <div class="header">
+    <img src="/src/res/logo.png" class="logo-img">
+    <div id="userSummary" class="user-summary"></div>
+  </div>
+
+  <main class="admin-hub-shell">
+    <section class="card tournament-form-card">
+      <span class="panel-tag">Agenda</span>
+      <h1 id="tournamentFormTitle">Cadastrar torneio</h1>
+      <p class="profile-subtitle">Preencha os dados do evento e volte para o hub admin quando terminar.</p>
+
+      <div class="tournament-form">
+        <input id="tournamentTitle" placeholder="Nome do torneio">
+        <input id="tournamentLocation" placeholder="Local">
+        <input id="tournamentCategory" placeholder="Categoria">
+
+        <div class="date-grid">
+          <div>
+            <label for="tournamentStartDate">Inicio</label>
+            <input id="tournamentStartDate" type="date">
+          </div>
+          <div>
+            <label for="tournamentEndDate">Fim</label>
+            <input id="tournamentEndDate" type="date">
+          </div>
+        </div>
+
+        <div class="date-grid">
+          <div>
+            <label for="tournamentRegistrationDeadline">Inscricoes ate</label>
+            <input id="tournamentRegistrationDeadline" type="date">
+          </div>
+          <div>
+            <label for="tournamentStatus">Status</label>
+            <select id="tournamentStatus">
+              <option value="upcoming">Em breve</option>
+              <option value="open">Inscricoes abertas</option>
+              <option value="closed">Inscricoes encerradas</option>
+              <option value="finished">Finalizado</option>
+            </select>
+          </div>
+        </div>
+
+        <textarea id="tournamentDescription" placeholder="Descricao do torneio"></textarea>
+
+        <div class="actions">
+          <button class="btn primary" onclick="saveTournamentForm()">Salvar torneio</button>
+          <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="/src/js/tournament-form.ts"></script>
+</body>
+</html>

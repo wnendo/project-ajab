@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Perfil</title>
+  <link rel="stylesheet" href="/src/styles/global.css">
+</head>
+<body class="profile-page">
+  <div class="profile-shell">
+    <header class="profile-hero">
+      <div class="profile-hero-top">
+        <div>
+          <span class="profile-eyebrow">Area do atleta</span>
+          <h1>Meu perfil</h1>
+          <p class="profile-subtitle">Veja seus dados, seu historico em torneios e os proximos eventos da AJAB.</p>
+        </div>
+        <div class="profile-actions">
+          <button class="btn secondary" onclick="goToDashboard()">Dashboard</button>
+          <button class="btn secondary" onclick="editProfile()">Editar cadastro</button>
+          <button class="btn danger" onclick="logout()">Sair</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="profile-layout">
+      <section class="profile-main">
+        <article class="card profile-overview-card">
+          <div class="profile-overview">
+            <div class="profile-avatar-block">
+              <img id="profilePhoto" class="profile-avatar" alt="Foto do atleta" style="display:none">
+              <div id="profilePhotoFallback" class="profile-avatar profile-avatar-fallback"></div>
+            </div>
+
+            <div class="profile-overview-text">
+              <div class="profile-name-row">
+                <h2 id="profileName">Carregando...</h2>
+                <span id="profileRole" class="profile-badge">Atleta</span>
+              </div>
+              <p id="profileMeta" class="profile-meta"></p>
+              <div class="profile-stats">
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Torneios</span>
+                  <strong id="statsTournaments">0</strong>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Partidas</span>
+                  <strong id="statsMatches">0</strong>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Vitorias</span>
+                  <strong id="statsWins">0</strong>
+                </div>
+                <div class="profile-stat">
+                  <span class="profile-stat-label">Proximos eventos</span>
+                  <strong id="statsUpcoming">0</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card profile-card">
+          <div class="section-header">
+            <div>
+              <span class="section-label">Cadastro</span>
+              <h3>Informacoes pessoais</h3>
+            </div>
+          </div>
+          <div id="profileInfoGrid" class="profile-info-grid"></div>
+        </article>
+
+        <article class="card profile-card">
+          <div class="section-header">
+            <div>
+              <span class="section-label">Historico</span>
+              <h3>Torneios disputados</h3>
+            </div>
+          </div>
+          <div id="tournamentsList" class="stack-list"></div>
+        </article>
+
+        <article class="card profile-card">
+          <div class="section-header">
+            <div>
+              <span class="section-label">Partidas</span>
+              <h3>Jogos registrados</h3>
+            </div>
+          </div>
+          <div id="matchesList" class="stack-list"></div>
+        </article>
+      </section>
+
+      <aside class="profile-sidebar">
+        <article class="card profile-card">
+          <div class="section-header">
+            <div>
+              <span class="section-label">Agenda</span>
+              <h3>Proximos torneios</h3>
+            </div>
+          </div>
+          <div id="upcomingList" class="stack-list"></div>
+        </article>
+
+        <article class="card profile-card">
+          <div class="section-header">
+            <div>
+              <span class="section-label">Banco</span>
+              <h3>Estrutura preparada</h3>
+            </div>
+          </div>
+          <div class="schema-note">
+            <p>Os dados desta pagina usam:</p>
+            <p><strong>users/{uid}</strong> para cadastro e foto</p>
+            <p><strong>users/{uid}/tournaments</strong> para o historico de torneios</p>
+            <p><strong>users/{uid}/matches</strong> para o historico de partidas</p>
+            <p><strong>tournaments</strong> para os proximos eventos</p>
+          </div>
+        </article>
+      </aside>
+    </main>
+  </div>
+
+  <script type="module" src="/src/js/profile.ts"></script>
+</body>
+</html>
