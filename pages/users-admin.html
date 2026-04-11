@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AJAB - Usuarios</title>
+  <link rel="icon" type="image/png" href="/src/res/favicon.png">
+  <link rel="stylesheet" href="/src/styles/global.css">
+</head>
+<body class="dashboard-page admin-hub-page">
+  <div class="header">
+    <img src="/src/res/logo.png" class="logo-img">
+    <div id="userSummary" class="user-summary"></div>
+  </div>
+
+  <main class="admin-hub-shell users-admin-shell">
+    <section class="admin-hub-hero card">
+      <div>
+        <span class="panel-tag">Usuarios</span>
+        <h1>Gestao de usuarios</h1>
+        <p>Edite dados cadastrais e remova usuarios do sistema de dados da AJAB.</p>
+      </div>
+      <div class="admin-hub-actions">
+        <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
+        <button class="btn secondary" onclick="openProfile()">Meu perfil</button>
+        <button class="btn primary" onclick="logout()">Sair</button>
+      </div>
+    </section>
+
+    <section class="card users-admin-card">
+      <div class="card-header">Usuarios cadastrados</div>
+      <input id="userSearch" placeholder="Buscar por nome, email, clube ou categoria" oninput="filterUsers()">
+      <div id="usersAdminResults" class="admin-athlete-results"></div>
+    </section>
+  </main>
+
+  <div id="userEditModal" class="modal">
+    <div class="modal-card user-edit-modal-card">
+      <div class="modal-header">
+        <span>Editar usuario</span>
+        <button class="close-btn" onclick="closeUserEditModal()">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="editUserName">Nome</label>
+          <input id="editUserName" placeholder="Nome do usuario">
+        </div>
+        <div class="form-group">
+          <label for="editUserEmail">Email</label>
+          <input id="editUserEmail" placeholder="Email do usuario">
+        </div>
+        <div class="form-group">
+          <label for="editUserPhone">Telefone</label>
+          <input id="editUserPhone" placeholder="Telefone">
+        </div>
+        <div class="form-group">
+          <label for="editUserClub">Clube</label>
+          <input id="editUserClub" placeholder="Clube">
+        </div>
+        <div class="form-group">
+          <label for="editUserCategory">Categoria</label>
+          <select id="editUserCategory">
+            <option value="">Selecione uma categoria</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="Iniciante">Iniciante</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="editUserRole">Perfil de acesso</label>
+          <select id="editUserRole">
+            <option value="user">Usuario</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button class="btn primary" onclick="saveUserEdits()">Salvar alteracoes</button>
+          <button class="btn secondary" onclick="closeUserEditModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/js/users-admin.ts"></script>
+</body>
+</html>

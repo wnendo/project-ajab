@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>AJAB</title>
+  <link rel="icon" type="image/png" href="/src/res/logo.png">
 </head>
 <body>
 
@@ -22,10 +23,10 @@
   onAuthStateChanged(auth, (user) => {
     if (user) {
       // 🔐 usuário logado → dashboard
-      window.location.href = "/src/pages/dashboard.html"
+      window.location.href = "/pages/dashboard.html"
     } else {
       // ❌ não logado → login
-      window.location.href = "/src/pages/login.html"
+      window.location.href = "/pages/login.html"
     }
   })
 </script>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AJAB - Hub Admin</title>
+<link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
+  <script type="module" crossorigin src="/assets/dashboard-DapxIBvC.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-CGdBa_z4.js">
+  <link rel="modulepreload" crossorigin href="/assets/firebase-DxeB7Pug.js">
+  <link rel="stylesheet" crossorigin href="/assets/global-B3xEvuOX.css">
+</head>
+<body class="dashboard-page admin-hub-page">
+
+<div class="header">
+  <img src="/assets/logo-DnYXdFXg.png" class="logo-img">
+  <div id="userSummary" class="user-summary"></div>
+</div>
+
+<main class="admin-hub-shell">
+  <section class="admin-hub-hero card">
+    <div>
+      <span class="panel-tag">Hub Admin</span>
+      <h1>Painel de decisao</h1>
+      <p>Gerencie os torneios a partir de uma central mais clara.</p>
+    </div>
+    <div class="admin-hub-actions">
+      <button class="btn primary" onclick="goToTournamentForm()">Cadastrar novo torneio</button>
+      <button class="btn secondary" onclick="goToAthleteRegistration()">Cadastrar atleta</button>
+      <button class="btn secondary" onclick="goToUsersAdmin()">Gerenciar usuarios</button>
+      <button class="btn secondary" onclick="openProfile()">Meu perfil</button>
+      <button class="btn primary" onclick="logout()">Sair</button>
+    </div>
+  </section>
+
+  <section class="admin-hub-grid">
+    <div class="admin-hub-main">
+      <article class="card">
+        <span class="panel-tag">Agenda</span>
+        <div class="card-header">Torneios cadastrados</div>
+        <div id="registeredTournaments" class="admin-tournaments"></div>
+      </article>
+
+      <article class="card">
+        <span class="panel-tag">Em andamento</span>
+        <div class="card-header">Torneios em andamento</div>
+        <div id="ongoingTournaments" class="admin-tournaments"></div>
+      </article>
+
+      <article class="card">
+        <span class="panel-tag">Historico</span>
+        <div class="card-header">Torneios finalizados</div>
+        <div id="finishedTournaments" class="admin-tournaments"></div>
+      </article>
+    </div>
+
+    <aside class="admin-hub-sidebar">
+      <article class="card">
+        <span class="panel-tag">Atletas</span>
+        <div class="card-header">Pesquisa de atletas cadastrados</div>
+        <input id="athleteSearch" placeholder="Buscar por nome, email, clube ou categoria" oninput="filterAthletes()">
+        <div id="athleteSearchResults" class="admin-athlete-results"></div>
+      </article>
+    </aside>
+  </section>
+</main>
+
+</body>
+</html>

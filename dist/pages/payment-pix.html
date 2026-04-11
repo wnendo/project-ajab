@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AJAB - Pagamento Pix</title>
+  <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
+  <script type="module" crossorigin src="/assets/paymentPix-D4jnq9wa.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-CGdBa_z4.js">
+  <link rel="modulepreload" crossorigin href="/assets/firebase-DxeB7Pug.js">
+  <link rel="stylesheet" crossorigin href="/assets/global-B3xEvuOX.css">
+</head>
+<body class="profile-page">
+  <div class="profile-shell payment-shell">
+    <section class="card payment-card">
+      <span class="panel-tag">Pagamento Pix</span>
+      <h1 id="paymentTournamentTitle">Carregando torneio...</h1>
+      <p id="paymentSubtitle" class="profile-subtitle"></p>
+
+      <div class="payment-summary">
+        <div class="info-card">
+          <span>Categoria escolhida</span>
+          <strong id="paymentCategory">-</strong>
+        </div>
+        <div class="info-card">
+          <span>Valor</span>
+          <strong id="paymentAmount">-</strong>
+        </div>
+      </div>
+
+      <div class="payment-box">
+        <span class="section-label">Pix</span>
+        <h3>Chave para pagamento</h3>
+        <div id="paymentPixKey" class="payment-pix-key"></div>
+        <p id="paymentPixHolder" class="payment-help"></p>
+        <p class="payment-help">Realize o pagamento via Pix e depois envie a inscricao para analise.</p>
+        <div class="actions">
+          <button class="btn secondary" onclick="copyPixKey()">Copiar chave Pix</button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="confirmPaymentButton" class="btn primary" onclick="confirmPixPayment()">Ja realizei o pagamento</button>
+        <button class="btn secondary" onclick="goBackToProfile()">Voltar ao perfil</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="paymentLoading" class="loading-overlay" aria-hidden="true">
+    <div class="loading-card" role="status" aria-live="polite">
+      <div class="spinner"></div>
+      <p>Enviando pagamento para analise...</p>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -4,21 +4,42 @@ import { auth, db } from "../services/firebase"
 
 const provider = new GoogleAuthProvider()
 let authChecked = false
+const loginLoading = document.getElementById("loginLoading")
+const loginButton = document.getElementById("loginButton") as HTMLButtonElement | null
+const googleLoginButton = document.getElementById("googleLoginButton") as HTMLButtonElement | null
+
+function shouldSubmitOnEnter(target: EventTarget | null) {
+  return !(target instanceof HTMLTextAreaElement)
+}
+
+function setLoginLoading(isLoading: boolean) {
+  loginLoading?.classList.toggle("visible", isLoading)
+  loginLoading?.setAttribute("aria-hidden", String(!isLoading))
+
+  if (loginButton) {
+    loginButton.disabled = isLoading
+    loginButton.textContent = isLoading ? "Entrando..." : "Entrar"
+  }
+
+  if (googleLoginButton) {
+    googleLoginButton.disabled = isLoading
+  }
+}
 
 async function resolveUserRoute(uid: string) {
   const userRef = doc(db, "users", uid)
   const snapshot = await getDoc(userRef)
 
   if (!snapshot.exists()) {
-    return "/src/pages/complete-profile.html"
+    return "/pages/complete-profile.html"
   }
 
   const data = snapshot.data()
   if (!data.profileComplete) {
-    return "/src/pages/complete-profile.html"
+    return "/pages/complete-profile.html"
   }
 
-  return data.role === "admin" ? "/src/pages/dashboard.html" : "/src/pages/profile.html"
+  return data.role === "admin" ? "/pages/dashboard.html" : "/pages/profile.html"
 }
 
 async function ensureGoogleUserDocument() {
@@ -65,28 +86,32 @@ async function ensureGoogleUserDocument() {
   }
 
   try {
+    setLoginLoading(true)
     const credential = await signInWithEmailAndPassword(auth, email, password)
     const nextRoute = await resolveUserRoute(credential.user.uid)
     window.location.replace(nextRoute)
   } catch (error: any) {
+    setLoginLoading(false)
     alert("Erro ao entrar: " + error.message)
   }
 }
 
 ;(window as any).loginWithGoogle = async () => {
   try {
+    setLoginLoading(true)
     await signInWithPopup(auth, provider)
     await ensureGoogleUserDocument()
 
     const nextRoute = await resolveUserRoute(auth.currentUser!.uid)
     window.location.replace(nextRoute)
   } catch (error: any) {
+    setLoginLoading(false)
     alert("Erro no login com Google: " + error.message)
   }
 }
 
 ;(window as any).goToRegister = () => {
-  window.location.href = "/src/pages/register.html"
+  window.location.href = "/pages/register.html"
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -102,4 +127,13 @@ onAuthStateChanged(auth, async (user) => {
   } catch (error) {
     console.error("Falha ao validar sessao:", error)
   }
+})
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || !shouldSubmitOnEnter(event.target)) {
+    return
+  }
+
+  event.preventDefault()
+  ;(window as any).login()
 })

@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meu Perfil</title>
+  <title>AJAB - Meu Perfil</title>
+  <link rel="icon" type="image/png" href="/src/res/favicon.png">
   <link rel="stylesheet" href="/src/styles/global.css">
 </head>
 <body class="profile-page">
@@ -105,20 +106,36 @@
         <article class="card profile-card">
           <div class="section-header">
             <div>
-              <span class="section-label">Banco</span>
-              <h3>Estrutura preparada</h3>
+              <span class="section-label">Orientacoes</span>
+              <h3>Como participar</h3>
             </div>
           </div>
           <div class="schema-note">
-            <p>Os dados desta pagina usam:</p>
-            <p><strong>users/{uid}</strong> para cadastro e foto</p>
-            <p><strong>users/{uid}/tournaments</strong> para o historico de torneios</p>
-            <p><strong>users/{uid}/matches</strong> para o historico de partidas</p>
-            <p><strong>tournaments</strong> para os proximos eventos</p>
+            <p>Escolha um torneio na agenda e confira data, categoria e valor da inscricao.</p>
+            <p>Ao clicar em <strong>Pagar com Pix</strong>, selecione a categoria e siga para a tela de pagamento.</p>
+            <p>Depois de enviar o pagamento, sua inscricao fica em analise ate a confirmacao da organizacao.</p>
+            <p>Quando o pagamento for aprovado, o status muda para <strong>Inscrito</strong> e voce fica apto a participar do torneio.</p>
           </div>
         </article>
       </aside>
     </main>
+  </div>
+
+  <div id="registrationModal" class="modal">
+    <div class="modal-card registration-modal-card">
+      <div class="modal-header">
+        <span>Confirmar inscricao</span>
+        <button class="close-btn" onclick="closeRegistrationModal()">Fechar</button>
+      </div>
+      <div class="modal-body registration-modal-body">
+        <p id="registrationModalText" class="registration-modal-text"></p>
+        <div id="registrationCategoryOptions" class="registration-category-list"></div>
+        <div class="actions">
+          <button class="btn primary" onclick="confirmTournamentRegistration()">Confirmar inscricao</button>
+          <button class="btn secondary" onclick="closeRegistrationModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="/src/js/profile.ts"></script>

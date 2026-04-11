@@ -1,10 +1,10 @@
-import { getPlayerStats, hasActiveTournament } from "./tournament-manage"
+import { getPlayerStats, getTournamentRegistrations, hasActiveTournament } from "./tournament-manage"
 import { officialQueue, players, tables } from "./store"
 
 let showAllRanking = false
 
 function getTournamentPlayers() {
-  return players.filter((player) => player.active || player.games > 0)
+  return players
 }
 
 function updateInfo() {
@@ -29,6 +29,7 @@ function updateInfo() {
 
 export function render() {
   const ranking = document.getElementById("ranking") as HTMLElement
+  const registrationsEl = document.getElementById("registrations") as HTMLElement | null
   const tablesEl = document.getElementById("tables") as HTMLElement
   const queueEl = document.getElementById("queue") as HTMLElement
   const tableCountEl = document.getElementById("tableCount") as HTMLElement
@@ -131,6 +132,45 @@ export function render() {
     </div>
   `
 
+  if (registrationsEl) {
+    const registrations = getTournamentRegistrations()
+    registrationsEl.innerHTML = registrations.length
+      ? registrations
+          .map(
+            (registration) => `
+              <div class="stack-item">
+                <div class="stack-item-header">
+                  <div>
+                    <strong>${registration.name}</strong>
+                    <span>${registration.email || "Email nao informado"}</span>
+                  </div>
+                  <span class="result-pill ${registration.paymentStatus === "approved" ? "win" : "neutral"}">
+                    ${registration.paymentStatus === "approved" ? "Pago aprovado" : "Pagamento em analise"}
+                  </span>
+                </div>
+                <div class="stack-item-grid">
+                  <span>Categoria: ${registration.category || "Nao informada"}</span>
+                  <span>Valor: ${
+                    registration.registrationFee !== undefined
+                      ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(registration.registrationFee)
+                      : "Nao informado"
+                  }</span>
+                </div>
+                <div class="admin-tournament-actions">
+                  ${
+                    registration.paymentStatus !== "approved"
+                      ? `<button class="btn primary" onclick="approveRegistration('${registration.id}')">Aprovar pagamento</button>`
+                      : `<button class="btn secondary" disabled>Pagamento aprovado</button>`
+                  }
+                  <button class="btn danger" onclick="removeRegistration('${registration.id}')">Remover inscricao</button>
+                </div>
+              </div>
+            `
+          )
+          .join("")
+      : `<div class="empty-state">Nenhuma inscricao recebida ainda.</div>`
+  }
+
   tablesEl.innerHTML = tables
     .map((table, index) => {
       const isBusy = table.p1 && table.p2
@@ -161,9 +201,9 @@ export function render() {
           </div>
 
           <div class="score-box">
-            <input id="s1_${index}" type="number" min="0" step="1" value="0">
+            <input id="s1_${index}" type="number" min="0" step="1" value="0" onkeydown="if(event.key==='Enter')finish(${index})">
             <span>x</span>
-            <input id="s2_${index}" type="number" min="0" step="1" value="0">
+            <input id="s2_${index}" type="number" min="0" step="1" value="0" onkeydown="if(event.key==='Enter')finish(${index})">
           </div>
 
           <button class="finish-btn" onclick="finish(${index})">Finalizar</button>

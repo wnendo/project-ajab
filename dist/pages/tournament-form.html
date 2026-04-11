@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AJAB - Cadastro de Torneio</title>
+  <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
+  <script type="module" crossorigin src="/assets/tournamentForm-BgDij3ni.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-CGdBa_z4.js">
+  <link rel="modulepreload" crossorigin href="/assets/firebase-DxeB7Pug.js">
+  <link rel="stylesheet" crossorigin href="/assets/global-B3xEvuOX.css">
+</head>
+<body class="dashboard-page tournament-form-page">
+  <div class="header">
+    <img src="/assets/logo-DnYXdFXg.png" class="logo-img">
+    <div id="userSummary" class="user-summary"></div>
+  </div>
+
+  <main class="admin-hub-shell">
+    <section class="card tournament-form-card">
+      <span class="panel-tag">Agenda</span>
+      <h1 id="tournamentFormTitle">Cadastrar torneio</h1>
+      <p class="profile-subtitle">Preencha os dados do evento e volte para o hub admin quando terminar.</p>
+
+      <div class="tournament-form">
+        <input id="tournamentTitle" placeholder="Nome do torneio">
+        <input id="tournamentLocation" placeholder="Local">
+
+        <div>
+          <label>Categorias</label>
+          <div class="checkbox-grid">
+            <label class="checkbox-option">
+              <input type="checkbox" name="tournamentCategory" value="A">
+              <span>A</span>
+            </label>
+            <label class="checkbox-option">
+              <input type="checkbox" name="tournamentCategory" value="B">
+              <span>B</span>
+            </label>
+            <label class="checkbox-option">
+              <input type="checkbox" name="tournamentCategory" value="C">
+              <span>C</span>
+            </label>
+            <label class="checkbox-option">
+              <input type="checkbox" name="tournamentCategory" value="D">
+              <span>D</span>
+            </label>
+            <label class="checkbox-option">
+              <input type="checkbox" name="tournamentCategory" value="Iniciantes">
+              <span>Iniciantes</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="date-grid">
+          <div>
+            <label for="tournamentStartDate">Inicio</label>
+            <input id="tournamentStartDate" type="date">
+          </div>
+          <div>
+            <label for="tournamentStartTime">Horario de inicio</label>
+            <input id="tournamentStartTime" type="time">
+          </div>
+        </div>
+
+        <div class="date-grid">
+          <div>
+            <label for="tournamentEndDate">Fim</label>
+            <input id="tournamentEndDate" type="date">
+          </div>
+          <div>
+            <label for="tournamentStatus">Status</label>
+            <select id="tournamentStatus">
+              <option value="upcoming">Em breve</option>
+              <option value="open">Inscricoes abertas</option>
+              <option value="closed">Inscricoes encerradas</option>
+              <option value="finished">Finalizado</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="tournamentRegistrationDeadline">Inscricoes ate</label>
+          <input id="tournamentRegistrationDeadline" type="date">
+        </div>
+
+        <div class="date-grid">
+          <div>
+            <label for="tournamentRegistrationFee">Valor da inscricao (R$)</label>
+            <input id="tournamentRegistrationFee" type="number" min="0" step="0.01" placeholder="Ex.: 50.00">
+          </div>
+          <div>
+            <label for="tournamentPixKey">Chave Pix</label>
+            <input id="tournamentPixKey" placeholder="CPF, email, telefone ou chave aleatoria">
+          </div>
+        </div>
+
+        <div>
+          <label for="tournamentPixHolder">Favorecido do Pix</label>
+          <input id="tournamentPixHolder" placeholder="Nome do recebedor">
+        </div>
+
+        <textarea id="tournamentDescription" placeholder="Descricao do torneio"></textarea>
+
+        <div class="actions">
+          <button class="btn primary" onclick="saveTournamentForm()">Salvar torneio</button>
+          <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>

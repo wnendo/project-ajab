@@ -2,12 +2,10 @@ import { onAuthStateChanged, signOut } from "firebase/auth"
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
   increment,
-  orderBy,
   query,
   updateDoc,
   where,
@@ -16,13 +14,16 @@ import {
 import { auth, db } from "../services/firebase"
 import { buildQueue } from "./queue"
 import { matches, officialQueue, players, tables, getNextTableId } from "./store"
-import { Match, Player, UpcomingTournament, User, UserMatchHistory, UserTournament } from "./types"
+import { Match, Player, TournamentRegistration, UpcomingTournament, User, UserMatchHistory, UserTournament } from "./types"
 import { render } from "./tournament-manage-ui"
 
 const tournamentId = new URLSearchParams(window.location.search).get("id")
 
 let checked = false
 let currentTournament: UpcomingTournament | null = null
+let registeredAthleteIds = new Set<string>()
+let registrations: TournamentRegistration[] = []
+let registrationsRefreshInterval: number | null = null
 
 function getDefaultPlayerProfile() {
   return {
@@ -60,6 +61,15 @@ function resetTables() {
 
 function clearQueue() {
   officialQueue.length = 0
+}
+
+function removeTournamentRegistration(batch: ReturnType<typeof writeBatch>, playerId: string) {
+  if (!currentTournament) {
+    return
+  }
+
+  batch.delete(doc(db, "tournaments", currentTournament.id, "registrations", playerId))
+  batch.delete(doc(db, "users", playerId, "registrations", currentTournament.id))
 }
 
 function saveTableCount() {
@@ -106,13 +116,13 @@ function updateTournamentSummary() {
 
 async function loadTournament() {
   if (!tournamentId) {
-    window.location.replace("/src/pages/dashboard.html")
+    window.location.replace("/pages/dashboard.html")
     return
   }
 
   const snapshot = await getDoc(doc(db, "tournaments", tournamentId))
   if (!snapshot.exists()) {
-    window.location.replace("/src/pages/dashboard.html")
+    window.location.replace("/pages/dashboard.html")
     return
   }
 
@@ -121,13 +131,27 @@ async function loadTournament() {
 }
 
 async function loadPlayers() {
-  const snapshot = await getDocs(query(collection(db, "users"), where("role", "==", "user")))
+  if (!currentTournament) {
+    players.length = 0
+    registeredAthleteIds = new Set<string>()
+    return
+  }
+
+  const [usersSnapshot, registrationsSnapshot] = await Promise.all([
+    getDocs(query(collection(db, "users"), where("role", "==", "user"))),
+    getDocs(collection(db, "tournaments", currentTournament.id, "registrations"))
+  ])
+
+  registrations = registrationsSnapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }) as TournamentRegistration)
+  registeredAthleteIds = new Set(
+    registrations.filter((entry) => entry.paymentStatus === "approved").map((entry) => entry.id)
+  )
 
   players.length = 0
   players.push(
-    ...snapshot.docs
+    ...usersSnapshot.docs
       .map((entry) => ({ id: entry.id, ...entry.data() }) as User)
-      .filter((user) => user.profileComplete)
+      .filter((user) => user.profileComplete && registeredAthleteIds.has(user.id))
       .map((user) => mapUserToPlayer(user))
       .sort((a, b) => a.name.localeCompare(b.name))
   )
@@ -156,8 +180,23 @@ async function loadPageData() {
   render()
 }
 
+async function refreshRegistrations() {
+  if (!currentTournament) return
+
+  try {
+    await loadPlayers()
+    render()
+  } catch (error) {
+    console.error("Erro ao atualizar inscricoes do torneio:", error)
+  }
+}
+
 function getTournamentParticipants() {
   return players.filter((player) => player.games > 0 || player.active)
+}
+
+export function getTournamentRegistrations() {
+  return registrations.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 function getTournamentRanking() {
@@ -293,17 +332,17 @@ function fillOpenTables() {
 
 function redirectByRole(userData?: User | null) {
   if (!userData) {
-    window.location.replace("/src/pages/login.html")
+    window.location.replace("/pages/login.html")
     return null
   }
 
   if (!userData.profileComplete) {
-    window.location.replace("/src/pages/complete-profile.html")
+    window.location.replace("/pages/complete-profile.html")
     return null
   }
 
   if (userData.role !== "admin") {
-    window.location.replace("/src/pages/profile.html")
+    window.location.replace("/pages/profile.html")
     return null
   }
 
@@ -318,20 +357,20 @@ async function requireAdminUserData(firebaseUserId: string) {
 
 ;(window as any).logout = async () => {
   await signOut(auth)
-  window.location.replace("/src/pages/login.html")
+  window.location.replace("/pages/login.html")
 }
 
 ;(window as any).goToDashboard = () => {
-  window.location.href = "/src/pages/dashboard.html"
+  window.location.href = "/pages/dashboard.html"
 }
 
 ;(window as any).editCurrentTournament = () => {
   if (!currentTournament) return
-  window.location.href = `/src/pages/tournament-form.html?id=${currentTournament.id}`
+  window.location.href = `/pages/tournament-form.html?id=${currentTournament.id}`
 }
 
 ;(window as any).openProfile = () => {
-  window.location.href = "/src/pages/profile.html"
+  window.location.href = "/pages/profile.html"
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -339,7 +378,7 @@ onAuthStateChanged(auth, async (user) => {
   checked = true
 
   if (!user) {
-    window.location.replace("/src/pages/login.html")
+    window.location.replace("/pages/login.html")
     return
   }
 
@@ -349,6 +388,17 @@ onAuthStateChanged(auth, async (user) => {
   setUserHeader(data)
   loadSavedTableCount()
   await loadPageData()
+
+  window.addEventListener("focus", refreshRegistrations)
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      refreshRegistrations()
+    }
+  })
+
+  registrationsRefreshInterval = window.setInterval(() => {
+    refreshRegistrations()
+  }, 15000)
 })
 
 ;(window as any).addPlayer = async () => {
@@ -356,46 +406,93 @@ onAuthStateChanged(auth, async (user) => {
   const name = input.value.trim()
   if (!name) return
 
+  await loadPlayers()
+
   if (players.some((player) => player.name.toLowerCase() === name.toLowerCase() && player.active)) {
     alert("Atleta ja esta ativo neste torneio.")
     return
   }
 
   try {
-    const snapshot = await getDocs(query(collection(db, "users"), where("role", "==", "user")))
-    const inactiveUser = snapshot.docs
-      .map((entry) => ({ id: entry.id, ...entry.data() }) as User)
-      .find(
-        (entry) =>
-          entry.profileComplete &&
-          entry.name.trim().toLowerCase() === name.toLowerCase() &&
-          !(entry.playerProfile?.active ?? true)
-      )
+    const inactiveUser = players.find(
+      (entry) => entry.name.trim().toLowerCase() === name.toLowerCase() && !entry.active
+    )
 
     if (!inactiveUser) {
-      alert("Nenhum atleta cadastrado com esse nome. Oriente o atleta a criar a conta primeiro.")
+      const hasRegistrationByName = players.some((entry) => entry.name.trim().toLowerCase() === name.toLowerCase())
+      alert(
+        hasRegistrationByName
+          ? "Esse atleta ja esta ativo neste torneio ou nao pode ser ativado agora."
+          : "Esse atleta nao esta inscrito neste torneio. Oriente-o a se inscrever pela agenda."
+      )
       return
     }
 
     const playerProfile = {
       ...getDefaultPlayerProfile(),
-      ...(inactiveUser.playerProfile ?? {}),
       active: true
     }
 
-    await updateDoc(doc(db, "users", inactiveUser.id), { playerProfile })
+    await updateDoc(doc(db, "users", inactiveUser.id), {
+      "playerProfile.active": true,
+      updatedAt: Date.now()
+    })
 
-    const index = players.findIndex((entry) => entry.id === inactiveUser.id)
-    const mapped = mapUserToPlayer({ ...inactiveUser, playerProfile })
-
-    if (index >= 0) players[index] = mapped
-    else players.push(mapped)
+    inactiveUser.active = true
 
     players.sort((a, b) => a.name.localeCompare(b.name))
     input.value = ""
     render()
   } catch (error: any) {
     alert("Erro ao ativar atleta: " + error.message)
+  }
+}
+
+;(window as any).approveRegistration = async (userId: string) => {
+  if (!currentTournament) return
+
+  const registration = registrations.find((entry) => entry.id === userId)
+  if (!registration) return
+
+  try {
+    const batch = writeBatch(db)
+    batch.update(doc(db, "tournaments", currentTournament.id, "registrations", userId), {
+      paymentStatus: "approved"
+    })
+    batch.update(doc(db, "users", userId, "registrations", currentTournament.id), {
+      paymentStatus: "approved"
+    })
+    await batch.commit()
+    await loadPlayers()
+    render()
+  } catch (error: any) {
+    alert("Erro ao aprovar pagamento: " + error.message)
+  }
+}
+
+;(window as any).removeRegistration = async (userId: string) => {
+  if (!currentTournament) return
+
+  const registration = registrations.find((entry) => entry.id === userId)
+  if (!registration) return
+
+  if (!confirm(`Remover a inscricao de ${registration.name}?`)) return
+
+  try {
+    const batch = writeBatch(db)
+    removeTournamentRegistration(batch, userId)
+    batch.update(doc(db, "users", userId), {
+      "playerProfile.active": false,
+      "playerProfile.games": 0,
+      "playerProfile.wins": 0,
+      "playerProfile.losses": 0,
+      "playerProfile.lastPlayed": null
+    })
+    await batch.commit()
+    await loadPlayers()
+    render()
+  } catch (error: any) {
+    alert("Erro ao remover inscricao: " + error.message)
   }
 }
 
@@ -507,9 +604,26 @@ onAuthStateChanged(auth, async (user) => {
   if (!confirm("Remover atleta deste torneio?")) return
 
   try {
-    await updateDoc(doc(db, "users", id), { "playerProfile.active": false })
+    const batch = writeBatch(db)
+    batch.update(doc(db, "users", id), {
+      "playerProfile.active": false,
+      "playerProfile.games": 0,
+      "playerProfile.wins": 0,
+      "playerProfile.losses": 0,
+      "playerProfile.lastPlayed": null
+    })
+    removeTournamentRegistration(batch, id)
+    batch.delete(doc(db, "users", id, "tournaments", currentTournament!.id))
+    await batch.commit()
+
     const player = players.find((entry) => entry.id === id)
-    if (player) player.active = false
+    if (player) {
+      player.active = false
+      player.games = 0
+      player.wins = 0
+      player.losses = 0
+      player.lastPlayed = undefined
+    }
 
     clearQueue()
     tables.forEach((table) => {
@@ -640,6 +754,7 @@ export function getPlayerStats(playerId: string) {
         "playerProfile.active": false,
         "playerProfile.lastPlayed": null
       })
+      removeTournamentRegistration(batch, player.id)
       batch.delete(doc(db, "users", player.id, "tournaments", currentTournament!.id))
     })
 

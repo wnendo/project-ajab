@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AJAB - Login</title>
+  <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
+  <script type="module" crossorigin src="/assets/login-CYsj_aob.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-CGdBa_z4.js">
+  <link rel="modulepreload" crossorigin href="/assets/firebase-DxeB7Pug.js">
+  <link rel="stylesheet" crossorigin href="/assets/login-TLULtioW.css">
+</head>
+<body class="login-page">
+<div class="login-overlay"></div>
+<div class="container login-layout">
+  <section class="login-showcase">
+    <img src="/assets/logo-DnYXdFXg.png" class="logo" alt="AJAB">
+    <p class="login-description">Acesse seu perfil, acompanhe seus torneios e fique por dentro dos proximos eventos da associacao.</p>
+    <div class="login-highlights">
+      <div class="login-highlight">Perfil do atleta com historico de torneios e partidas.</div>
+      <div class="login-highlight">Agenda com os proximos eventos organizados pela AJAB.</div>
+      <div class="login-highlight">Acesso rapido para atletas e administradores.</div>
+    </div>
+  </section>
+
+  <div class="card login-card">
+    <div class="login-card-header">
+      <span class="login-badge">Entrar</span>
+      <h2>Bem-vindo</h2>
+      <p>Use seu e-mail e senha para acessar sua conta.</p>
+    </div>
+
+    <div class="field-group">
+      <label for="email">Email</label>
+      <input id="email" placeholder="Digite seu email">
+    </div>
+
+    <div class="field-group">
+      <label for="password">Senha</label>
+      <input id="password" type="password" placeholder="Digite sua senha">
+    </div>
+
+    <button id="loginButton" class="primary-btn" onclick="login()">Entrar</button>
+
+    <div class="login-divider"><span>ou</span></div>
+
+    <button id="googleLoginButton" class="google-btn" onclick="loginWithGoogle()">
+      <img src="data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2048%2048'%3e%3cpath%20fill='%23EA4335'%20d='M24%209.5c3.4%200%206.4%201.2%208.8%203.6l6.6-6.6C35.7%202.3%2030.2%200%2024%200%2014.6%200%206.5%205.5%202.7%2013.5l7.7%206C12.2%2013.3%2017.6%209.5%2024%209.5z'%3e%3c/path%3e%3cpath%20fill='%234285F4'%20d='M46.5%2024.5c0-1.7-.1-3.3-.4-4.8H24v9.1h12.7c-.5%202.7-2.1%205-4.5%206.6l7%205.4c4.1-3.8%206.3-9.4%206.3-16.3z'%3e%3c/path%3e%3cpath%20fill='%23FBBC05'%20d='M10.4%2028.5c-.5-1.5-.8-3.1-.8-4.5s.3-3%20.8-4.5l-7.7-6C.9%2016.7%200%2020.2%200%2024s.9%207.3%202.7%2010.5l7.7-6z'%3e%3c/path%3e%3cpath%20fill='%2334A853'%20d='M24%2048c6.5%200%2012-2.1%2016-5.7l-7-5.4c-2%201.4-4.5%202.2-9%202.2-6.4%200-11.8-3.8-13.6-9.5l-7.7%206C6.5%2042.5%2014.6%2048%2024%2048z'%3e%3c/path%3e%3c/svg%3e" class="google-icon" alt="">
+      Entrar com Google
+    </button>
+
+    <button class="link-button" onclick="goToRegister()">Criar Conta</button>
+  </div>
+</div>
+
+<div id="loginLoading" class="login-loading-overlay" aria-hidden="true">
+  <div class="login-loading-card" role="status" aria-live="polite">
+    <div class="login-spinner"></div>
+    <p>Entrando na sua conta...</p>
+  </div>
+</div>
+
+</body>
+</html>

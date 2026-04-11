@@ -7,6 +7,10 @@ const tournamentId = new URLSearchParams(window.location.search).get("id")
 let currentTournament: UpcomingTournament | null = null
 let checked = false
 
+function shouldSubmitOnEnter(target: EventTarget | null) {
+  return !(target instanceof HTMLTextAreaElement)
+}
+
 function setUserHeader(userData: User) {
   const header = document.getElementById("userSummary")
   if (!header) return
@@ -20,17 +24,17 @@ function setUserHeader(userData: User) {
 
 function redirectByRole(userData?: User | null) {
   if (!userData) {
-    window.location.replace("/src/pages/login.html")
+    window.location.replace("/pages/login.html")
     return null
   }
 
   if (!userData.profileComplete) {
-    window.location.replace("/src/pages/complete-profile.html")
+    window.location.replace("/pages/complete-profile.html")
     return null
   }
 
   if (userData.role !== "admin") {
-    window.location.replace("/src/pages/profile.html")
+    window.location.replace("/pages/profile.html")
     return null
   }
 
@@ -50,8 +54,46 @@ function fromDateInputValue(value: string) {
   return new Date(year, month - 1, day).getTime()
 }
 
+function parseCurrencyInput(value: string) {
+  if (!value.trim()) return undefined
+  const normalized = Number(value.replace(",", "."))
+  if (Number.isNaN(normalized) || normalized < 0) return undefined
+  return Number(normalized.toFixed(2))
+}
+
 function getField<T extends HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id: string) {
   return document.getElementById(id) as T
+}
+
+function toTimeInputValue(value?: string) {
+  if (!value) return ""
+  return value.slice(0, 5)
+}
+
+function getSelectedCategories() {
+  return Array.from(document.querySelectorAll<HTMLInputElement>('input[name="tournamentCategory"]:checked')).map(
+    (input) => input.value
+  )
+}
+
+function setSelectedCategories(categories: string[]) {
+  const selected = new Set(categories)
+
+  document.querySelectorAll<HTMLInputElement>('input[name="tournamentCategory"]').forEach((input) => {
+    input.checked = selected.has(input.value)
+  })
+}
+
+function normalizeCategories(tournament: UpcomingTournament) {
+  if (Array.isArray(tournament.categories)) {
+    return tournament.categories
+  }
+
+  if (typeof tournament.category === "string" && tournament.category.trim()) {
+    return tournament.category.split(",").map((entry) => entry.trim()).filter(Boolean)
+  }
+
+  return []
 }
 
 async function loadTournamentIfNeeded() {
@@ -59,7 +101,7 @@ async function loadTournamentIfNeeded() {
 
   const snapshot = await getDoc(doc(db, "tournaments", tournamentId))
   if (!snapshot.exists()) {
-    window.location.replace("/src/pages/dashboard.html")
+    window.location.replace("/pages/dashboard.html")
     return
   }
 
@@ -67,25 +109,33 @@ async function loadTournamentIfNeeded() {
   ;(document.getElementById("tournamentFormTitle") as HTMLElement).textContent = "Editar torneio"
   getField<HTMLInputElement>("tournamentTitle").value = currentTournament.title ?? ""
   getField<HTMLInputElement>("tournamentLocation").value = currentTournament.location ?? ""
-  getField<HTMLInputElement>("tournamentCategory").value = currentTournament.category ?? ""
+  setSelectedCategories(normalizeCategories(currentTournament))
   getField<HTMLInputElement>("tournamentStartDate").value = toDateInputValue(currentTournament.startDate)
+  getField<HTMLInputElement>("tournamentStartTime").value = toTimeInputValue(currentTournament.startTime)
   getField<HTMLInputElement>("tournamentEndDate").value = toDateInputValue(currentTournament.endDate)
   getField<HTMLInputElement>("tournamentRegistrationDeadline").value = toDateInputValue(currentTournament.registrationDeadline)
+  getField<HTMLInputElement>("tournamentRegistrationFee").value = currentTournament.registrationFee?.toFixed(2) ?? ""
+  getField<HTMLInputElement>("tournamentPixKey").value = currentTournament.pixKey ?? ""
+  getField<HTMLInputElement>("tournamentPixHolder").value = currentTournament.pixHolder ?? ""
   getField<HTMLSelectElement>("tournamentStatus").value = currentTournament.status ?? "upcoming"
   getField<HTMLTextAreaElement>("tournamentDescription").value = currentTournament.description ?? ""
 }
 
 ;(window as any).goToDashboard = () => {
-  window.location.href = "/src/pages/dashboard.html"
+  window.location.href = "/pages/dashboard.html"
 }
 
 ;(window as any).saveTournamentForm = async () => {
   const title = getField<HTMLInputElement>("tournamentTitle").value.trim()
   const location = getField<HTMLInputElement>("tournamentLocation").value.trim()
-  const category = getField<HTMLInputElement>("tournamentCategory").value.trim()
+  const categories = getSelectedCategories()
   const startDate = fromDateInputValue(getField<HTMLInputElement>("tournamentStartDate").value)
+  const startTime = getField<HTMLInputElement>("tournamentStartTime").value
   const endDate = fromDateInputValue(getField<HTMLInputElement>("tournamentEndDate").value)
   const registrationDeadline = fromDateInputValue(getField<HTMLInputElement>("tournamentRegistrationDeadline").value)
+  const registrationFee = parseCurrencyInput(getField<HTMLInputElement>("tournamentRegistrationFee").value)
+  const pixKey = getField<HTMLInputElement>("tournamentPixKey").value.trim()
+  const pixHolder = getField<HTMLInputElement>("tournamentPixHolder").value.trim()
   const status = getField<HTMLSelectElement>("tournamentStatus").value as UpcomingTournament["status"]
   const description = getField<HTMLTextAreaElement>("tournamentDescription").value.trim()
 
@@ -99,13 +149,22 @@ async function loadTournamentIfNeeded() {
     return
   }
 
+  if (!registrationFee || !pixKey || !pixHolder) {
+    alert("Informe valor da inscricao, chave Pix e favorecido para cadastrar o torneio.")
+    return
+  }
+
   const payload = {
     title,
     ...(location ? { location } : {}),
-    ...(category ? { category } : {}),
+    ...(categories.length ? { categories, category: categories.join(", ") } : {}),
     startDate,
+    ...(startTime ? { startTime } : {}),
     ...(endDate ? { endDate } : {}),
     ...(registrationDeadline ? { registrationDeadline } : {}),
+    ...(registrationFee !== undefined ? { registrationFee } : {}),
+    ...(pixKey ? { pixKey } : {}),
+    ...(pixHolder ? { pixHolder } : {}),
     status,
     ...(description ? { description } : {}),
     isActive: currentTournament?.isActive ?? false,
@@ -123,7 +182,7 @@ async function loadTournamentIfNeeded() {
       })
     }
 
-    window.location.href = "/src/pages/dashboard.html"
+    window.location.href = "/pages/dashboard.html"
   } catch (error: any) {
     alert("Erro ao salvar torneio: " + error.message)
   }
@@ -131,7 +190,7 @@ async function loadTournamentIfNeeded() {
 
 ;(window as any).logout = async () => {
   await signOut(auth)
-  window.location.replace("/src/pages/login.html")
+  window.location.replace("/pages/login.html")
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -139,7 +198,7 @@ onAuthStateChanged(auth, async (user) => {
   checked = true
 
   if (!user) {
-    window.location.replace("/src/pages/login.html")
+    window.location.replace("/pages/login.html")
     return
   }
 
@@ -149,4 +208,13 @@ onAuthStateChanged(auth, async (user) => {
 
   setUserHeader(data)
   await loadTournamentIfNeeded()
+})
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || !shouldSubmitOnEnter(event.target)) {
+    return
+  }
+
+  event.preventDefault()
+  ;(window as any).saveTournamentForm()
 })

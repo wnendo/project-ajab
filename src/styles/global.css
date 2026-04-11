@@ -88,6 +88,90 @@ body {
   font-size: 13px;
 }
 
+.admin-athlete-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.admin-athlete-actions button {
+  width: auto;
+  padding: 8px 12px;
+}
+
+.users-admin-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.users-admin-card {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.user-admin-card {
+  gap: 10px;
+}
+
+.user-admin-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.user-edit-modal-card {
+  width: min(92vw, 520px);
+}
+
+.payment-shell {
+  padding-top: 40px;
+}
+
+.payment-card {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.payment-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.payment-box {
+  margin: 16px 0 22px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(30, 41, 59, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.payment-pix-key {
+  margin: 10px 0 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #0f172a;
+  color: #e5e7eb;
+  font-weight: 700;
+  line-height: 1.5;
+  word-break: break-all;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.payment-help {
+  margin: 0 0 10px;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.pending-payment-item {
+  border-color: rgba(96, 165, 250, 0.25);
+}
+
 .tournament-form-page .tournament-form-card {
   max-width: 760px;
   margin: 0 auto;
@@ -140,6 +224,80 @@ body {
 
 .auth-container {
   background: radial-gradient(circle at top, #0f172a, #020617);
+}
+
+.register-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 24%),
+    linear-gradient(180deg, #07101d 0%, #0b1220 48%, #111827 100%);
+}
+
+.register-container {
+  min-height: 100vh;
+  padding: 32px 20px;
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.12), transparent 32%),
+    transparent;
+}
+
+.register-card {
+  width: min(100%, 420px);
+  padding: 28px;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  background: rgba(15, 23, 42, 0.88);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+}
+
+.register-submit {
+  margin-top: 8px;
+}
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(6px);
+  z-index: 1000;
+}
+
+.loading-overlay.visible {
+  display: flex;
+}
+
+.loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(100%, 280px);
+  padding: 24px 20px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.loading-card p {
+  margin: 0;
+  color: #dbe4f0;
+  line-height: 1.5;
+}
+
+.spinner {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 4px solid rgba(148, 163, 184, 0.22);
+  border-top-color: #60a5fa;
+  animation: spin 0.8s linear infinite;
 }
 
 .complete-profile-page {
@@ -540,6 +698,63 @@ body {
   font-weight: 600;
 }
 
+.photo-upload-hint {
+  margin-top: -2px;
+  margin-bottom: 10px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.photo-preview-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.photo-preview {
+  width: 110px;
+  height: 110px;
+  border-radius: 24px;
+  object-fit: cover;
+  border: 2px solid rgba(96, 165, 250, 0.3);
+  background: #0f172a;
+}
+
+.photo-preview-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(30, 41, 59, 0.72);
+}
+
+.registration-modal-card {
+  width: min(92vw, 460px);
+}
+
+.registration-modal-body {
+  padding: 18px;
+}
+
+.registration-modal-text {
+  margin: 0 0 14px;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+.registration-category-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.registration-option {
+  width: 100%;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -667,6 +882,36 @@ button:disabled {
   font-weight: 600;
 }
 
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: #1f2937;
+  color: #e5e7eb;
+  cursor: pointer;
+}
+
+.checkbox-option input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.checkbox-option span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .date-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -751,6 +996,7 @@ button:disabled {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  margin-top: 10px;
 }
 
 .admin-tournament-actions button {
@@ -1114,6 +1360,12 @@ h2 {
   margin-bottom: 20px;
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 900px) {
   .dashboard-container {
     grid-template-columns: 1fr;
@@ -1143,11 +1395,13 @@ h2 {
 }
 
 @media (max-width: 640px) {
+  .register-container,
   .complete-profile-page .auth-container {
     padding: 20px 14px;
     align-items: flex-start;
   }
 
+  .register-card,
   .complete-profile-page .auth-card {
     padding: 22px 18px;
     border-radius: 16px;
@@ -1167,6 +1421,10 @@ h2 {
   .profile-shell {
     width: min(100% - 20px, 1180px);
     padding: 20px 0 36px;
+  }
+
+  .payment-summary {
+    grid-template-columns: 1fr;
   }
 
   .profile-hero-top,

@@ -77,13 +77,49 @@ export type UserMatchHistory = {
   playedAt: number
 }
 
+export type UserTournamentRegistration = {
+  id: string
+  tournamentId: string
+  title: string
+  location?: string
+  category?: string
+  categories?: string[]
+  registrationFee?: number
+  paymentStatus: "pending_payment" | "approved"
+  paymentMethod?: "pix"
+  startDate?: number
+  endDate?: number
+  registrationDeadline?: number
+  registeredAt: number
+  status: "registered"
+}
+
+export type TournamentRegistration = {
+  id: string
+  uid: string
+  name: string
+  email: string
+  club?: string
+  category?: string
+  registrationFee?: number
+  paymentStatus: "pending_payment" | "approved"
+  paymentMethod?: "pix"
+  registeredAt: number
+  status: "registered"
+}
+
 export type UpcomingTournament = {
   id: string
   title: string
   location?: string
   description?: string
   category?: string
+  categories?: string[]
   startDate: number
+  startTime?: string
+  registrationFee?: number
+  pixKey?: string
+  pixHolder?: string
   endDate?: number
   registrationDeadline?: number
   status?: "upcoming" | "open" | "closed" | "finished"

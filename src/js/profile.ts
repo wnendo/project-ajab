@@ -1,7 +1,13 @@
 import { onAuthStateChanged, signOut } from "firebase/auth"
-import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore"
+import { collection, doc, getDoc, getDocs, orderBy, query, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
-import { UpcomingTournament, User, UserMatchHistory, UserTournament } from "./types"
+import { UpcomingTournament, User, UserMatchHistory, UserTournament, UserTournamentRegistration } from "./types"
+
+let currentUserProfile: User | null = null
+let upcomingTournaments: UpcomingTournament[] = []
+let registeredTournamentIds = new Set<string>()
+let registrationStatusByTournament = new Map<string, UserTournamentRegistration["paymentStatus"]>()
+let pendingTournamentRegistrationId: string | null = null
 
 function formatDate(value?: number) {
   if (!value) return "Nao informado"
@@ -17,6 +23,55 @@ function formatDateRange(startDate: number, endDate?: number) {
   }
 
   return `${formatDate(startDate)} ate ${formatDate(endDate)}`
+}
+
+function formatCurrency(value?: number) {
+  if (value === undefined) return "Nao informado"
+
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL"
+  }).format(value)
+}
+
+function formatTournamentCategories(entry: UpcomingTournament | UserTournamentRegistration) {
+  if (Array.isArray(entry.categories) && entry.categories.length) {
+    return entry.categories.join(", ")
+  }
+
+  return entry.category || "Livre"
+}
+
+function getAvailableTournamentCategories(entry: UpcomingTournament) {
+  if (Array.isArray(entry.categories) && entry.categories.length) {
+    return entry.categories
+  }
+
+  if (entry.category) {
+    return entry.category.split(",").map((item) => item.trim()).filter(Boolean)
+  }
+
+  return currentUserProfile?.category ? [currentUserProfile.category] : ["Livre"]
+}
+
+function isRegistrationClosed(entry: UpcomingTournament) {
+  if (entry.status === "finished" || entry.status === "closed") {
+    return true
+  }
+
+  if (entry.status === "open") {
+    return false
+  }
+
+  if (entry.registrationDeadline && entry.registrationDeadline < Date.now()) {
+    return true
+  }
+
+  return false
+}
+
+function hasPixConfiguration(entry: UpcomingTournament) {
+  return Boolean(entry.registrationFee && entry.pixKey && entry.pixHolder)
 }
 
 function getInitials(name: string) {
@@ -49,6 +104,36 @@ function setAvatar(name: string, photoURL?: string) {
 
   image.style.display = "none"
   fallback.style.display = "flex"
+}
+
+function openRegistrationModal(tournament: UpcomingTournament) {
+  const modal = document.getElementById("registrationModal") as HTMLElement | null
+  const text = document.getElementById("registrationModalText") as HTMLElement | null
+  const options = document.getElementById("registrationCategoryOptions") as HTMLElement | null
+
+  if (!modal || !text || !options) return
+
+  const categories = getAvailableTournamentCategories(tournament)
+
+  text.textContent = `Escolha a categoria para se inscrever em ${tournament.title}.`
+  options.innerHTML = categories
+    .map(
+      (category, index) => `
+        <label class="checkbox-option registration-option">
+          <input type="radio" name="registrationCategory" value="${category}" ${index === 0 ? "checked" : ""}>
+          <span>${category}</span>
+        </label>
+      `
+    )
+    .join("")
+
+  pendingTournamentRegistrationId = tournament.id
+  modal.style.display = "flex"
+}
+
+function getSelectedRegistrationCategory() {
+  const selected = document.querySelector<HTMLInputElement>('input[name="registrationCategory"]:checked')
+  return selected?.value.trim() || ""
 }
 
 function renderProfileInfo(user: User) {
@@ -139,7 +224,11 @@ function renderMatchHistory(entries: UserMatchHistory[]) {
     .join("")
 }
 
-function renderUpcoming(entries: UpcomingTournament[]) {
+function getTournamentRegistrationStatus(tournamentId: string) {
+  return registrationStatusByTournament.get(tournamentId)
+}
+
+function renderUpcoming(entries: UpcomingTournament[], user: User, registrations: Set<string>) {
   const container = document.getElementById("upcomingList")
   if (!container) return
 
@@ -150,23 +239,68 @@ function renderUpcoming(entries: UpcomingTournament[]) {
 
   container.innerHTML = entries
     .map(
-      (entry) => `
-        <div class="stack-item upcoming-item">
+      (entry) => {
+        const registrationStatus = getTournamentRegistrationStatus(entry.id)
+
+        return `
+        <div class="stack-item upcoming-item ${registrationStatus === "pending_payment" ? "pending-payment-item" : ""}">
           <div class="stack-item-header">
             <div>
               <strong>${entry.title}</strong>
               <span>${entry.location || "Local a definir"}</span>
             </div>
-            <span class="result-pill neutral">${entry.status === "open" ? "Inscricoes abertas" : "Em breve"}</span>
+            <span class="result-pill ${registrationStatus === "approved" ? "win" : registrationStatus === "pending_payment" ? "neutral" : "neutral"}">${
+              registrationStatus === "approved"
+                ? "Inscrito"
+                : registrationStatus === "pending_payment"
+                  ? "Pagamento em analise"
+                  : entry.status === "open"
+                    ? "Inscricoes abertas"
+                    : "Em breve"
+            }</span>
           </div>
           <div class="stack-item-grid">
             <span>Quando: ${formatDateRange(entry.startDate, entry.endDate)}</span>
-            <span>Categoria: ${entry.category || "Livre"}</span>
+            <span>Categoria: ${formatTournamentCategories(entry)}</span>
+            <span>Valor: ${formatCurrency(entry.registrationFee)}</span>
             <span>Inscricoes: ${formatDate(entry.registrationDeadline)}</span>
           </div>
           ${entry.description ? `<p class="item-description">${entry.description}</p>` : ""}
+          ${
+            user.role !== "admin"
+              ? `
+                <div class="admin-tournament-actions">
+                  <button
+                    class="btn primary"
+                    onclick="registerForTournament('${entry.id}')"
+                    ${registrations.has(entry.id) ? "disabled" : ""}
+                    ${registrationStatus === "pending_payment" ? "disabled" : ""}
+                    ${!hasPixConfiguration(entry) ? "disabled" : ""}
+                    ${isRegistrationClosed(entry) ? "disabled" : ""}
+                  >
+                    ${
+                      registrationStatus === "approved"
+                        ? "Inscrito"
+                        : registrationStatus === "pending_payment"
+                          ? "Pagamento em analise"
+                        : !hasPixConfiguration(entry)
+                          ? "Pix indisponivel"
+                        : entry.status === "finished"
+                          ? "Finalizado"
+                          : isRegistrationClosed(entry)
+                            ? "Inscricoes encerradas"
+                            : currentUserProfile?.role === "admin"
+                              ? "Inscricoes"
+                              : "Pagar com Pix"
+                    }
+                  </button>
+                </div>
+              `
+              : ""
+          }
         </div>
       `
+      }
     )
     .join("")
 }
@@ -196,24 +330,26 @@ async function loadUserProfile(uid: string) {
   const userRef = doc(db, "users", uid)
   const tournamentsRef = query(collection(db, "users", uid, "tournaments"), orderBy("playedAt", "desc"))
   const matchesRef = query(collection(db, "users", uid, "matches"), orderBy("playedAt", "desc"))
+  const registrationsRef = query(collection(db, "users", uid, "registrations"), orderBy("registeredAt", "desc"))
   const upcomingRef = query(collection(db, "tournaments"), orderBy("startDate", "asc"))
 
-  const [userSnapshot, tournamentsSnapshot, matchesSnapshot, upcomingSnapshot] = await Promise.all([
+  const [userSnapshot, tournamentsSnapshot, matchesSnapshot, registrationsSnapshot, upcomingSnapshot] = await Promise.all([
     getDoc(userRef),
     getDocs(tournamentsRef),
     getDocs(matchesRef),
+    getDocs(registrationsRef),
     getDocs(upcomingRef)
   ])
 
   if (!userSnapshot.exists()) {
-    window.location.replace("/src/pages/complete-profile.html")
+    window.location.replace("/pages/complete-profile.html")
     return
   }
 
   const user = { id: userSnapshot.id, ...userSnapshot.data() } as User
 
   if (!user.profileComplete) {
-    window.location.replace("/src/pages/complete-profile.html")
+    window.location.replace("/pages/complete-profile.html")
     return
   }
 
@@ -223,6 +359,9 @@ async function loadUserProfile(uid: string) {
   const matches = matchesSnapshot.docs.map(
     (entry) => ({ id: entry.id, ...entry.data() }) as UserMatchHistory
   )
+  const registrations = registrationsSnapshot.docs.map(
+    (entry) => ({ id: entry.id, ...entry.data() }) as UserTournamentRegistration
+  )
   const now = Date.now()
   const upcoming = upcomingSnapshot.docs
     .map((entry) => ({ id: entry.id, ...entry.data() }) as UpcomingTournament)
@@ -230,29 +369,135 @@ async function loadUserProfile(uid: string) {
     .filter((entry) => entry.startDate >= now || entry.endDate === undefined || entry.endDate >= now)
     .slice(0, 6)
 
+  const authoritativeRegistrationSnapshots = await Promise.all(
+    upcoming.map(async (entry) => ({
+      tournamentId: entry.id,
+      snapshot: await getDoc(doc(db, "tournaments", entry.id, "registrations", uid))
+    }))
+  )
+  const authoritativeRegistrationIds = new Set(
+    authoritativeRegistrationSnapshots
+      .filter((entry) => entry.snapshot.exists())
+      .map((entry) => entry.tournamentId)
+  )
+
+  currentUserProfile = user
+  upcomingTournaments = upcoming
+  registrationStatusByTournament = new Map(
+    registrations.map((entry) => [entry.tournamentId || entry.id, entry.paymentStatus])
+  )
+  registeredTournamentIds = new Set(
+    registrations
+      .map((entry) => entry.tournamentId || entry.id)
+      .filter((entryId) => authoritativeRegistrationIds.has(entryId))
+      .filter((entryId) => registrationStatusByTournament.get(entryId) === "approved")
+  )
+
   updateHeader(user, tournaments, matches, upcoming)
   renderProfileInfo(user)
   renderTournamentHistory(tournaments)
   renderMatchHistory(matches)
-  renderUpcoming(upcoming)
+  renderUpcoming(upcoming, user, registeredTournamentIds)
 }
 
 ;(window as any).logout = async () => {
   await signOut(auth)
-  window.location.replace("/src/pages/login.html")
+  window.location.replace("/pages/login.html")
 }
 
 ;(window as any).editProfile = () => {
-  window.location.href = "/src/pages/complete-profile.html"
+  window.location.href = "/pages/complete-profile.html"
 }
 
 ;(window as any).goToDashboard = () => {
-  window.location.href = "/src/pages/dashboard.html"
+  window.location.href = "/pages/dashboard.html"
+}
+
+;(window as any).registerForTournament = async (tournamentId: string) => {
+  const firebaseUser = auth.currentUser
+
+  if (!firebaseUser || !currentUserProfile) {
+    window.location.replace("/pages/login.html")
+    return
+  }
+
+  if (currentUserProfile.role === "admin") {
+    alert("Administradores nao participam da inscricao de atletas.")
+    return
+  }
+
+  if (registeredTournamentIds.has(tournamentId)) {
+    alert("Voce ja esta inscrito neste torneio.")
+    return
+  }
+
+  if (registrationStatusByTournament.get(tournamentId) === "pending_payment") {
+    alert("Seu pagamento para este torneio ainda esta em analise.")
+    return
+  }
+
+  const tournament = upcomingTournaments.find((entry) => entry.id === tournamentId)
+  if (!tournament) {
+    alert("Torneio nao encontrado.")
+    return
+  }
+
+  if (isRegistrationClosed(tournament)) {
+    alert("As inscricoes para este torneio nao estao disponiveis.")
+    return
+  }
+
+  if (!hasPixConfiguration(tournament)) {
+    alert("A organizacao ainda nao configurou o pagamento Pix para este torneio.")
+    return
+  }
+
+  openRegistrationModal(tournament)
+}
+
+;(window as any).closeRegistrationModal = () => {
+  const modal = document.getElementById("registrationModal") as HTMLElement | null
+  if (modal) {
+    modal.style.display = "none"
+  }
+
+  pendingTournamentRegistrationId = null
+}
+
+;(window as any).confirmTournamentRegistration = async () => {
+  const firebaseUser = auth.currentUser
+
+  if (!firebaseUser || !currentUserProfile || !pendingTournamentRegistrationId) {
+    window.location.replace("/pages/login.html")
+    return
+  }
+
+  if (registeredTournamentIds.has(pendingTournamentRegistrationId)) {
+    alert("Voce ja esta inscrito neste torneio.")
+    ;(window as any).closeRegistrationModal()
+    return
+  }
+
+  const tournament = upcomingTournaments.find((entry) => entry.id === pendingTournamentRegistrationId)
+  if (!tournament) {
+    alert("Torneio nao encontrado.")
+    ;(window as any).closeRegistrationModal()
+    return
+  }
+
+  const selectedCategory = getSelectedRegistrationCategory()
+  if (!selectedCategory) {
+    alert("Escolha uma categoria para concluir a inscricao.")
+    return
+  }
+
+  ;(window as any).closeRegistrationModal()
+  window.location.href = `/pages/payment-pix.html?tournamentId=${encodeURIComponent(tournament.id)}&category=${encodeURIComponent(selectedCategory)}`
 }
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    window.location.replace("/src/pages/login.html")
+    window.location.replace("/pages/login.html")
     return
   }
 

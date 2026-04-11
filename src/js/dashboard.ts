@@ -20,17 +20,17 @@ function setUserHeader(userData: User) {
 
 function redirectByRole(userData?: User | null) {
   if (!userData) {
-    window.location.replace("/src/pages/login.html")
+    window.location.replace("/pages/login.html")
     return null
   }
 
   if (!userData.profileComplete) {
-    window.location.replace("/src/pages/complete-profile.html")
+    window.location.replace("/pages/complete-profile.html")
     return null
   }
 
   if (userData.role !== "admin") {
-    window.location.replace("/src/pages/profile.html")
+    window.location.replace("/pages/profile.html")
     return null
   }
 
@@ -148,6 +148,9 @@ function renderAthletes(filter = "") {
               <strong>${athlete.name}</strong>
               <span>${athlete.email}</span>
               <span>${athlete.club || "Sem clube"} - ${athlete.category || "Sem categoria"}</span>
+              <div class="admin-athlete-actions">
+                <button class="btn secondary" onclick="openUserManager('${athlete.id}')">Gerenciar</button>
+              </div>
             </div>
           `
         )
@@ -177,19 +180,27 @@ async function loadHubData() {
 }
 
 ;(window as any).goToTournamentForm = () => {
-  window.location.href = "/src/pages/tournament-form.html"
+  window.location.href = "/pages/tournament-form.html"
 }
 
 ;(window as any).goToAthleteRegistration = () => {
-  window.location.href = "/src/pages/register.html"
+  window.location.href = "/pages/register.html"
+}
+
+;(window as any).goToUsersAdmin = () => {
+  window.location.href = "/pages/users-admin.html"
+}
+
+;(window as any).openUserManager = (id: string) => {
+  window.location.href = `/pages/users-admin.html?id=${id}`
 }
 
 ;(window as any).editTournament = (id: string) => {
-  window.location.href = `/src/pages/tournament-form.html?id=${id}`
+  window.location.href = `/pages/tournament-form.html?id=${id}`
 }
 
 ;(window as any).manageTournament = (id: string) => {
-  window.location.href = `/src/pages/tournament-manage.html?id=${id}`
+  window.location.href = `/pages/tournament-manage.html?id=${id}`
 }
 
 ;(window as any).startTournament = async (id: string) => {
@@ -204,19 +215,19 @@ async function loadHubData() {
     })
 
     await batch.commit()
-    window.location.href = `/src/pages/tournament-manage.html?id=${id}`
+    window.location.href = `/pages/tournament-manage.html?id=${id}`
   } catch (error: any) {
     alert("Erro ao iniciar torneio: " + error.message)
   }
 }
 
 ;(window as any).openProfile = () => {
-  window.location.href = "/src/pages/profile.html"
+  window.location.href = "/pages/profile.html"
 }
 
 ;(window as any).logout = async () => {
   await signOut(auth)
-  window.location.replace("/src/pages/login.html")
+  window.location.replace("/pages/login.html")
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -224,7 +235,7 @@ onAuthStateChanged(auth, async (user) => {
   checked = true
 
   if (!user) {
-    window.location.replace("/src/pages/login.html")
+    window.location.replace("/pages/login.html")
     return
   }
 

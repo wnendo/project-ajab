@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login</title>
+  <title>AJAB - Login</title>
+  <link rel="icon" type="image/png" href="/src/res/favicon.png">
   <link rel="stylesheet" href="/src/styles/auth.css">
 </head>
 <body class="login-page">
@@ -36,16 +37,23 @@
       <input id="password" type="password" placeholder="Digite sua senha">
     </div>
 
-    <button class="primary-btn" onclick="login()">Entrar</button>
+    <button id="loginButton" class="primary-btn" onclick="login()">Entrar</button>
 
     <div class="login-divider"><span>ou</span></div>
 
-    <button class="google-btn" onclick="loginWithGoogle()">
+    <button id="googleLoginButton" class="google-btn" onclick="loginWithGoogle()">
       <img src="/src/res/google.svg" class="google-icon" alt="">
       Entrar com Google
     </button>
 
     <button class="link-button" onclick="goToRegister()">Criar Conta</button>
+  </div>
+</div>
+
+<div id="loginLoading" class="login-loading-overlay" aria-hidden="true">
+  <div class="login-loading-card" role="status" aria-live="polite">
+    <div class="login-spinner"></div>
+    <p>Entrando na sua conta...</p>
   </div>
 </div>
 

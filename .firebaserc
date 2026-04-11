@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "ranking-ajab"
-  }
+  },
+  "targets": {
+    "ranking-ajab": {
+      "hosting": {
+        "ajab": [
+          "ranking-ajab-v2"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
