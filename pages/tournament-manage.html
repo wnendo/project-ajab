@@ -59,19 +59,35 @@
     </div>
   </div>
 
-  <div class="actions">
-    <button id="startBtn" class="btn primary" disabled>Use os paineis abaixo</button>
-    <button class="btn secondary" onclick="resetMatches()">Resetar</button>
-  </div>
+  <div class="tournament-control-groups">
+    <section class="tournament-control-section">
+      <span class="tournament-control-label">Operacao</span>
+      <div class="tournament-control-grid tournament-control-grid-primary">
+        <button id="startBtn" class="btn primary" disabled>Use os paineis abaixo</button>
+        <button class="btn secondary" onclick="resetMatches()">Resetar</button>
+        <button id="rankingModeAction" class="btn secondary" onclick="toggleRankingMode()" style="display:none;">Separar A e B</button>
+        <button class="btn primary" onclick="finishTournament()">Encerrar torneio</button>
+      </div>
+    </section>
 
-  <button id="rankingModeAction" class="btn secondary" onclick="toggleRankingMode()" style="display:none;">Separar A e B</button>
-  <button class="btn primary" onclick="finishTournament()">Encerrar torneio</button>
-  <button class="btn secondary" onclick="openTournamentRegistrations()">Gerenciar inscricoes</button>
-  <button class="btn secondary" onclick="editCurrentTournament()">Editar torneio</button>
-  <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
-  <button class="btn secondary" onclick="openProfile()">Meu perfil</button>
-  <button class="btn danger" onclick="clearPlayers()">Limpar campeonato</button>
-  <button class="btn primary" onclick="logout()">Sair</button>
+    <section class="tournament-control-section">
+      <span class="tournament-control-label">Gestao</span>
+      <div class="tournament-control-grid">
+        <button class="btn secondary" onclick="openTournamentRegistrations()">Gerenciar inscricoes</button>
+        <button class="btn secondary" onclick="editCurrentTournament()">Editar torneio</button>
+        <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
+        <button class="btn secondary" onclick="openProfile()">Meu perfil</button>
+      </div>
+    </section>
+
+    <section class="tournament-control-section">
+      <span class="tournament-control-label">Sistema</span>
+      <div class="tournament-control-grid tournament-control-grid-utility">
+        <button class="btn danger" onclick="clearPlayers()">Limpar campeonato</button>
+        <button class="btn primary" onclick="logout()">Sair</button>
+      </div>
+    </section>
+  </div>
 </div>
 </div>
 

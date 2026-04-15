@@ -42,6 +42,28 @@ function getPlayerNameFromTournament(
   return tournamentPlayerMap?.get(playerId) || "A definir"
 }
 
+function getFinalStandingsMarkup(
+  categoryState: ChampionshipCategoryState | undefined,
+  tournamentPlayerMap: Map<string, string> | undefined
+) {
+  const finalStandings = categoryState?.finalStandings ?? []
+  if (!finalStandings.length) return ""
+
+  return `
+    <div class="stack-item">
+      <div class="stack-item-header">
+        <div>
+          <strong>Classificacao final</strong>
+          <span>Resultado oficial da categoria</span>
+        </div>
+      </div>
+      <div class="stack-item-grid stack-item-grid-dense">
+        ${finalStandings.slice(0, 4).map((playerId, index) => `<span>${index + 1}o - ${tournamentPlayerMap?.get(playerId) || "Atleta"}</span>`).join("")}
+      </div>
+    </div>
+  `
+}
+
 function renderCategoryCard(
   tournament: UpcomingTournament,
   category: ChampionshipCategory,
@@ -67,7 +89,7 @@ function renderCategoryCard(
               </div>
               <span class="result-pill win">Em andamento</span>
             </div>
-            <div class="stack-item-grid">
+            <div class="stack-item-grid stack-item-grid-dense">
               <span>Mesa: ${activeTable.id}</span>
               <span>Adversario: ${opponentName}</span>
             </div>
@@ -87,7 +109,7 @@ function renderCategoryCard(
                 </div>
                 <span class="result-pill neutral">Na fila</span>
               </div>
-              <div class="stack-item-grid">
+              <div class="stack-item-grid stack-item-grid-dense">
                 <span>Grupo: ${queuedMatch.groupId || "Fase de grupos"}</span>
                 <span>Adversario: ${opponentName}</span>
               </div>
@@ -116,13 +138,14 @@ function renderCategoryCard(
                     <span>Jogadores do seu grupo</span>
                   </div>
                 </div>
-                <div class="stack-item-grid">
+                <div class="stack-item-grid stack-item-grid-dense">
                   ${playerGroup.playerIds.map((playerId) => `<span>${tournamentPlayerMap?.get(playerId) || "Atleta"}</span>`).join("")}
                 </div>
               </div>
             `
             : '<div class="empty-state">Seu grupo ainda não foi definido nesta categoria.</div>'
         }
+        ${getFinalStandingsMarkup(categoryState, tournamentPlayerMap)}
         ${
           groups.length >= 2
             ? `

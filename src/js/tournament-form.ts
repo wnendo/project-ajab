@@ -82,12 +82,16 @@ function toggleTournamentTypeFields() {
   const championshipCategoriesWrap = document.getElementById("championshipCategoriesWrap") as HTMLElement | null
   const rankingModeWrap = document.getElementById("rankingModeWrap") as HTMLElement | null
   const doubleFeeWrap = document.getElementById("tournamentDoubleRegistrationFeeWrap") as HTMLElement | null
-  if (!championshipCategoriesWrap || !rankingModeWrap || !doubleFeeWrap) return
+  const rankingLimitsWrap = document.getElementById("rankingCategoryLimitsWrap") as HTMLElement | null
+  const championshipLimitsWrap = document.getElementById("championshipCategoryLimitsWrap") as HTMLElement | null
+  if (!championshipCategoriesWrap || !rankingModeWrap || !doubleFeeWrap || !rankingLimitsWrap || !championshipLimitsWrap) return
 
   const isRanking = tournamentType === "ranking"
   championshipCategoriesWrap.style.display = isRanking ? "none" : "block"
   rankingModeWrap.style.display = isRanking ? "block" : "none"
   doubleFeeWrap.style.display = isRanking ? "none" : "block"
+  rankingLimitsWrap.style.display = isRanking ? "block" : "none"
+  championshipLimitsWrap.style.display = isRanking ? "none" : "block"
 }
 
 function setSelectedCategories(categories: string[]) {
@@ -108,6 +112,50 @@ function normalizeCategories(tournament: UpcomingTournament) {
   }
 
   return []
+}
+
+function parseLimitInput(id: string) {
+  const raw = getField<HTMLInputElement>(id).value.trim()
+  if (!raw) return undefined
+  const parsed = Number(raw)
+  if (Number.isNaN(parsed) || parsed <= 0) return undefined
+  return Math.floor(parsed)
+}
+
+function buildCategoryLimits(tournamentType: UpcomingTournament["tournamentType"]) {
+  const limits: Record<string, number> = {}
+
+  if (tournamentType === "ranking") {
+    const limitA = parseLimitInput("categoryLimitA")
+    const limitB = parseLimitInput("categoryLimitB")
+    if (limitA) limits.A = limitA
+    if (limitB) limits.B = limitB
+    return limits
+  }
+
+  const championshipLimits = [
+    ["A", parseLimitInput("categoryLimitChampA")],
+    ["B", parseLimitInput("categoryLimitChampB")],
+    ["C", parseLimitInput("categoryLimitChampC")],
+    ["D", parseLimitInput("categoryLimitChampD")],
+    ["Iniciante", parseLimitInput("categoryLimitChampIniciante")]
+  ] as const
+
+  championshipLimits.forEach(([category, limit]) => {
+    if (limit) limits[category] = limit
+  })
+
+  return limits
+}
+
+function populateCategoryLimits(limits?: UpcomingTournament["categoryLimits"]) {
+  getField<HTMLInputElement>("categoryLimitA").value = limits?.A ? String(limits.A) : ""
+  getField<HTMLInputElement>("categoryLimitB").value = limits?.B ? String(limits.B) : ""
+  getField<HTMLInputElement>("categoryLimitChampA").value = limits?.A ? String(limits.A) : ""
+  getField<HTMLInputElement>("categoryLimitChampB").value = limits?.B ? String(limits.B) : ""
+  getField<HTMLInputElement>("categoryLimitChampC").value = limits?.C ? String(limits.C) : ""
+  getField<HTMLInputElement>("categoryLimitChampD").value = limits?.D ? String(limits.D) : ""
+  getField<HTMLInputElement>("categoryLimitChampIniciante").value = limits?.Iniciante ? String(limits.Iniciante) : ""
 }
 
 async function loadTournamentIfNeeded() {
@@ -132,6 +180,7 @@ async function loadTournamentIfNeeded() {
   getField<HTMLInputElement>("tournamentRegistrationDeadline").value = toDateInputValue(currentTournament.registrationDeadline)
   getField<HTMLInputElement>("tournamentRegistrationFee").value = currentTournament.registrationFee?.toFixed(2) ?? ""
   getField<HTMLInputElement>("tournamentDoubleRegistrationFee").value = currentTournament.doubleRegistrationFee?.toFixed(2) ?? ""
+  populateCategoryLimits(currentTournament.categoryLimits)
   getField<HTMLInputElement>("tournamentPixKey").value = currentTournament.pixKey ?? ""
   getField<HTMLInputElement>("tournamentPixHolder").value = currentTournament.pixHolder ?? ""
   getField<HTMLSelectElement>("tournamentStatus").value = currentTournament.status ?? "upcoming"
@@ -163,6 +212,7 @@ async function loadTournamentIfNeeded() {
   const pixHolder = getField<HTMLInputElement>("tournamentPixHolder").value.trim()
   const status = getField<HTMLSelectElement>("tournamentStatus").value as UpcomingTournament["status"]
   const description = getField<HTMLTextAreaElement>("tournamentDescription").value.trim()
+  const categoryLimits = buildCategoryLimits(tournamentType)
 
   if (!title || !startDate) {
     alert("Informe pelo menos o nome do torneio e a data de inicio.")
@@ -201,6 +251,7 @@ async function loadTournamentIfNeeded() {
     ...(registrationDeadline ? { registrationDeadline } : {}),
     ...(registrationFee !== undefined ? { registrationFee } : {}),
     ...(tournamentType === "championship" && doubleRegistrationFee !== undefined ? { doubleRegistrationFee } : {}),
+    ...(Object.keys(categoryLimits).length ? { categoryLimits } : { categoryLimits: {} }),
     ...(pixKey ? { pixKey } : {}),
     ...(pixHolder ? { pixHolder } : {}),
     status,

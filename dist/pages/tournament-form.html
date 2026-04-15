@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AJAB - Cadastro de Torneio</title>
   <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
-  <script type="module" crossorigin src="/assets/tournamentForm-DgkwqecC.js"></script>
+  <script type="module" crossorigin src="/assets/tournamentForm-VS3qHK6d.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Btlm8H0F.js">
   <link rel="modulepreload" crossorigin href="/assets/firebase-VBRKn9At.js">
-  <link rel="modulepreload" crossorigin href="/assets/tournament-rules-DUbpQbwy.js">
-  <link rel="stylesheet" crossorigin href="/assets/global-BlVylZPw.css">
+  <link rel="modulepreload" crossorigin href="/assets/tournament-rules-D9Tq3W95.js">
+  <link rel="stylesheet" crossorigin href="/assets/global-CpiVuQ4A.css">
 </head>
 <body class="dashboard-page tournament-form-page">
   <div class="header">
-    <img src="/assets/logo-DnYXdFXg.png" class="logo-img">
+    <img src="/assets/logo-D3xZMJos.png" class="logo-img">
     <div id="userSummary" class="user-summary"></div>
   </div>
 
@@ -67,6 +67,46 @@
               <input type="checkbox" name="tournamentCategory" value="Iniciantes">
               <span>Iniciantes</span>
             </label>
+          </div>
+        </div>
+
+        <div id="rankingCategoryLimitsWrap">
+          <label>Limite de atletas por categoria do ranking</label>
+          <div class="date-grid">
+            <div>
+              <label for="categoryLimitA">Categoria A</label>
+              <input id="categoryLimitA" type="number" min="1" step="1" placeholder="Sem limite">
+            </div>
+            <div>
+              <label for="categoryLimitB">Categoria B</label>
+              <input id="categoryLimitB" type="number" min="1" step="1" placeholder="Sem limite">
+            </div>
+          </div>
+        </div>
+
+        <div id="championshipCategoryLimitsWrap">
+          <label>Limite de atletas por categoria do campeonato</label>
+          <div class="checkbox-grid category-limit-grid">
+            <div>
+              <label for="categoryLimitChampA">A</label>
+              <input id="categoryLimitChampA" type="number" min="1" step="1" placeholder="Sem limite">
+            </div>
+            <div>
+              <label for="categoryLimitChampB">B</label>
+              <input id="categoryLimitChampB" type="number" min="1" step="1" placeholder="Sem limite">
+            </div>
+            <div>
+              <label for="categoryLimitChampC">C</label>
+              <input id="categoryLimitChampC" type="number" min="1" step="1" placeholder="Sem limite">
+            </div>
+            <div>
+              <label for="categoryLimitChampD">D</label>
+              <input id="categoryLimitChampD" type="number" min="1" step="1" placeholder="Sem limite">
+            </div>
+            <div>
+              <label for="categoryLimitChampIniciante">Iniciante</label>
+              <input id="categoryLimitChampIniciante" type="number" min="1" step="1" placeholder="Sem limite">
+            </div>
           </div>
         </div>
 

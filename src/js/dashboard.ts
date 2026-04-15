@@ -68,6 +68,7 @@ function renderTournamentCard(tournament: UpcomingTournament, mode: "registered"
 
   if (mode === "ongoing") {
     actions.push(`<button class="btn primary" onclick="manageTournament('${tournament.id}')">Entrar no gerenciamento</button>`)
+    actions.push(`<button class="btn secondary" onclick="resetTournamentStatus('${tournament.id}')">Voltar para nao iniciado</button>`)
     actions.push(`<button class="btn secondary" onclick="editTournament('${tournament.id}')">Editar</button>`)
   }
 
@@ -109,14 +110,14 @@ function renderTournaments() {
   const ongoingEl = document.getElementById("ongoingTournaments")
   const finishedEl = document.getElementById("finishedTournaments")
 
-  const registered = tournaments.filter((entry) => !entry.isActive && entry.status !== "finished")
+  const scheduled = tournaments.filter((entry) => !entry.isActive && entry.status !== "open" && entry.status !== "finished")
   const ongoing = tournaments.filter((entry) => entry.isActive || entry.status === "open")
   const finished = tournaments.filter((entry) => entry.status === "finished")
 
   if (registeredEl) {
-    registeredEl.innerHTML = registered.length
-      ? registered.map((entry) => renderTournamentCard(entry, "registered")).join("")
-      : '<div class="empty-state">Nenhum torneio cadastrado pronto para iniciar.</div>'
+    registeredEl.innerHTML = scheduled.length
+      ? scheduled.map((entry) => renderTournamentCard(entry, "registered")).join("")
+      : '<div class="empty-state">Nenhum proximo torneio cadastrado no momento.</div>'
   }
 
   if (ongoingEl) {
@@ -212,9 +213,14 @@ async function loadHubData() {
   try {
     const batch = writeBatch(db)
     tournaments.forEach((entry) => {
+      const shouldResetToUpcoming =
+        entry.id !== id &&
+        entry.status !== "finished" &&
+        (entry.isActive || entry.status === "open")
+
       batch.update(doc(db, "tournaments", entry.id), {
         isActive: entry.id === id,
-        status: entry.id === id ? "open" : entry.status,
+        status: entry.id === id ? "open" : shouldResetToUpcoming ? "upcoming" : entry.status,
         updatedAt: Date.now()
       })
     })
@@ -224,6 +230,26 @@ async function loadHubData() {
     window.location.href = `${getManagePagePath(tournament)}?id=${id}`
   } catch (error: any) {
     alert("Erro ao iniciar torneio: " + error.message)
+  }
+}
+
+;(window as any).resetTournamentStatus = async (id: string) => {
+  try {
+    await updateDoc(doc(db, "tournaments", id), {
+      isActive: false,
+      status: "upcoming",
+      updatedAt: Date.now()
+    })
+
+    tournaments = tournaments.map((entry) =>
+      entry.id === id
+        ? { ...entry, isActive: false, status: "upcoming", updatedAt: Date.now() }
+        : entry
+    )
+
+    renderTournaments()
+  } catch (error: any) {
+    alert("Erro ao voltar torneio para nao iniciado: " + error.message)
   }
 }
 

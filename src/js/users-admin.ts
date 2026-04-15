@@ -1,4 +1,4 @@
-import { onAuthStateChanged, signOut } from "firebase/auth"
+﻿import { onAuthStateChanged, signOut } from "firebase/auth"
 import {
   collection,
   doc,
@@ -10,6 +10,8 @@ import {
   writeBatch
 } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
+import { confirmAction } from "./confirm-modal"
+import { showToast } from "./toast"
 import { User } from "./types"
 
 let checked = false
@@ -70,7 +72,7 @@ function renderUsers(filter = "") {
               <div class="user-admin-head">
                 <div>
                   <strong>${user.name}</strong>
-                  <span>${user.email || "Email não informado"}</span>
+                  <span>${user.email || "Email nao informado"}</span>
                 </div>
                 <span class="result-pill ${user.role === "admin" ? "neutral" : "win"}">
                   ${user.role === "admin" ? "Admin" : "Usuario"}
@@ -211,7 +213,7 @@ async function deleteUserData(userId: string) {
   }
 
   if (!payload.name || !payload.email) {
-    alert("Nome e email sao obrigatorios.")
+    showToast("Nome e email sao obrigatorios.", "warning")
     return
   }
 
@@ -224,8 +226,9 @@ async function deleteUserData(userId: string) {
     users.sort((a, b) => (a.name || "").localeCompare(b.name || ""))
     ;(window as any).closeUserEditModal()
     renderUsers((document.getElementById("userSearch") as HTMLInputElement)?.value ?? "")
+    showToast("Usuario atualizado com sucesso.", "success")
   } catch (error: any) {
-    alert("Erro ao salvar usuario: " + error.message)
+    showToast("Erro ao salvar usuario: " + error.message, "error")
   }
 }
 
@@ -234,22 +237,25 @@ async function deleteUserData(userId: string) {
   if (!user) return
 
   if (auth.currentUser?.uid === userId) {
-    alert("Não é permitido excluir o usuario admin que esta atualmente logado.")
+    showToast("Nao e permitido excluir o usuario admin que esta atualmente logado.", "warning")
     return
   }
 
-  const confirmed = confirm(
-    `Excluir ${user.name} do sistema de dados da AJAB?\n\nIsso remove cadastro, inscrições, histórico e partidas vinculadas na base de dados.`
-  )
+  const confirmed = await confirmAction({
+    title: "Excluir usuario",
+    message: `Excluir ${user.name} do sistema de dados da AJAB?\n\nIsso remove cadastro, inscricoes, historico e partidas vinculadas na base de dados.`,
+    confirmLabel: "Excluir",
+    tone: "danger"
+  })
   if (!confirmed) return
 
   try {
     await deleteUserData(userId)
     users = users.filter((entry) => entry.id !== userId)
     renderUsers((document.getElementById("userSearch") as HTMLInputElement)?.value ?? "")
-    alert("Usuario removido dos dados do sistema. A conta de autenticação do Firebase pode continuar existindo.")
+    showToast("Usuario removido dos dados do sistema. A conta de autenticacao do Firebase pode continuar existindo.", "success")
   } catch (error: any) {
-    alert("Erro ao excluir usuario: " + error.message)
+    showToast("Erro ao excluir usuario: " + error.message, "error")
   }
 }
 

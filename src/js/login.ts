@@ -1,6 +1,7 @@
 import { GoogleAuthProvider, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth"
 import { doc, getDoc, setDoc } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
+import { showToast } from "./toast"
 
 const provider = new GoogleAuthProvider()
 let authChecked = false
@@ -81,7 +82,7 @@ async function ensureGoogleUserDocument() {
   const password = (document.getElementById("password") as HTMLInputElement).value
 
   if (!email || !password) {
-    alert("Informe e-mail e senha.")
+    showToast("Informe e-mail e senha.", "warning")
     return
   }
 
@@ -92,7 +93,7 @@ async function ensureGoogleUserDocument() {
     window.location.replace(nextRoute)
   } catch (error: any) {
     setLoginLoading(false)
-    alert("Erro ao entrar: " + error.message)
+    showToast("Erro ao entrar: " + error.message, "error")
   }
 }
 
@@ -106,7 +107,7 @@ async function ensureGoogleUserDocument() {
     window.location.replace(nextRoute)
   } catch (error: any) {
     setLoginLoading(false)
-    alert("Erro no login com Google: " + error.message)
+    showToast("Erro no login com Google: " + error.message, "error")
   }
 }
 
@@ -118,15 +119,15 @@ async function ensureGoogleUserDocument() {
   const email = (document.getElementById("email") as HTMLInputElement | null)?.value.trim()
 
   if (!email) {
-    alert("Informe seu email para receber o link de redefinicao de senha.")
+    showToast("Informe seu email para receber o link de redefinicao de senha.", "warning")
     return
   }
 
   try {
     await sendPasswordResetEmail(auth, email)
-    alert("Enviamos um link de redefinicao de senha para o seu email.")
+    showToast("Enviamos um link de redefinicao de senha para o seu email.", "success")
   } catch (error: any) {
-    alert("Erro ao enviar redefinicao de senha: " + error.message)
+    showToast("Erro ao enviar redefinicao de senha: " + error.message, "error")
   }
 }
 
@@ -153,3 +154,4 @@ document.addEventListener("keydown", (event) => {
   event.preventDefault()
   ;(window as any).login()
 })
+

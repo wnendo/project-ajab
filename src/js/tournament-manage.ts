@@ -38,6 +38,8 @@ import {
   isRankingTournament
 } from "./tournament-rules"
 import { render } from "./tournament-manage-ui"
+import { confirmAction } from "./confirm-modal"
+import { showToast } from "./toast"
 
 const tournamentId = new URLSearchParams(window.location.search).get("id")
 
@@ -143,7 +145,7 @@ function getCandidateStatus(candidate: AthleteSearchCandidate) {
   }
 
   return {
-    label: "Sem inscrição",
+    label: "Sem inscricao",
     tone: "neutral"
   }
 }
@@ -169,7 +171,7 @@ function renderAthleteSearchResults(search = "") {
         .map((candidate) => {
           const status = getCandidateStatus(candidate)
           const displayName = candidate.user.name.trim()
-          const meta = [candidate.user.club || "Sem clube", candidate.user.category || "Sem categoria"].join(" · ")
+          const meta = [candidate.user.club || "Sem clube", candidate.user.category || "Sem categoria"].join(" - ")
 
           return `
             <button
@@ -210,9 +212,8 @@ function buildRegistrationPayload(user: User, paymentStatus: TournamentRegistrat
   const tournament = currentTournament
 
   if (!tournament) {
-    throw new Error("Torneio não carregado.")
+    throw new Error("Torneio nao carregado.")
   }
-
   const now = Date.now()
   const category = getRegistrationCategory(user)
   const registrationFee = getRegistrationFeeForSelection(tournament, [category])
@@ -260,7 +261,7 @@ function openAthleteActivationModal(candidate: AthleteSearchCandidate) {
   pendingAthleteCandidate = candidate
   title.textContent = `Ativar ${candidate.user.name}?`
   description.textContent =
-    "Confirme o status do pagamento para concluir a inscrição ou enviar o atleta para analise."
+    "Confirme o status do pagamento para concluir a inscricao ou enviar o atleta para analise."
   modal.style.display = "flex"
 }
 
@@ -457,15 +458,15 @@ function setUserHeader(userData: User) {
 
 function updateTournamentSummary() {
   ;(document.getElementById("activeTournamentName") as HTMLElement).textContent =
-    currentTournament?.title || "Torneio não encontrado"
+    currentTournament?.title || "Torneio nao encontrado"
   ;(document.getElementById("tournamentStatusLabel") as HTMLElement).textContent =
     currentTournament?.status === "finished"
       ? "Finalizado"
       : currentTournament?.isActive
         ? "Em andamento"
         : currentTournament?.status === "open"
-          ? "Inscrições abertas"
-          : "Em breve"
+          ? "Inscricoes abertas"
+          : "Aguardando inicio"
 }
 
 async function loadTournament() {
@@ -488,8 +489,8 @@ async function loadTournament() {
 async function loadPlayers() {
   if (!currentTournament) {
     allUsers = []
+    registrations = []
     players.length = 0
-    registeredAthleteIds = new Set<string>()
     return
   }
 
@@ -592,16 +593,16 @@ async function refreshRegistrations() {
     await loadPlayers()
     render()
   } catch (error) {
-    console.error("Erro ao atualizar inscrições do torneio:", error)
+    console.error("Erro ao atualizar inscricoes do torneio:", error)
   }
-}
-
-function getTournamentParticipants() {
-  return players.filter((player) => player.games > 0 || player.active)
 }
 
 export function getTournamentRegistrations() {
   return [...registrations].sort((a, b) => a.name.localeCompare(b.name))
+}
+
+function getTournamentParticipants() {
+  return players.filter((player) => player.games > 0 || player.active)
 }
 
 function getTournamentRanking() {
@@ -614,8 +615,8 @@ function getTournamentRanking() {
 }
 
 function getPlacementLabel(position: number) {
-  if (position === 1) return "Campeão"
-  if (position === 2) return "Vice-campeão"
+  if (position === 1) return "Campeao"
+  if (position === 2) return "Vice-campeao"
   if (position === 3) return "3o lugar"
   return `${position}o lugar`
 }
@@ -841,19 +842,19 @@ window.addEventListener("beforeunload", () => {
       getAthleteSearchCandidates(name).find((entry) => normalizeText(entry.user.name) === normalizeText(name))
 
     if (!selectedCandidate) {
-      alert("Selecione um atleta da busca para ativar.")
+      showToast("Selecione um atleta da busca para ativar.", "warning")
       return
     }
 
     if (selectedCandidate.player?.active) {
-      alert("Esse jogador já esta inscrito e ativo neste torneio.")
+      showToast("Esse jogador ja esta inscrito e ativo neste torneio.", "warning")
       return
     }
 
     if (selectedCandidate.registration?.paymentStatus === "approved") {
       const inactiveUser = players.find((entry) => entry.id === selectedCandidate.user.id && !entry.active)
       if (!inactiveUser) {
-        alert("Não foi possível ativar esse atleta agora.")
+        showToast("Nao foi possivel ativar esse atleta agora.", "error")
         return
       }
 
@@ -876,12 +877,13 @@ window.addEventListener("beforeunload", () => {
       input.value = ""
       syncAthleteSearch()
       render()
+      showToast("Atleta reativado com sucesso.", "success")
       return
     }
 
     openAthleteActivationModal(selectedCandidate)
   } catch (error: any) {
-    alert("Erro ao ativar atleta: " + error.message)
+    showToast("Erro ao ativar atleta: " + error.message, "error")
   }
 }
 
@@ -926,9 +928,9 @@ window.addEventListener("beforeunload", () => {
     }
 
     if (status === "approved") {
-      alert("Atleta adicionado automaticamente ao campeonato.")
+      showToast("Atleta adicionado automaticamente ao campeonato.", "success")
     } else {
-      alert("Inscricao adicionada para analise no gerenciamento de inscricoes.")
+      showToast("Inscricao adicionada para analise no gerenciamento de inscricoes.", "info")
     }
 
     selectedAthleteId = null
@@ -940,7 +942,7 @@ window.addEventListener("beforeunload", () => {
     syncAthleteSearch()
     render()
   } catch (error: any) {
-    alert("Erro ao registrar atleta: " + error.message)
+    showToast("Erro ao registrar atleta: " + error.message, "error")
   }
 }
 
@@ -962,7 +964,7 @@ window.addEventListener("beforeunload", () => {
     await loadPlayers()
     render()
   } catch (error: any) {
-    alert("Erro ao aprovar pagamento: " + error.message)
+    showToast("Erro ao aprovar pagamento: " + error.message, "error")
   }
 }
 
@@ -972,7 +974,13 @@ window.addEventListener("beforeunload", () => {
   const registration = registrations.find((entry) => entry.id === userId)
   if (!registration) return
 
-  if (!confirm(`Remover a inscrição de ${registration.name}?`)) return
+  const confirmed = await confirmAction({
+    title: "Remover inscricao",
+    message: `Remover a inscricao de ${registration.name}?`,
+    confirmLabel: "Remover",
+    tone: "danger"
+  })
+  if (!confirmed) return
 
   try {
     const batch = writeBatch(db)
@@ -988,7 +996,7 @@ window.addEventListener("beforeunload", () => {
     await loadPlayers()
     render()
   } catch (error: any) {
-    alert("Erro ao remover inscrição: " + error.message)
+    showToast("Erro ao remover inscricao: " + error.message, "error")
   }
 }
 
@@ -996,7 +1004,7 @@ window.addEventListener("beforeunload", () => {
   if (!currentTournament || !isRankingTournament(currentTournament)) return
 
   if (matches.length > 0) {
-    alert("Não é possível juntar ou separar categorias após iniciar partidas.")
+    showToast("Nao e possivel juntar ou separar categorias apos iniciar partidas.", "warning")
     return
   }
 
@@ -1039,12 +1047,12 @@ window.addEventListener("beforeunload", () => {
 
 ;(window as any).startGroup = async (group: CompetitionGroup) => {
   if (!currentTournament) {
-    alert("Torneio não encontrado.")
+    showToast("Torneio nao encontrado.", "error")
     return
   }
 
   if (!groupCanStart(group)) {
-    alert("Essa categoria precisa de pelo menos 2 atletas ativos.")
+    showToast("Essa categoria precisa de pelo menos 2 atletas ativos.", "warning")
     return
   }
 
@@ -1092,7 +1100,7 @@ window.addEventListener("beforeunload", () => {
     await persistRankingLiveState()
     render()
   } catch (error: any) {
-    alert("Erro ao resetar campeonato: " + error.message)
+    showToast("Erro ao resetar campeonato: " + error.message, "error")
   }
 }
 
@@ -1102,11 +1110,17 @@ window.addEventListener("beforeunload", () => {
 
   const ranking = getTournamentRanking()
   if (!ranking.length) {
-    alert("Adicione atletas e finalize partidas antes de encerrar o torneio.")
+    showToast("Adicione atletas e finalize partidas antes de encerrar o torneio.", "warning")
     return
   }
 
-  if (!confirm(`Encerrar o torneio "${tournament.title}"?`)) return
+  const confirmed = await confirmAction({
+    title: "Encerrar torneio",
+    message: `Encerrar o torneio "${tournament.title}"?\n\nEssa acao finaliza o ranking e grava a classificacao dos atletas.`,
+    confirmLabel: "Encerrar",
+    tone: "danger"
+  })
+  if (!confirmed) return
 
   try {
     const batch = writeBatch(db)
@@ -1127,11 +1141,7 @@ window.addEventListener("beforeunload", () => {
         playedAt: now
       }
 
-      batch.set(
-        doc(db, "users", player.id, "tournaments", tournament.id),
-        tournamentRecord,
-        { merge: true }
-      )
+      batch.set(doc(db, "users", player.id, "tournaments", tournament.id), tournamentRecord, { merge: true })
 
       batch.update(doc(db, "users", player.id), {
         "playerProfile.wins": 0,
@@ -1155,13 +1165,20 @@ window.addEventListener("beforeunload", () => {
     resetLocalChampionshipState()
     await persistRankingLiveState()
     render()
+    showToast("Torneio encerrado com sucesso.", "success")
   } catch (error: any) {
-    alert("Erro ao encerrar torneio: " + error.message)
+    showToast("Erro ao encerrar torneio: " + error.message, "error")
   }
 }
 
 ;(window as any).deletePlayer = async (id: string) => {
-  if (!confirm("Remover atleta deste torneio?")) return
+  const confirmed = await confirmAction({
+    title: "Remover atleta",
+    message: "Remover este atleta do torneio atual?",
+    confirmLabel: "Remover",
+    tone: "danger"
+  })
+  if (!confirmed) return
 
   try {
     const batch = writeBatch(db)
@@ -1198,7 +1215,7 @@ window.addEventListener("beforeunload", () => {
     await persistRankingLiveState()
     render()
   } catch (error: any) {
-    alert("Erro ao remover atleta do torneio: " + error.message)
+    showToast("Erro ao remover atleta do torneio: " + error.message, "error")
   }
 }
 
@@ -1216,7 +1233,7 @@ window.addEventListener("beforeunload", () => {
     players.sort((a, b) => a.name.localeCompare(b.name))
     render()
   } catch (error: any) {
-    alert("Erro ao editar atleta: " + error.message)
+    showToast("Erro ao editar atleta: " + error.message, "error")
   }
 }
 
@@ -1232,7 +1249,7 @@ window.addEventListener("beforeunload", () => {
     await persistRankingLiveState()
     render()
   } catch (error: any) {
-    alert("Erro ao atualizar atleta: " + error.message)
+    showToast("Erro ao atualizar atleta: " + error.message, "error")
   }
 }
 
@@ -1305,7 +1322,13 @@ export function getPlayerStats(playerId: string) {
 ;(window as any).clearPlayers = async () => {
   if (!currentTournament) return
 
-  if (!confirm("Tem certeza que deseja limpar o campeonato atual e desativar os atletas deste torneio?")) return
+  const confirmed = await confirmAction({
+    title: "Limpar torneio atual",
+    message: "Tem certeza que deseja limpar o campeonato atual e desativar os atletas deste torneio?",
+    confirmLabel: "Limpar",
+    tone: "danger"
+  })
+  if (!confirmed) return
 
   try {
     const batch = writeBatch(db)
@@ -1346,17 +1369,17 @@ export function getPlayerStats(playerId: string) {
   const s2 = parseInt((document.getElementById(`s2_${group}_${index}`) as HTMLInputElement).value, 10)
 
   if (isNaN(s1) || isNaN(s2)) {
-    alert("Preencha o placar corretamente.")
+    showToast("Preencha o placar corretamente.", "warning")
     return
   }
 
   if (s1 < 0 || s2 < 0) {
-    alert("O placar não pode ser negativo.")
+    showToast("O placar nao pode ser negativo.", "warning")
     return
   }
 
   if (s1 === s2) {
-    alert("O jogo precisa ter um vencedor.")
+    showToast("O jogo precisa ter um vencedor.", "warning")
     return
   }
 
@@ -1413,7 +1436,7 @@ export function getPlayerStats(playerId: string) {
     await persistRankingLiveState()
     render()
   } catch (error: any) {
-    alert("Erro ao finalizar partida: " + error.message)
+    showToast("Erro ao finalizar partida: " + error.message, "error")
   }
 }
 
@@ -1428,7 +1451,7 @@ export function getPlayerStats(playerId: string) {
     const emptyIndex = tables.findIndex((table) => !table.p1)
 
     if (emptyIndex === -1) {
-      alert("Finalize algum jogo antes de remover mesas.")
+      showToast("Finalize algum jogo antes de remover mesas.", "warning")
       return
     }
 

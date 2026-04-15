@@ -1,5 +1,5 @@
-﻿import { onAuthStateChanged, signOut } from "firebase/auth"
-import { collection, doc, getDoc, getDocs, updateDoc } from "firebase/firestore"
+import { onAuthStateChanged, signOut } from "firebase/auth"
+import { collection, doc, getDoc, getDocs, updateDoc, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import {
   ChampionshipCategory,
@@ -9,9 +9,11 @@ import {
   ChampionshipTable,
   TournamentRegistration,
   UpcomingTournament,
-  User
+  User,
+  UserTournament
 } from "./types"
 import { getTournamentType } from "./tournament-rules"
+import { showToast } from "./toast"
 
 const params = new URLSearchParams(window.location.search)
 const tournamentId = params.get("id")
@@ -161,6 +163,62 @@ function getKnockoutFinalStandings(state: ChampionshipCategoryState) {
   if (!thirdPlace || !fourthPlace) return null
 
   return [champion, runnerUp, thirdPlace, fourthPlace]
+}
+
+function getPlacementLabel(position: number) {
+  if (position === 1) return "Campeao"
+  if (position === 2) return "Vice-campeao"
+  if (position === 3) return "3o lugar"
+  if (position === 4) return "4o lugar"
+  return `${position}o lugar`
+}
+
+function getPlayerStatsForCategory(state: ChampionshipCategoryState, playerId: string) {
+  return (state.completedMatches ?? []).reduce(
+    (acc, match) => {
+      if (!match.playerIds.includes(playerId)) {
+        return acc
+      }
+
+      acc.matchCount += 1
+      if (match.winnerId === playerId) {
+        acc.wins += 1
+      } else {
+        acc.losses += 1
+      }
+      return acc
+    },
+    { matchCount: 0, wins: 0, losses: 0 }
+  )
+}
+
+async function writeFinalStandingsToUsers(category: ChampionshipCategory, state: ChampionshipCategoryState, finalStandings: string[]) {
+  const tournament = currentTournament
+  if (!tournament || !finalStandings.length) return
+
+  const batch = writeBatch(db)
+  const now = Date.now()
+
+  finalStandings.forEach((playerId, index) => {
+    const position = index + 1
+    const stats = getPlayerStatsForCategory(state, playerId)
+    const tournamentRecord: UserTournament = {
+      id: tournament.id,
+      tournamentId: tournament.id,
+      title: tournament.title,
+      category,
+      placement: `${position}o lugar`,
+      result: getPlacementLabel(position),
+      matchCount: stats.matchCount,
+      wins: stats.wins,
+      losses: stats.losses,
+      playedAt: now
+    }
+
+    batch.set(doc(db, "users", playerId, "tournaments", tournament.id), tournamentRecord, { merge: true })
+  })
+
+  await batch.commit()
 }
 
 function canFinalizeCategory(state: ChampionshipCategoryState) {
@@ -389,6 +447,10 @@ function getQualifiedEntries(groups: ChampionshipGroup[], state: ChampionshipCat
   const runnersUp: QualifiedEntry[] = []
 
   groups.forEach((group) => {
+    if (!isGroupCompleted(group, state)) {
+      return
+    }
+
     const standings = sortStandingEntries(getGroupStandings(group, state))
     const first = standings[0]
     const second = standings[1]
@@ -1113,7 +1175,7 @@ function openFinalizeCategoryModalInternal() {
 
   const state = getCategoryState(category)
   if (!canFinalizeCategory(state)) {
-    alert("Finalize a fase de grupos, esvazie as mesas e tenha pelo menos 4 atletas para encerrar a categoria.")
+    showToast("Finalize a fase de grupos, esvazie as mesas e tenha pelo menos 4 atletas para encerrar a categoria.", "warning")
     return
   }
 
@@ -1163,7 +1225,7 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (!canFinalizeCategory(state)) {
-    alert("Esta categoria ainda nao pode ser encerrada.")
+    showToast("Esta categoria ainda nao pode ser encerrada.", "warning")
     return
   }
 
@@ -1181,29 +1243,29 @@ async function finalizeCurrentCategory() {
     const uniqueSemifinalists = new Set(semifinalists)
 
     if (semifinalists.some((playerId) => !playerId)) {
-      alert("Preencha todos os jogadores das semifinais.")
+      showToast("Preencha todos os jogadores das semifinais.", "warning")
       return
     }
 
     if (semifinal1Winner === semifinal1Loser || semifinal2Winner === semifinal2Loser) {
-      alert("Cada semifinal precisa ter vencedor e derrotado diferentes.")
+      showToast("Cada semifinal precisa ter vencedor e derrotado diferentes.", "warning")
       return
     }
 
     if (uniqueSemifinalists.size !== 4) {
-      alert("Os quatro semifinalistas precisam ser diferentes.")
+      showToast("Os quatro semifinalistas precisam ser diferentes.", "warning")
       return
     }
 
     const finalists = [semifinal1Winner, semifinal2Winner]
     if (!finalists.includes(finalWinner)) {
-      alert("O campeao da final precisa ser um dos vencedores das semifinais.")
+      showToast("O campeao da final precisa ser um dos vencedores das semifinais.", "warning")
       return
     }
 
     const runnerUp = finalists.find((playerId) => playerId !== finalWinner)
     if (!runnerUp) {
-      alert("Nao foi possivel identificar o vice-campeao.")
+      showToast("Nao foi possivel identificar o vice-campeao.", "error")
       return
     }
 
@@ -1212,14 +1274,17 @@ async function finalizeCurrentCategory() {
     finalStandings = [finalWinner, runnerUp, thirdPlace, fourthPlace]
   }
 
-  await saveCategoryState({
+  const finalState: Partial<ChampionshipCategoryState> = {
     finished: true,
     started: false,
     knockoutStarted: false,
     queue: [],
     activeTables: normalizeTables([], state.tableCount ?? 1),
     finalStandings
-  })
+  }
+
+  await saveCategoryState(finalState)
+  await writeFinalStandingsToUsers(category, { ...state, ...finalState }, finalStandings)
 
   closeFinalizeCategoryModalInternal()
   renderPage()
@@ -1231,7 +1296,7 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (state.finished) {
-    alert("Esta categoria ja foi encerrada.")
+    showToast("Esta categoria ja foi encerrada.", "warning")
     return
   }
 
@@ -1240,7 +1305,7 @@ async function finalizeCurrentCategory() {
   const nextTableCount = Math.max(1, (state.tableCount ?? 1) + delta)
 
   if (nextTableCount < occupiedTables) {
-    alert("NÃ£o Ã© possÃ­vel remover mesas enquanto existem partidas em andamento nelas.")
+    showToast("Nao e possivel remover mesas enquanto existem partidas em andamento nelas.", "warning")
     return
   }
 
@@ -1265,12 +1330,12 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (state.finished) {
-    alert("Esta categoria ja foi encerrada.")
+    showToast("Esta categoria ja foi encerrada.", "warning")
     return
   }
 
   if (!state.groups?.length) {
-    alert("Sorteie os grupos na pagina principal antes de iniciar a categoria.")
+    showToast("Sorteie os grupos na pagina principal antes de iniciar a categoria.", "warning")
     return
   }
 
@@ -1295,14 +1360,14 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (state.finished) {
-    alert("Esta categoria ja foi encerrada.")
+    showToast("Esta categoria ja foi encerrada.", "warning")
     return
   }
 
   const bracketRounds = buildBracketRounds(state.groups ?? [], state)
   const hasDefinedKnockoutMatch = bracketRounds.some((round) => round.matches.some((match) => match.playerIds))
   if (!hasDefinedKnockoutMatch) {
-    alert("Ainda nao ha confrontos definidos para iniciar o mata-mata.")
+    showToast("Ainda nao ha confrontos definidos para iniciar o mata-mata.", "warning")
     return
   }
 
@@ -1325,19 +1390,19 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (state.finished) {
-    alert("Esta categoria ja foi encerrada.")
+    showToast("Esta categoria ja foi encerrada.", "warning")
     return
   }
 
   if (!canAddPlayersToGroups(state)) {
-    alert("NÃ£o Ã© mais possÃ­vel adicionar atletas a esta categoria.")
+    showToast("Nao e mais possivel adicionar atletas a esta categoria.", "warning")
     return
   }
 
   const select = document.getElementById(`assignGroup_${playerId}`) as HTMLSelectElement | null
   const groupId = select?.value
   if (!groupId) {
-    alert("Escolha um grupo para adicionar o atleta.")
+    showToast("Escolha um grupo para adicionar o atleta.", "warning")
     return
   }
 
@@ -1366,7 +1431,7 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (state.finished) {
-    alert("Esta categoria ja foi encerrada.")
+    showToast("Esta categoria ja foi encerrada.", "warning")
     return
   }
   const activeTables = normalizeTables(state.activeTables, state.tableCount ?? 1)
@@ -1376,7 +1441,7 @@ async function finalizeCurrentCategory() {
   const score1 = Number((document.getElementById(`score1_${tableIndex}`) as HTMLInputElement | null)?.value || 0)
   const score2 = Number((document.getElementById(`score2_${tableIndex}`) as HTMLInputElement | null)?.value || 0)
   if (Number.isNaN(score1) || Number.isNaN(score2) || score1 === score2) {
-    alert("Informe um placar valido e sem empate.")
+    showToast("Informe um placar valido e sem empate.", "warning")
     return
   }
 
@@ -1432,7 +1497,7 @@ async function finalizeCurrentCategory() {
   try {
     await finalizeCurrentCategory()
   } catch (error: any) {
-    alert("Erro ao encerrar categoria: " + error.message)
+    showToast("Erro ao encerrar categoria: " + error.message, "error")
   }
 }
 
@@ -1456,3 +1521,4 @@ onAuthStateChanged(auth, async (user) => {
   await loadRegistrations()
   renderPage()
 })
+

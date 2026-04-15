@@ -196,6 +196,7 @@ export type UpcomingTournament = {
   startTime?: string
   registrationFee?: number
   doubleRegistrationFee?: number
+  categoryLimits?: Partial<Record<string, number>>
   pixKey?: string
   pixHolder?: string
   endDate?: number

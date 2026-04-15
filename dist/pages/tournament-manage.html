@@ -6,16 +6,18 @@
 <title>AJAB - Gerenciar Torneio</title>
 <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <script type="module" crossorigin src="/assets/tournamentManage-Cc0R0jx_.js"></script>
+  <script type="module" crossorigin src="/assets/tournamentManage-BM_kSloe.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Btlm8H0F.js">
   <link rel="modulepreload" crossorigin href="/assets/firebase-VBRKn9At.js">
-  <link rel="modulepreload" crossorigin href="/assets/tournament-rules-DUbpQbwy.js">
-  <link rel="stylesheet" crossorigin href="/assets/global-BlVylZPw.css">
+  <link rel="modulepreload" crossorigin href="/assets/confirm-modal-Dnnch5Ng.js">
+  <link rel="modulepreload" crossorigin href="/assets/toast-kV3jSCF7.js">
+  <link rel="modulepreload" crossorigin href="/assets/tournament-rules-D9Tq3W95.js">
+  <link rel="stylesheet" crossorigin href="/assets/global-CpiVuQ4A.css">
 </head>
 <body class="dashboard-page">
 
 <div class="header">
-  <img src="/assets/logo-DnYXdFXg.png" class="logo-img">
+  <img src="/assets/logo-D3xZMJos.png" class="logo-img">
   <div id="userSummary" class="user-summary"></div>
 </div>
 
@@ -63,19 +65,35 @@
     </div>
   </div>
 
-  <div class="actions">
-    <button id="startBtn" class="btn primary" disabled>Use os paineis abaixo</button>
-    <button class="btn secondary" onclick="resetMatches()">Resetar</button>
-  </div>
+  <div class="tournament-control-groups">
+    <section class="tournament-control-section">
+      <span class="tournament-control-label">Operacao</span>
+      <div class="tournament-control-grid tournament-control-grid-primary">
+        <button id="startBtn" class="btn primary" disabled>Use os paineis abaixo</button>
+        <button class="btn secondary" onclick="resetMatches()">Resetar</button>
+        <button id="rankingModeAction" class="btn secondary" onclick="toggleRankingMode()" style="display:none;">Separar A e B</button>
+        <button class="btn primary" onclick="finishTournament()">Encerrar torneio</button>
+      </div>
+    </section>
 
-  <button id="rankingModeAction" class="btn secondary" onclick="toggleRankingMode()" style="display:none;">Separar A e B</button>
-  <button class="btn primary" onclick="finishTournament()">Encerrar torneio</button>
-  <button class="btn secondary" onclick="openTournamentRegistrations()">Gerenciar inscricoes</button>
-  <button class="btn secondary" onclick="editCurrentTournament()">Editar torneio</button>
-  <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
-  <button class="btn secondary" onclick="openProfile()">Meu perfil</button>
-  <button class="btn danger" onclick="clearPlayers()">Limpar campeonato</button>
-  <button class="btn primary" onclick="logout()">Sair</button>
+    <section class="tournament-control-section">
+      <span class="tournament-control-label">Gestao</span>
+      <div class="tournament-control-grid">
+        <button class="btn secondary" onclick="openTournamentRegistrations()">Gerenciar inscricoes</button>
+        <button class="btn secondary" onclick="editCurrentTournament()">Editar torneio</button>
+        <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
+        <button class="btn secondary" onclick="openProfile()">Meu perfil</button>
+      </div>
+    </section>
+
+    <section class="tournament-control-section">
+      <span class="tournament-control-label">Sistema</span>
+      <div class="tournament-control-grid tournament-control-grid-utility">
+        <button class="btn danger" onclick="clearPlayers()">Limpar campeonato</button>
+        <button class="btn primary" onclick="logout()">Sair</button>
+      </div>
+    </section>
+  </div>
 </div>
 </div>
 

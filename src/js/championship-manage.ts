@@ -1,4 +1,4 @@
-﻿import { onAuthStateChanged, signOut } from "firebase/auth"
+import { onAuthStateChanged, signOut } from "firebase/auth"
 import { doc, getDoc, getDocs, collection, updateDoc } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import {
@@ -12,8 +12,11 @@ import {
 import {
   CHAMPIONSHIP_CATEGORIES,
   formatRegistrationCategories,
+  getCategoryLimit,
+  getCategoryRegistrationCount,
   getTournamentType
 } from "./tournament-rules"
+import { showToast } from "./toast"
 
 const tournamentId = new URLSearchParams(window.location.search).get("id")
 
@@ -90,6 +93,28 @@ function getRegistrationsForCategory(category: ChampionshipCategory) {
   return getApprovedRegistrations()
     .filter((registration) => parseRegistrationCategories(registration).includes(category))
     .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+function getCategoryVacancySummary(category: ChampionshipCategory) {
+  if (!currentTournament) {
+    return {
+      count: 0,
+      limit: undefined as number | undefined,
+      remaining: undefined as number | undefined,
+      label: "Sem limite"
+    }
+  }
+
+  const count = getCategoryRegistrationCount(registrations, category)
+  const limit = getCategoryLimit(currentTournament, category)
+  const remaining = typeof limit === "number" ? Math.max(0, limit - count) : undefined
+
+  return {
+    count,
+    limit,
+    remaining,
+    label: typeof limit === "number" ? `${count}/${limit}` : `${count} inscritos`
+  }
 }
 
 function normalizeTables(
@@ -244,6 +269,7 @@ function renderSummary() {
 function renderCategoryCard(category: ChampionshipCategory) {
   const registrationsForCategory = getRegistrationsForCategory(category)
   const state = getCategoryState(category)
+  const vacancy = getCategoryVacancySummary(category)
   const groups = state.groups ?? []
   const groupPreviewCount = buildGroupSizes(registrationsForCategory.length, getGroupSize(category)).length
   const statusLabel = state.finished ? "Encerrada" : state.defined ? "Em andamento" : groups.length ? "Grupos prontos" : "Aguardando sorteio"
@@ -277,6 +303,11 @@ function renderCategoryCard(category: ChampionshipCategory) {
         <div class="info-card">
           <span>Status</span>
           <strong>${statusLabel}</strong>
+        </div>
+        <div class="info-card">
+          <span>Vagas</span>
+          <strong>${vacancy.limit ? `${vacancy.remaining} restantes` : "Sem limite"}</strong>
+          <small>${vacancy.label}</small>
         </div>
       </div>
 
@@ -368,7 +399,7 @@ function renderPage() {
 ;(window as any).drawCategoryGroups = async (category: ChampionshipCategory) => {
   const state = getCategoryState(category)
   if (state.defined) {
-    alert("Esta categoria jÃ¡ foi iniciada e nÃ£o pode mais sortear grupos nesta pagina.")
+    showToast("Esta categoria ja foi iniciada e nao pode mais sortear grupos nesta pagina.", "warning")
     return
   }
 
@@ -376,7 +407,7 @@ function renderPage() {
   const groupSize = Math.max(2, Number((document.getElementById(`groupSize_${category}`) as HTMLInputElement | null)?.value || getGroupSize(category)))
 
   if (!registrationsForCategory.length) {
-    alert("NÃ£o hÃ¡ atletas aprovados nesta categoria para montar grupos.")
+    showToast("Nao ha atletas aprovados nesta categoria para montar grupos.", "warning")
     return
   }
 
@@ -406,7 +437,7 @@ function renderPage() {
     })
     renderPage()
   } catch (error: any) {
-    alert("Erro ao sortear grupos: " + error.message)
+    showToast("Erro ao sortear grupos: " + error.message, "error")
   }
 }
 
@@ -415,7 +446,7 @@ function renderPage() {
 
   const state = getCategoryState(category)
   if (!state.groups?.length) {
-    alert("Sorteie os grupos antes de abrir a categoria.")
+    showToast("Sorteie os grupos antes de abrir a categoria.", "warning")
     return
   }
 
@@ -428,7 +459,7 @@ function renderPage() {
 
     window.location.href = `/pages/championship-category.html?id=${currentTournament.id}&category=${encodeURIComponent(category)}`
   } catch (error: any) {
-    alert("Erro ao iniciar categoria: " + error.message)
+    showToast("Erro ao iniciar categoria: " + error.message, "error")
   }
 }
 
@@ -473,4 +504,5 @@ onAuthStateChanged(auth, async (user) => {
   await loadRegistrations()
   renderPage()
 })
+
 

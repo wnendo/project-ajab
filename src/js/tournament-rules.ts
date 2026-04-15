@@ -1,4 +1,4 @@
-import { ChampionshipCategory, CompetitionGroup, RankingMode, TournamentType, UpcomingTournament } from "./types"
+import { ChampionshipCategory, CompetitionGroup, RankingMode, TournamentRegistration, TournamentType, UpcomingTournament } from "./types"
 
 export const CHAMPIONSHIP_CATEGORIES: ChampionshipCategory[] = ["A", "B", "C", "D", "Iniciante"]
 
@@ -14,6 +14,13 @@ function normalizeChampionshipCategory(value?: string): ChampionshipCategory | n
   if (normalized === "C") return "C"
   if (normalized === "D") return "D"
   if (normalized === "INICIANTE" || normalized === "INICIANTES") return "Iniciante"
+  return null
+}
+
+export function normalizeRegistrationCategory(value?: string) {
+  const normalized = normalizeCategory(value)
+  if (normalized === "INICIANTE" || normalized === "INICIANTES") return "Iniciante"
+  if (["A", "B", "C", "D"].includes(normalized)) return normalized
   return null
 }
 
@@ -70,6 +77,41 @@ export function getChampionshipRegistrationOptions(playerCategory?: string): Cha
 
 export function formatRegistrationCategories(categories: string[]) {
   return categories.join(", ")
+}
+
+export function parseRegistrationCategories(registration: Pick<TournamentRegistration, "categories" | "category">) {
+  const source = Array.isArray(registration.categories)
+    ? registration.categories
+    : String(registration.category ?? "")
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+
+  return [...new Set(source.map((entry) => normalizeRegistrationCategory(entry)).filter(Boolean))] as string[]
+}
+
+export function getCategoryLimit(tournament: UpcomingTournament, category: string) {
+  const normalized = normalizeRegistrationCategory(category)
+  if (!normalized) return undefined
+  const raw = tournament.categoryLimits?.[normalized]
+  if (typeof raw !== "number" || raw <= 0) return undefined
+  return raw
+}
+
+export function getCategoryRegistrationCount(registrations: TournamentRegistration[], category: string) {
+  const normalized = normalizeRegistrationCategory(category)
+  if (!normalized) return 0
+  return registrations.filter((registration) => parseRegistrationCategories(registration).includes(normalized)).length
+}
+
+export function isCategoryFull(
+  tournament: UpcomingTournament,
+  registrations: TournamentRegistration[],
+  category: string
+) {
+  const limit = getCategoryLimit(tournament, category)
+  if (!limit) return false
+  return getCategoryRegistrationCount(registrations, category) >= limit
 }
 
 export function getRegistrationFeeForSelection(

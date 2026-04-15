@@ -5,11 +5,15 @@ import { TournamentRegistration, UpcomingTournament, User, UserTournamentRegistr
 import {
   formatRegistrationCategories,
   getAllowedRegistrationCategories,
-  getTournamentType,
+  getCategoryLimit,
+  getCategoryRegistrationCount,
   getRegistrationFeeForSelection,
+  getTournamentType,
+  isCategoryFull,
   isRankingTournament,
   isValidChampionshipSelection
 } from "./tournament-rules"
+import { redirectWithToast, showToast } from "./toast"
 
 const tournamentId = new URLSearchParams(window.location.search).get("id")
 
@@ -26,19 +30,31 @@ function getSelectedRegistrationCategories() {
 }
 
 function formatDate(value?: number) {
-  if (!value) return "Não informado"
+  if (!value) return "Nao informado"
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(value)
 }
 
 function formatDateRange(startDate?: number, endDate?: number) {
-  if (!startDate) return "Não informado"
+  if (!startDate) return "Nao informado"
   if (!endDate || endDate === startDate) return formatDate(startDate)
   return `${formatDate(startDate)} ate ${formatDate(endDate)}`
 }
 
 function formatCurrency(value?: number) {
-  if (value === undefined) return "Não informado"
+  if (value === undefined) return "Nao informado"
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)
+}
+
+function getTournamentFeeLabel(entry: UpcomingTournament) {
+  if (isRankingTournament(entry)) {
+    return formatCurrency(entry.registrationFee)
+  }
+
+  if (entry.doubleRegistrationFee !== undefined) {
+    return `${formatCurrency(entry.registrationFee)} (1 cat.) / ${formatCurrency(entry.doubleRegistrationFee)} (2 cats.)`
+  }
+
+  return formatCurrency(entry.registrationFee)
 }
 
 function isRegistrationClosed(entry: UpcomingTournament) {
@@ -61,28 +77,32 @@ function openRegistrationModal() {
   const modal = document.getElementById("registrationModal") as HTMLElement | null
   const text = document.getElementById("registrationModalText") as HTMLElement | null
   const options = document.getElementById("registrationCategoryOptions") as HTMLElement | null
+  const tournament = currentTournament
 
-  if (!modal || !text || !options || !currentTournament) return
+  if (!modal || !text || !options || !tournament) return
 
-  const categories = getAllowedRegistrationCategories(currentTournament, currentUserProfile?.category)
+  const categories = getAllowedRegistrationCategories(tournament, currentUserProfile?.category)
   if (!categories.length) {
-    alert("Sua categoria atual não permite inscrição neste torneio.")
+    showToast("Sua categoria atual nao permite inscricao neste torneio.", "warning")
     return
   }
 
-  text.textContent = isRankingTournament(currentTournament)
-    ? `Escolha a categoria do ranking para se inscrever em ${currentTournament.title}.`
-    : `Escolha uma ou duas categorias para se inscrever em ${currentTournament.title}.`
+  text.textContent = isRankingTournament(tournament)
+    ? `Escolha a categoria do ranking para se inscrever em ${tournament.title}.`
+    : `Escolha uma ou duas categorias para se inscrever em ${tournament.title}.`
 
   options.innerHTML = categories
-    .map(
-      (category, index) => `
+    .map((category, index) => {
+      const full = isCategoryFull(tournament, registrations, category)
+      const count = getCategoryRegistrationCount(registrations, category)
+      const limit = getCategoryLimit(tournament, category)
+      return `
         <label class="checkbox-option registration-option">
-          <input type="${isRankingTournament(currentTournament) ? "radio" : "checkbox"}" name="registrationCategory" value="${category}" ${index === 0 ? "checked" : ""}>
-          <span>${category}</span>
+          <input type="${isRankingTournament(tournament) ? "radio" : "checkbox"}" name="registrationCategory" value="${category}" ${index === 0 && !full ? "checked" : ""} ${full ? "disabled" : ""}>
+          <span>${category}${limit ? ` (${count}/${limit})` : ""}${full ? " - lotada" : ""}</span>
         </label>
       `
-    )
+    })
     .join("")
 
   modal.style.display = "flex"
@@ -96,26 +116,27 @@ function renderTournamentInfo() {
   const rankingCard = document.getElementById("rankingRegistrationsCard")
   const rankingList = document.getElementById("rankingRegistrationsList")
   const registrationEl = document.getElementById("tournamentDetailsRegistration")
+  const tournament = currentTournament
 
-  if (!titleEl || !subtitleEl || !infoEl || !descriptionEl || !rankingCard || !rankingList || !registrationEl || !currentTournament) {
+  if (!titleEl || !subtitleEl || !infoEl || !descriptionEl || !rankingCard || !rankingList || !registrationEl || !tournament) {
     return
   }
 
-  titleEl.textContent = currentTournament.title
-  subtitleEl.textContent = `${currentTournament.location || "Local a definir"} - confira as informacoes antes de seguir para a inscrição.`
+  titleEl.textContent = tournament.title
+  subtitleEl.textContent = `${tournament.location || "Local a definir"} - confira as informacoes antes de seguir para a inscricao.`
 
   infoEl.innerHTML = `
-    <div class="info-card"><span>Tipo</span><strong>${getTournamentType(currentTournament) === "ranking" ? "Ranking" : "Campeonato"}</strong></div>
-    <div class="info-card"><span>Data</span><strong>${formatDateRange(currentTournament.startDate, currentTournament.endDate)}</strong></div>
-    <div class="info-card"><span>Local</span><strong>${currentTournament.location || "Local a definir"}</strong></div>
-    <div class="info-card"><span>Inscricoes ate</span><strong>${formatDate(currentTournament.registrationDeadline)}</strong></div>
-    <div class="info-card"><span>Valor</span><strong>${formatCurrency(currentTournament.registrationFee)}</strong></div>
-    <div class="info-card"><span>Status</span><strong>${isRegistrationClosed(currentTournament) ? "Inscricoes encerradas" : "Inscricoes abertas"}</strong></div>
+    <div class="info-card"><span>Tipo</span><strong>${getTournamentType(tournament) === "ranking" ? "Ranking" : "Campeonato"}</strong></div>
+    <div class="info-card"><span>Data</span><strong>${formatDateRange(tournament.startDate, tournament.endDate)}</strong></div>
+    <div class="info-card"><span>Local</span><strong>${tournament.location || "Local a definir"}</strong></div>
+    <div class="info-card"><span>Inscricoes ate</span><strong>${formatDate(tournament.registrationDeadline)}</strong></div>
+    <div class="info-card"><span>Valor</span><strong>${getTournamentFeeLabel(tournament)}</strong></div>
+    <div class="info-card"><span>Status</span><strong>${isRegistrationClosed(tournament) ? "Inscricoes encerradas" : "Inscricoes abertas"}</strong></div>
   `
 
-  descriptionEl.innerHTML = `<p>${currentTournament.description || "Texto do torneio ainda não definido. Depois você pode editar essa apresentacao no cadastro do torneio."}</p>`
+  descriptionEl.innerHTML = `<p>${tournament.description || "Texto do torneio ainda nao definido. Depois voce pode editar essa apresentacao no cadastro do torneio."}</p>`
 
-  if (isRankingTournament(currentTournament)) {
+  if (isRankingTournament(tournament)) {
     rankingCard.style.display = "block"
     rankingList.innerHTML = registrations.length
       ? [...registrations]
@@ -135,10 +156,13 @@ function renderTournamentInfo() {
             `
           )
           .join("")
-      : '<div class="empty-state">Ainda não há inscritos confirmados neste ranking.</div>'
+      : '<div class="empty-state">Ainda nao ha inscritos confirmados neste ranking.</div>'
   } else {
     rankingCard.style.display = "none"
   }
+
+  const allowedCategories = getAllowedRegistrationCategories(tournament, currentUserProfile?.category)
+  const hasAvailableCategory = allowedCategories.some((category) => !isCategoryFull(tournament, registrations, category))
 
   const buttonLabel =
     currentRegistrationStatus === "approved"
@@ -147,30 +171,33 @@ function renderTournamentInfo() {
         ? currentRegistrationMethod === "pay_on_day"
           ? "Pagar no dia - pendente"
           : "Pagamento em analise"
-        : "Inscreva-se"
+        : !hasAvailableCategory
+          ? "Categoria lotada"
+          : "Inscreva-se"
 
-  const pixAvailable = Boolean(currentTournament.pixKey && currentTournament.pixHolder)
+  const pixAvailable = Boolean(tournament.pixKey && tournament.pixHolder)
 
   registrationEl.innerHTML = `
     <div class="stack-item">
       <div class="stack-item-header">
         <div>
           <strong>${buttonLabel}</strong>
-          <span>${isRankingTournament(currentTournament) ? "Ranking com visao completa dos inscritos e das informacoes do evento." : "Campeonato com informacoes gerais antes de seguir para a inscrição."}</span>
+          <span>${isRankingTournament(tournament) ? "Ranking com visao completa dos inscritos e das informacoes do evento." : "Campeonato com informacoes gerais antes de seguir para a inscricao."}</span>
         </div>
       </div>
       <div class="stack-item-grid">
-        <span>Pix: ${pixAvailable ? "Disponivel" : "Ainda não configurado"}</span>
-        <span>Favorecido: ${currentTournament.pixHolder || "Não informado"}</span>
+        <span>Valor: ${getTournamentFeeLabel(tournament)}</span>
+        <span>Pix: ${pixAvailable ? "Disponivel" : "Ainda nao configurado"}</span>
+        <span>Favorecido: ${tournament.pixHolder || "Nao informado"}</span>
         <span>Pagamento no dia: disponivel</span>
-        <span>Status da inscrição: ${currentRegistrationStatus === "pending_payment" ? "pendente de aprovacao" : currentRegistrationStatus === "approved" ? "aprovada" : "não enviada"}</span>
+        <span>Status da inscricao: ${currentRegistrationStatus === "pending_payment" ? "pendente de aprovacao" : currentRegistrationStatus === "approved" ? "aprovada" : "nao enviada"}</span>
       </div>
       <div class="admin-tournament-actions">
         <button
           class="btn primary"
           onclick="startRegistrationFlow()"
           ${currentRegistrationStatus ? "disabled" : ""}
-          ${isRegistrationClosed(currentTournament) ? "disabled" : ""}
+          ${isRegistrationClosed(tournament) || !hasAvailableCategory ? "disabled" : ""}
         >
           ${buttonLabel}
         </button>
@@ -232,18 +259,25 @@ async function loadPageData(uid: string) {
 }
 
 async function createPendingRegistration(paymentMethod: "pix" | "pay_on_day", selectedCategories: string[]) {
-  if (!currentTournament || !currentUserProfile) return
+  const tournament = currentTournament
+  const userProfile = currentUserProfile
+
+  if (!tournament || !userProfile) return
+
+  if (selectedCategories.some((category) => isCategoryFull(tournament, registrations, category))) {
+    throw new Error("Uma das categorias selecionadas atingiu o limite de inscritos.")
+  }
 
   const registrationCategoryLabel = formatRegistrationCategories(selectedCategories)
-  const registrationFee = getRegistrationFeeForSelection(currentTournament, selectedCategories)
+  const registrationFee = getRegistrationFeeForSelection(tournament, selectedCategories)
   const now = Date.now()
 
   const registrationPayload: TournamentRegistration = {
-    id: currentUserProfile.id,
-    uid: currentUserProfile.id,
-    name: currentUserProfile.name,
-    email: currentUserProfile.email,
-    club: currentUserProfile.club,
+    id: userProfile.id,
+    uid: userProfile.id,
+    name: userProfile.name,
+    email: userProfile.email,
+    club: userProfile.club,
     category: registrationCategoryLabel,
     categories: selectedCategories,
     registrationFee,
@@ -254,61 +288,69 @@ async function createPendingRegistration(paymentMethod: "pix" | "pay_on_day", se
   }
 
   const userRegistrationPayload: UserTournamentRegistration = {
-    id: currentTournament.id,
-    tournamentId: currentTournament.id,
-    title: currentTournament.title,
-    location: currentTournament.location ?? "",
+    id: tournament.id,
+    tournamentId: tournament.id,
+    title: tournament.title,
+    location: tournament.location ?? "",
     category: registrationCategoryLabel,
     categories: selectedCategories,
     registrationFee,
     paymentStatus: "pending_payment",
     paymentMethod,
-    startDate: currentTournament.startDate,
-    endDate: currentTournament.endDate,
-    registrationDeadline: currentTournament.registrationDeadline,
+    startDate: tournament.startDate,
+    endDate: tournament.endDate,
+    registrationDeadline: tournament.registrationDeadline,
     registeredAt: now,
     status: "registered"
   }
 
   const batch = writeBatch(db)
-  batch.set(doc(db, "tournaments", currentTournament.id, "registrations", currentUserProfile.id), registrationPayload)
-  batch.set(doc(db, "users", currentUserProfile.id, "registrations", currentTournament.id), userRegistrationPayload)
+  batch.set(doc(db, "tournaments", tournament.id, "registrations", userProfile.id), registrationPayload)
+  batch.set(doc(db, "users", userProfile.id, "registrations", tournament.id), userRegistrationPayload)
   await batch.commit()
 }
 
 ;(window as any).confirmTournamentRegistration = async (paymentMethod: "pix" | "pay_on_day") => {
-  if (!currentTournament || !currentUserProfile) return
+  const tournament = currentTournament
+  const userProfile = currentUserProfile
+
+  if (!tournament || !userProfile) return
 
   const selectedCategories = getSelectedRegistrationCategories()
   if (!selectedCategories.length) {
-    alert("Escolha pelo menos uma categoria para concluir a inscrição.")
+    showToast("Escolha pelo menos uma categoria para concluir a inscricao.", "warning")
     return
   }
 
-  if (!isRankingTournament(currentTournament) && !isValidChampionshipSelection(currentUserProfile.category, selectedCategories)) {
-    alert("Sua selecao de categorias não e válida para o Campeonato.")
+  if (!isRankingTournament(tournament) && !isValidChampionshipSelection(userProfile.category, selectedCategories)) {
+    showToast("Sua selecao de categorias nao e valida para o Campeonato.", "warning")
+    return
+  }
+
+  if (selectedCategories.some((category) => isCategoryFull(tournament, registrations, category))) {
+    showToast("Uma das categorias selecionadas ja atingiu o limite de inscritos.", "warning")
     return
   }
 
   if (paymentMethod === "pix") {
-    if (!currentTournament.pixKey || !currentTournament.pixHolder) {
-      alert("Este torneio ainda não esta configurado para pagamento Pix.")
+    if (!tournament.pixKey || !tournament.pixHolder) {
+      showToast("Este torneio ainda nao esta configurado para pagamento Pix.", "warning")
       return
     }
 
     ;(window as any).closeRegistrationModal()
     const categoriesParam = encodeURIComponent(selectedCategories.join(","))
-    window.location.href = `/pages/payment-pix.html?tournamentId=${encodeURIComponent(currentTournament.id)}&categories=${categoriesParam}`
+    window.location.href = `/pages/payment-pix.html?tournamentId=${encodeURIComponent(tournament.id)}&categories=${categoriesParam}`
     return
   }
 
   try {
     await createPendingRegistration("pay_on_day", selectedCategories)
     ;(window as any).closeRegistrationModal()
-    alert("Inscricao registrada com pagamento no dia. Ela ficara pendente de aprovacao pela organizacao.")
-    window.location.href = "/pages/profile.html"
+    redirectWithToast("/pages/profile.html", "Inscricao registrada com pagamento no dia. Ela ficara pendente de aprovacao pela organizacao.", "success")
+    window.location.replace("/pages/profile.html")
   } catch (error: any) {
-    alert("Erro ao registrar inscrição: " + error.message)
+    showToast("Erro ao registrar inscricao: " + error.message, "error")
   }
 }
 
@@ -327,7 +369,7 @@ onAuthStateChanged(auth, async (user) => {
     await loadPageData(user.uid)
   } catch (error) {
     console.error("Erro ao carregar detalhes do torneio:", error)
-    alert("Não foi possível carregar os detalhes do torneio agora.")
+    redirectWithToast("/pages/profile.html", "Nao foi possivel carregar os detalhes do torneio agora.", "error")
     window.location.replace("/pages/profile.html")
   }
 })

@@ -1,4 +1,4 @@
-﻿import { onAuthStateChanged, sendPasswordResetEmail, signOut } from "firebase/auth"
+import { onAuthStateChanged, sendPasswordResetEmail, signOut } from "firebase/auth"
 import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import {
@@ -9,6 +9,7 @@ import {
   UserTournamentRegistration
 } from "./types"
 import { getTournamentType } from "./tournament-rules"
+import { showToast } from "./toast"
 
 let currentUserProfile: User | null = null
 let upcomingTournaments: UpcomingTournament[] = []
@@ -385,15 +386,15 @@ async function loadUserProfile(uid: string) {
 ;(window as any).requestPasswordReset = async () => {
   const email = currentUserProfile?.email || auth.currentUser?.email
   if (!email) {
-    alert("Seu perfil não possui email cadastrado para redefinicao de senha.")
+    showToast("Seu perfil nao possui email cadastrado para redefinicao de senha.", "warning")
     return
   }
 
   try {
     await sendPasswordResetEmail(auth, email)
-    alert("Enviamos um link de redefinicao de senha para o seu email.")
+    showToast("Enviamos um link de redefinicao de senha para o seu email.", "success")
   } catch (error: any) {
-    alert("Erro ao enviar redefinicao de senha: " + error.message)
+    showToast("Erro ao enviar redefinicao de senha: " + error.message, "error")
   }
 }
 
@@ -407,7 +408,7 @@ async function loadUserProfile(uid: string) {
 
   const tournament = upcomingTournaments.find((entry) => entry.id === tournamentId)
   if (!tournament) {
-    alert("Torneio não encontrado.")
+    showToast("Torneio nao encontrado.", "error")
     return
   }
 
@@ -447,3 +448,4 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 })
+

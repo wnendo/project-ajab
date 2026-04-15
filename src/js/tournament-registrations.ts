@@ -3,6 +3,8 @@ import { doc, getDoc, getDocs, collection, updateDoc, writeBatch } from "firebas
 import { auth, db } from "../services/firebase"
 import { TournamentRegistration, UpcomingTournament, User } from "./types"
 import { getTournamentType } from "./tournament-rules"
+import { confirmAction } from "./confirm-modal"
+import { showToast } from "./toast"
 
 const tournamentId = new URLSearchParams(window.location.search).get("id")
 
@@ -193,7 +195,7 @@ async function loadPageData() {
     await loadRegistrations()
     renderPage()
   } catch (error: any) {
-    alert("Erro ao aprovar pagamento: " + error.message)
+    showToast("Erro ao aprovar pagamento: " + error.message, "error")
   }
 }
 
@@ -203,7 +205,13 @@ async function loadPageData() {
   const registration = registrations.find((entry) => entry.id === userId)
   if (!registration) return
 
-  if (!confirm(`Remover a inscrição de ${registration.name}?`)) return
+  const confirmed = await confirmAction({
+    title: "Remover inscrição",
+    message: `Remover a inscrição de ${registration.name}?`,
+    confirmLabel: "Remover",
+    tone: "danger"
+  })
+  if (!confirmed) return
 
   try {
     const batch = writeBatch(db)
@@ -220,7 +228,7 @@ async function loadPageData() {
     await loadRegistrations()
     renderPage()
   } catch (error: any) {
-    alert("Erro ao remover inscrição: " + error.message)
+    showToast("Erro ao remover inscricao: " + error.message, "error")
   }
 }
 
