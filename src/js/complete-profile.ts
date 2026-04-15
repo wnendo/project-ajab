@@ -42,7 +42,7 @@ function loadImage(file: File) {
 
     image.onerror = () => {
       URL.revokeObjectURL(objectUrl)
-      reject(new Error("Nao foi possivel processar a imagem selecionada."))
+      reject(new Error("Não foi possivel processar a imagem selecionada."))
     }
 
     image.src = objectUrl
@@ -62,7 +62,7 @@ async function compressImageToDataUrl(file: File) {
   const context = canvas.getContext("2d")
 
   if (!context) {
-    throw new Error("Nao foi possivel preparar a foto para envio.")
+    throw new Error("Não foi possivel preparar a foto para envio.")
   }
 
   let width = image.width
@@ -125,7 +125,7 @@ async function loadCurrentProfile(uid: string) {
   const category = getField<HTMLSelectElement>("category").value.trim()
 
   if (!name || !category) {
-    alert("Nome e categoria sao obrigatorios.")
+    alert("Nome e categoria são obrigatorios.")
     return
   }
 

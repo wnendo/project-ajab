@@ -1,7 +1,15 @@
-import { getPlayerStats, hasActiveTournament } from "./dashboard"
-import { officialQueue, players, tables } from "./store"
+import { getPlayerStats, hasActiveTournament } from "./tournament-manage"
+import { officialQueues, players, tablesByGroup } from "./store"
 
 let showAllRanking = false
+
+function getTables() {
+  return tablesByGroup.general
+}
+
+function getQueue() {
+  return officialQueues.general
+}
 
 function getTournamentPlayers() {
   return players.filter((player) => player.active || player.games > 0)
@@ -10,7 +18,7 @@ function getTournamentPlayers() {
 function updateInfo() {
   const playing = new Set<string>()
 
-  tables.forEach((table) => {
+  getTables().forEach((table) => {
     if (table.p1) playing.add(table.p1.id)
     if (table.p2) playing.add(table.p2.id)
   })
@@ -33,7 +41,8 @@ export function render() {
   const queueEl = document.getElementById("queue") as HTMLElement
   const tableCountEl = document.getElementById("tableCount") as HTMLElement
   const startBtn = document.getElementById("startBtn") as HTMLButtonElement
-  const isSingleTable = tables.length === 1
+  const currentTables = getTables()
+  const isSingleTable = currentTables.length === 1
 
   if (startBtn) {
     const activePlayers = players.filter((player) => player.active)
@@ -51,7 +60,7 @@ export function render() {
   }
 
   if (tableCountEl) {
-    tableCountEl.innerText = String(tables.length)
+    tableCountEl.innerText = String(currentTables.length)
   }
 
   const sorted = [...getTournamentPlayers()].sort((a, b) => {
@@ -84,9 +93,9 @@ export function render() {
                 W:${stats.wins} L:${stats.losses} J:${stats.games}
               </div>
               <div class="player-actions">
-                <button onclick="editPlayer('${player.id}')">Editar</button>
-                <button onclick="togglePlayer('${player.id}')">${player.active ? "Ativo" : "Pausado"}</button>
-                <button onclick="deletePlayer('${player.id}')">Remover</button>
+                <button onclick="editPlayer('${player.id}')">✏️</button>
+                <button onclick="togglePlayer('${player.id}')">${player.active ? "✅" : "⛔"}</button>
+                <button onclick="deletePlayer('${player.id}')">❌</button>
               </div>
             </div>
           `
@@ -131,7 +140,7 @@ export function render() {
     </div>
   `
 
-  tablesEl.innerHTML = tables
+  tablesEl.innerHTML = currentTables
     .map((table, index) => {
       const isBusy = table.p1 && table.p2
       const sizeClass = isSingleTable ? "single" : ""
@@ -173,13 +182,13 @@ export function render() {
     .join("")
 
   const busy = new Set<string>()
-  tables.forEach((table) => {
+  currentTables.forEach((table) => {
     if (table.p1) busy.add(table.p1.id)
     if (table.p2) busy.add(table.p2.id)
   })
 
-  const validQueue = officialQueue.filter(([p1, p2]) => !busy.has(p1.id) && !busy.has(p2.id))
-  const nextMatches = validQueue.slice(0, tables.length)
+  const validQueue = getQueue().filter(([p1, p2]) => !busy.has(p1.id) && !busy.has(p2.id))
+  const nextMatches = validQueue.slice(0, currentTables.length)
 
   if (nextMatches.length === 0) {
     queueEl.innerHTML = `<div class="queue-empty">Aguardando partidas</div>`

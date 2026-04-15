@@ -1,4 +1,4 @@
-import { GoogleAuthProvider, onAuthStateChanged, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth"
+import { GoogleAuthProvider, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup } from "firebase/auth"
 import { doc, getDoc, setDoc } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 
@@ -46,7 +46,7 @@ async function ensureGoogleUserDocument() {
   const user = auth.currentUser
 
   if (!user) {
-    throw new Error("Usuario nao autenticado.")
+    throw new Error("Usuario não autenticado.")
   }
 
   const userRef = doc(db, "users", user.uid)
@@ -114,6 +114,22 @@ async function ensureGoogleUserDocument() {
   window.location.href = "/pages/register.html"
 }
 
+;(window as any).resetPassword = async () => {
+  const email = (document.getElementById("email") as HTMLInputElement | null)?.value.trim()
+
+  if (!email) {
+    alert("Informe seu email para receber o link de redefinicao de senha.")
+    return
+  }
+
+  try {
+    await sendPasswordResetEmail(auth, email)
+    alert("Enviamos um link de redefinicao de senha para o seu email.")
+  } catch (error: any) {
+    alert("Erro ao enviar redefinicao de senha: " + error.message)
+  }
+}
+
 onAuthStateChanged(auth, async (user) => {
   if (!user || authChecked) {
     return
@@ -125,7 +141,7 @@ onAuthStateChanged(auth, async (user) => {
     const nextRoute = await resolveUserRoute(user.uid)
     window.location.replace(nextRoute)
   } catch (error) {
-    console.error("Falha ao validar sessao:", error)
+    console.error("Falha ao validar sessão:", error)
   }
 })
 

@@ -23,7 +23,24 @@
         <input id="tournamentTitle" placeholder="Nome do torneio">
         <input id="tournamentLocation" placeholder="Local">
 
-        <div>
+        <div class="date-grid">
+          <div>
+            <label for="tournamentType">Tipo de torneio</label>
+            <select id="tournamentType" onchange="toggleTournamentTypeFields()">
+              <option value="championship">Campeonato</option>
+              <option value="ranking">Ranking</option>
+            </select>
+          </div>
+          <div id="rankingModeWrap">
+            <label for="rankingMode">Formato do ranking</label>
+            <select id="rankingMode">
+              <option value="single">Categorias juntas</option>
+              <option value="split">Categorias A e B separadas</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="championshipCategoriesWrap">
           <label>Categorias</label>
           <div class="checkbox-grid">
             <label class="checkbox-option">
@@ -69,35 +86,41 @@
             <label for="tournamentStatus">Status</label>
             <select id="tournamentStatus">
               <option value="upcoming">Em breve</option>
-              <option value="open">Inscricoes abertas</option>
-              <option value="closed">Inscricoes encerradas</option>
+              <option value="open">Inscrições abertas</option>
+              <option value="closed">Inscrições encerradas</option>
               <option value="finished">Finalizado</option>
             </select>
           </div>
         </div>
 
         <div>
-          <label for="tournamentRegistrationDeadline">Inscricoes ate</label>
+          <label for="tournamentRegistrationDeadline">Inscrições até</label>
           <input id="tournamentRegistrationDeadline" type="date">
         </div>
 
         <div class="date-grid">
           <div>
-            <label for="tournamentRegistrationFee">Valor da inscricao (R$)</label>
+            <label for="tournamentRegistrationFee">Valor da inscrição (R$)</label>
             <input id="tournamentRegistrationFee" type="number" min="0" step="0.01" placeholder="Ex.: 50.00">
           </div>
+          <div id="tournamentDoubleRegistrationFeeWrap">
+            <label for="tournamentDoubleRegistrationFee">Valor para 2 categorias (R$)</label>
+            <input id="tournamentDoubleRegistrationFee" type="number" min="0" step="0.01" placeholder="Ex.: 80.00">
+          </div>
+        </div>
+
+        <div class="date-grid">
           <div>
             <label for="tournamentPixKey">Chave Pix</label>
             <input id="tournamentPixKey" placeholder="CPF, email, telefone ou chave aleatoria">
           </div>
+          <div>
+            <label for="tournamentPixHolder">Favorecido do Pix</label>
+            <input id="tournamentPixHolder" placeholder="Nome do recebedor">
+          </div>
         </div>
 
-        <div>
-          <label for="tournamentPixHolder">Favorecido do Pix</label>
-          <input id="tournamentPixHolder" placeholder="Nome do recebedor">
-        </div>
-
-        <textarea id="tournamentDescription" placeholder="Descricao do torneio"></textarea>
+        <textarea id="tournamentDescription" placeholder="Descrição do torneio"></textarea>
 
         <div class="actions">
           <button class="btn primary" onclick="saveTournamentForm()">Salvar torneio</button>

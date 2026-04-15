@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AJAB - Meus Campeonatos</title>
+  <link rel="icon" type="image/png" href="/src/res/favicon.png">
+  <link rel="stylesheet" href="/src/styles/global.css">
+</head>
+<body class="profile-page">
+  <div class="profile-shell">
+    <header class="profile-hero">
+      <div class="profile-hero-top">
+        <div>
+          <span class="profile-eyebrow">Campeonato</span>
+          <h1>Meus campeonatos</h1>
+          <p class="profile-subtitle">Acompanhe seu grupo, seus proximos jogos e o desenho da eliminatoria de cada categoria.</p>
+        </div>
+        <div class="profile-actions">
+          <button class="btn secondary" onclick="goBackToProfile()">Voltar ao perfil</button>
+          <button class="btn danger" onclick="logout()">Sair</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="myChampionshipsList" class="stack-list"></section>
+    </main>
+  </div>
+
+  <script type="module" src="/src/js/my-championships.ts"></script>
+</body>
+</html>

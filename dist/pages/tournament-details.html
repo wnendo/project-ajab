@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AJAB - Detalhes do Torneio</title>
+  <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
+  <script type="module" crossorigin src="/assets/tournamentDetails-CmsCtyfK.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Btlm8H0F.js">
+  <link rel="modulepreload" crossorigin href="/assets/firebase-VBRKn9At.js">
+  <link rel="modulepreload" crossorigin href="/assets/tournament-rules-DUbpQbwy.js">
+  <link rel="stylesheet" crossorigin href="/assets/global-BlVylZPw.css">
+</head>
+<body class="profile-page">
+  <div class="profile-shell">
+    <header class="profile-hero">
+      <div class="profile-hero-top">
+        <div>
+          <span class="profile-eyebrow">Torneio</span>
+          <h1 id="tournamentDetailsTitle">Carregando torneio...</h1>
+          <p id="tournamentDetailsSubtitle" class="profile-subtitle"></p>
+        </div>
+        <div class="profile-actions">
+          <button class="btn secondary" onclick="goBackToProfile()">Voltar ao perfil</button>
+          <button class="btn danger" onclick="logout()">Sair</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="profile-layout">
+      <section class="profile-main">
+        <article class="card profile-card">
+          <div class="section-header">
+            <div>
+              <span class="section-label">Informacoes</span>
+              <h3>Resumo do torneio</h3>
+            </div>
+          </div>
+          <div id="tournamentDetailsInfo" class="profile-info-grid"></div>
+        </article>
+
+        <article class="card profile-card">
+          <div class="section-header">
+            <div>
+              <span class="section-label">Descricao</span>
+              <h3>Apresentacao do torneio</h3>
+            </div>
+          </div>
+          <div id="tournamentDetailsDescription" class="schema-note"></div>
+        </article>
+
+        <article id="rankingRegistrationsCard" class="card profile-card" style="display:none">
+          <div class="section-header">
+            <div>
+              <span class="section-label">Ranking</span>
+              <h3>Inscritos confirmados</h3>
+            </div>
+          </div>
+          <div id="rankingRegistrationsList" class="stack-list"></div>
+        </article>
+      </section>
+
+      <aside class="profile-sidebar">
+        <article class="card profile-card">
+          <div class="section-header">
+            <div>
+              <span class="section-label">Inscricao</span>
+              <h3>Participar do torneio</h3>
+            </div>
+          </div>
+          <div id="tournamentDetailsRegistration" class="stack-list"></div>
+        </article>
+      </aside>
+    </main>
+  </div>
+
+  <div id="registrationModal" class="modal">
+    <div class="modal-card registration-modal-card">
+      <div class="modal-header">
+        <span>Confirmar inscrição</span>
+        <button class="close-btn" onclick="closeRegistrationModal()">Fechar</button>
+      </div>
+      <div class="modal-body registration-modal-body">
+        <p id="registrationModalText" class="registration-modal-text"></p>
+        <div id="registrationCategoryOptions" class="registration-category-list"></div>
+        <div class="actions">
+          <button class="btn primary" onclick="confirmTournamentRegistration('pix')">Continuar para o Pix</button>
+          <button class="btn secondary" onclick="confirmTournamentRegistration('pay_on_day')">Pagar no dia</button>
+          <button class="btn secondary" onclick="closeRegistrationModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

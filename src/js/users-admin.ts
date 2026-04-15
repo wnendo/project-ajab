@@ -70,7 +70,7 @@ function renderUsers(filter = "") {
               <div class="user-admin-head">
                 <div>
                   <strong>${user.name}</strong>
-                  <span>${user.email || "Email nao informado"}</span>
+                  <span>${user.email || "Email não informado"}</span>
                 </div>
                 <span class="result-pill ${user.role === "admin" ? "neutral" : "win"}">
                   ${user.role === "admin" ? "Admin" : "Usuario"}
@@ -234,12 +234,12 @@ async function deleteUserData(userId: string) {
   if (!user) return
 
   if (auth.currentUser?.uid === userId) {
-    alert("Nao e permitido excluir o usuario admin que esta atualmente logado.")
+    alert("Não é permitido excluir o usuario admin que esta atualmente logado.")
     return
   }
 
   const confirmed = confirm(
-    `Excluir ${user.name} do sistema de dados da AJAB?\n\nIsso remove cadastro, inscricoes, historico e partidas vinculadas no Firestore.`
+    `Excluir ${user.name} do sistema de dados da AJAB?\n\nIsso remove cadastro, inscrições, histórico e partidas vinculadas na base de dados.`
   )
   if (!confirmed) return
 
@@ -247,7 +247,7 @@ async function deleteUserData(userId: string) {
     await deleteUserData(userId)
     users = users.filter((entry) => entry.id !== userId)
     renderUsers((document.getElementById("userSearch") as HTMLInputElement)?.value ?? "")
-    alert("Usuario removido dos dados do sistema. A conta de autenticacao do Firebase pode continuar existindo.")
+    alert("Usuario removido dos dados do sistema. A conta de autenticação do Firebase pode continuar existindo.")
   } catch (error: any) {
     alert("Erro ao excluir usuario: " + error.message)
   }

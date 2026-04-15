@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AJAB - Categoria do Campeonato</title>
+  <link rel="icon" type="image/png" href="/src/res/favicon.png">
+  <link rel="stylesheet" href="/src/styles/global.css">
+</head>
+<body class="dashboard-page championship-page">
+  <div class="header">
+    <img src="/src/res/logo.png" class="logo-img">
+    <div id="userSummary" class="user-summary"></div>
+  </div>
+
+  <main class="admin-hub-shell championship-shell">
+    <section class="championship-hero">
+      <div>
+        <span class="panel-tag">Categoria do Campeonato</span>
+        <h1 id="categoryPageTitle">Carregando categoria...</h1>
+        <h2 id="categoryTitle"></h2>
+        <p id="categoryPageSubtitle" class="profile-subtitle"></p>
+      </div>
+      <div class="championship-hero-actions">
+        <button class="btn secondary" onclick="openTournamentRegistrations()">Gerenciar inscricoes</button>
+        <button class="btn secondary" onclick="goBackToChampionship()">Voltar ao campeonato</button>
+        <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
+      </div>
+    </section>
+
+    <section id="categoryPageContent"></section>
+  </main>
+
+  <div id="finalizeCategoryModal" class="modal">
+    <div class="modal-card registration-modal-card">
+      <div class="modal-header">
+        <span>Encerrar categoria</span>
+        <button class="close-btn" onclick="closeFinalizeCategoryModal()">Fechar</button>
+      </div>
+      <div class="modal-body registration-modal-body">
+        <p class="registration-modal-text">
+          Defina os vencedores e derrotados das semifinais. O campeao da final define automaticamente 1o a 4o lugar.
+        </p>
+        <div class="championship-finalize-grid">
+          <label class="form-group">
+            <span>Semifinal 1 - vencedor</span>
+            <select id="semifinal1Winner"></select>
+          </label>
+          <label class="form-group">
+            <span>Semifinal 1 - derrotado</span>
+            <select id="semifinal1Loser"></select>
+          </label>
+          <label class="form-group">
+            <span>Semifinal 2 - vencedor</span>
+            <select id="semifinal2Winner"></select>
+          </label>
+          <label class="form-group">
+            <span>Semifinal 2 - derrotado</span>
+            <select id="semifinal2Loser"></select>
+          </label>
+          <label class="form-group">
+            <span>Campeao da final</span>
+            <select id="finalWinner"></select>
+          </label>
+        </div>
+        <div class="actions">
+          <button class="btn primary" onclick="confirmFinalizeCategory()">Encerrar categoria</button>
+          <button class="btn secondary" onclick="closeFinalizeCategoryModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/js/championship-category.ts"></script>
+</body>
+</html>

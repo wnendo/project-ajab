@@ -6,10 +6,11 @@
 <title>AJAB - Gerenciar Torneio</title>
 <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <script type="module" crossorigin src="/assets/tournamentManage-CbpyFPnD.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-CGdBa_z4.js">
-  <link rel="modulepreload" crossorigin href="/assets/firebase-DxeB7Pug.js">
-  <link rel="stylesheet" crossorigin href="/assets/global-B3xEvuOX.css">
+  <script type="module" crossorigin src="/assets/tournamentManage-Cc0R0jx_.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Btlm8H0F.js">
+  <link rel="modulepreload" crossorigin href="/assets/firebase-VBRKn9At.js">
+  <link rel="modulepreload" crossorigin href="/assets/tournament-rules-DUbpQbwy.js">
+  <link rel="stylesheet" crossorigin href="/assets/global-BlVylZPw.css">
 </head>
 <body class="dashboard-page">
 
@@ -26,21 +27,11 @@
     <h3>Ativar atleta</h3>
   </div>
   <div class="player-input">
-    <input id="name" placeholder="Nome do atleta ja cadastrado" onkeydown="if(event.key==='Enter')addPlayer()">
-    <button class="add-btn" onclick="addPlayer()">+</button>
+    <input id="name" placeholder="Busque por nome, email ou clube" oninput="searchAthletes()" onkeydown="if(event.key==='Enter')addPlayer()">
+    <button class="add-btn" onclick="addPlayer()">Ativar</button>
   </div>
-</div>
-
-<div class="card">
-  <span class="panel-tag">Estrutura</span>
-  <div class="card-h3">
-    <h3>Mesas disponiveis</h3>
-  </div>
-  <div class="tables-control">
-    <button class="circle-btn" onclick="changeTables(-1)">-</button>
-    <div id="tableCount">1</div>
-    <button class="circle-btn" onclick="changeTables(1)">+</button>
-  </div>
+  <div id="athleteSearchMessage" class="field-help">Digite para buscar atletas cadastrados.</div>
+  <div id="athleteSearchResults" class="athlete-search-results"></div>
 </div>
 
 <div class="card control-card">
@@ -53,6 +44,10 @@
     <div class="info-row">
       <span>Status</span>
       <span id="tournamentStatusLabel">Em breve</span>
+    </div>
+    <div class="info-row">
+      <span>Formato</span>
+      <span id="tournamentModeLabel">Campeonato</span>
     </div>
     <div class="info-row">
       <span>Jogando</span>
@@ -69,11 +64,13 @@
   </div>
 
   <div class="actions">
-    <button id="startBtn" class="btn primary" onclick="start()">Iniciar</button>
+    <button id="startBtn" class="btn primary" disabled>Use os paineis abaixo</button>
     <button class="btn secondary" onclick="resetMatches()">Resetar</button>
   </div>
 
+  <button id="rankingModeAction" class="btn secondary" onclick="toggleRankingMode()" style="display:none;">Separar A e B</button>
   <button class="btn primary" onclick="finishTournament()">Encerrar torneio</button>
+  <button class="btn secondary" onclick="openTournamentRegistrations()">Gerenciar inscricoes</button>
   <button class="btn secondary" onclick="editCurrentTournament()">Editar torneio</button>
   <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
   <button class="btn secondary" onclick="openProfile()">Meu perfil</button>
@@ -86,15 +83,10 @@
 <div class="card">
   <span class="panel-tag">Desempenho</span>
   <div class="card-header">Ranking</div>
+  <input id="rankingSearch" placeholder="Pesquisar jogador no ranking" oninput="setRankingSearch()">
   <div id="rankingContent" class="card-content">
     <div id="ranking"></div>
   </div>
-</div>
-
-<div class="card">
-  <span class="panel-tag">Pagamentos</span>
-  <h3>Inscricoes Pix</h3>
-  <div id="registrations" class="stack-list"></div>
 </div>
 
 <div class="card">
@@ -118,6 +110,23 @@
       <button class="close-btn" onclick="historyModal.style.display='none'">Fechar</button>
     </div>
     <div id="historyList" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="athleteActivationModal" class="modal">
+  <div class="modal-card athlete-activation-card">
+    <div class="modal-header">
+      <span id="athleteActivationTitle">Ativar atleta</span>
+      <button class="close-btn" onclick="closeAthleteActivationModal()">Fechar</button>
+    </div>
+    <div class="modal-body">
+      <p id="athleteActivationDescription" class="registration-modal-text"></p>
+      <div class="athlete-activation-actions">
+        <button class="btn primary" onclick="confirmAthletePaymentStatus('approved')">Ja pagou</button>
+        <button class="btn secondary athlete-pending-btn" onclick="confirmAthletePaymentStatus('pending_payment')">Ainda não pagou</button>
+        <button class="btn danger" onclick="confirmAthletePaymentStatus('cancel')">Cancelar operacao</button>
+      </div>
+    </div>
   </div>
 </div>
 

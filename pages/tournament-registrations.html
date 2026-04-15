@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AJAB - Gerenciar Inscricoes</title>
+  <link rel="icon" type="image/png" href="/src/res/favicon.png">
+  <link rel="stylesheet" href="/src/styles/global.css">
+</head>
+<body class="profile-page">
+  <div class="header">
+    <img src="/src/res/logo.png" class="logo-img">
+    <div id="userSummary" class="user-summary"></div>
+  </div>
+
+  <div class="profile-shell management-shell">
+    <section class="card profile-card">
+      <span class="panel-tag">Pagamentos</span>
+      <div class="section-header">
+        <div>
+          <span class="section-label">Torneio</span>
+          <h1 id="registrationTournamentTitle">Carregando inscricoes...</h1>
+        </div>
+        <div class="profile-actions">
+          <button class="btn secondary" onclick="goBackToTournament()">Voltar ao torneio</button>
+          <button class="btn secondary" onclick="goToDashboard()">Hub</button>
+          <button class="btn secondary" onclick="openProfile()">Perfil</button>
+          <button class="btn primary" onclick="logout()">Sair</button>
+        </div>
+      </div>
+
+      <p id="registrationTournamentSubtitle" class="profile-subtitle"></p>
+
+      <div class="payment-summary">
+        <div class="info-card">
+          <span>Total de inscricoes</span>
+          <strong id="registrationTotalCount">0</strong>
+        </div>
+        <div class="info-card">
+          <span>Aguardando aprovacao</span>
+          <strong id="registrationPendingCount">0</strong>
+        </div>
+      </div>
+
+      <input id="registrationSearch" placeholder="Pesquisar inscrição por nome, email, clube ou categoria" oninput="filterRegistrations()">
+
+      <div id="registrationList" class="stack-list"></div>
+    </section>
+  </div>
+
+  <script type="module" src="/src/js/tournament-registrations.ts"></script>
+</body>
+</html>

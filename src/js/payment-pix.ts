@@ -1,11 +1,20 @@
 import { onAuthStateChanged } from "firebase/auth"
-import { doc, getDoc, setDoc, writeBatch } from "firebase/firestore"
+import { doc, getDoc, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import { TournamentRegistration, UpcomingTournament, User, UserTournamentRegistration } from "./types"
+import {
+  formatRegistrationCategories,
+  getAllowedRegistrationCategories,
+  getRegistrationFeeForSelection,
+  isRankingTournament
+} from "./tournament-rules"
 
 const params = new URLSearchParams(window.location.search)
 const tournamentId = params.get("tournamentId")
-const selectedCategory = params.get("category") ?? ""
+const selectedCategories = (params.get("categories") ?? params.get("category") ?? "")
+  .split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean)
 
 let currentUserProfile: User | null = null
 let currentTournament: UpcomingTournament | null = null
@@ -28,8 +37,13 @@ function redirectToProfile() {
 }
 
 function formatCurrency(value?: number) {
-  if (value === undefined) return "Nao informado"
+  if (value === undefined) return "Não informado"
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)
+}
+
+function getSelectedRegistrationFee() {
+  if (!currentTournament) return undefined
+  return getRegistrationFeeForSelection(currentTournament, selectedCategories)
 }
 
 function renderPaymentPage() {
@@ -37,16 +51,17 @@ function renderPaymentPage() {
 
   ;(document.getElementById("paymentTournamentTitle") as HTMLElement).textContent = currentTournament.title
   ;(document.getElementById("paymentSubtitle") as HTMLElement).textContent =
-    `${currentTournament.location || "Local a definir"} - finalize o Pix antes de enviar sua inscricao.`
-  ;(document.getElementById("paymentCategory") as HTMLElement).textContent = selectedCategory || "Nao informada"
-  ;(document.getElementById("paymentAmount") as HTMLElement).textContent = formatCurrency(currentTournament.registrationFee)
+    `${currentTournament.location || "Local a definir"} - finalize o Pix antes de enviar sua inscrição.`
+  ;(document.getElementById("paymentCategory") as HTMLElement).textContent =
+    selectedCategories.length ? formatRegistrationCategories(selectedCategories) : "Não informada"
+  ;(document.getElementById("paymentAmount") as HTMLElement).textContent = formatCurrency(getSelectedRegistrationFee())
   ;(document.getElementById("paymentPixKey") as HTMLElement).textContent = currentTournament.pixKey || "-"
   ;(document.getElementById("paymentPixHolder") as HTMLElement).textContent =
-    currentTournament.pixHolder ? `Favorecido: ${currentTournament.pixHolder}` : "Favorecido nao informado."
+    currentTournament.pixHolder ? `Favorecido: ${currentTournament.pixHolder}` : "Favorecido não informado."
 }
 
 async function loadPageData(uid: string) {
-  if (!tournamentId || !selectedCategory) {
+  if (!tournamentId || !selectedCategories.length) {
     alert("Pagamento invalido. Escolha o torneio novamente.")
     redirectToProfile()
     return
@@ -58,7 +73,7 @@ async function loadPageData(uid: string) {
   ])
 
   if (!userSnapshot.exists() || !tournamentSnapshot.exists()) {
-    alert("Nao foi possivel carregar os dados do pagamento.")
+    alert("Não foi possivel carregar os dados do pagamento.")
     redirectToProfile()
     return
   }
@@ -66,15 +81,28 @@ async function loadPageData(uid: string) {
   currentUserProfile = { id: userSnapshot.id, ...userSnapshot.data() } as User
   currentTournament = { id: tournamentSnapshot.id, ...tournamentSnapshot.data() } as UpcomingTournament
 
-  if (!currentTournament.registrationFee || !currentTournament.pixKey || !currentTournament.pixHolder) {
-    alert("Este torneio ainda nao esta configurado para pagamento Pix.")
+  const allowedCategories = getAllowedRegistrationCategories(currentTournament, currentUserProfile.category)
+  if (!selectedCategories.every((category) => allowedCategories.includes(category))) {
+    alert("Sua categoria atual não permite essa inscrição.")
+    redirectToProfile()
+    return
+  }
+
+  if (isRankingTournament(currentTournament) && selectedCategories.length !== 1) {
+    alert("O ranking permite apenas uma categoria por inscrição.")
+    redirectToProfile()
+    return
+  }
+
+  if (!getSelectedRegistrationFee() || !currentTournament.pixKey || !currentTournament.pixHolder) {
+    alert("Este torneio ainda não esta configurado para pagamento Pix.")
     redirectToProfile()
     return
   }
 
   const existingRegistration = await getDoc(doc(db, "tournaments", tournamentId, "registrations", uid))
   if (existingRegistration.exists()) {
-    alert("Voce ja possui uma inscricao vinculada a este torneio.")
+    alert("Você já possui uma inscrição vínculada a este torneio.")
     redirectToProfile()
     return
   }
@@ -89,7 +117,7 @@ async function loadPageData(uid: string) {
     await navigator.clipboard.writeText(currentTournament.pixKey)
     alert("Chave Pix copiada.")
   } catch (error) {
-    alert("Nao foi possivel copiar automaticamente. Copie manualmente a chave exibida.")
+    alert("Não foi possível copiar automaticamente. Copie manualmente a chave exibida.")
   }
 }
 
@@ -100,20 +128,23 @@ async function loadPageData(uid: string) {
 ;(window as any).confirmPixPayment = async () => {
   const firebaseUser = auth.currentUser
 
-  if (!firebaseUser || !currentUserProfile || !currentTournament || !tournamentId || !selectedCategory) {
+  if (!firebaseUser || !currentUserProfile || !currentTournament || !tournamentId || !selectedCategories.length) {
     redirectToProfile()
     return
   }
 
   const now = Date.now()
+  const registrationCategoryLabel = formatRegistrationCategories(selectedCategories)
+  const registrationFee = getSelectedRegistrationFee()
   const registrationPayload: TournamentRegistration = {
     id: firebaseUser.uid,
     uid: firebaseUser.uid,
     name: currentUserProfile.name,
     email: currentUserProfile.email,
     club: currentUserProfile.club,
-    category: selectedCategory,
-    registrationFee: currentTournament.registrationFee,
+    category: registrationCategoryLabel,
+    categories: selectedCategories,
+    registrationFee,
     paymentStatus: "pending_payment",
     paymentMethod: "pix",
     registeredAt: now,
@@ -125,9 +156,9 @@ async function loadPageData(uid: string) {
     tournamentId,
     title: currentTournament.title,
     location: currentTournament.location ?? "",
-    category: selectedCategory,
-    categories: currentTournament.categories ?? [],
-    registrationFee: currentTournament.registrationFee,
+    category: registrationCategoryLabel,
+    categories: selectedCategories,
+    registrationFee,
     paymentStatus: "pending_payment",
     paymentMethod: "pix",
     startDate: currentTournament.startDate,
@@ -145,7 +176,7 @@ async function loadPageData(uid: string) {
     batch.set(doc(db, "users", firebaseUser.uid, "registrations", tournamentId), userRegistrationPayload)
     await batch.commit()
 
-    alert("Pagamento enviado para analise. Aguarde a confirmacao da organizacao.")
+    alert("Pagamento enviado para análise. Aguarde a confirmação da organização.")
     redirectToProfile()
   } catch (error: any) {
     setPaymentLoading(false)
@@ -163,7 +194,7 @@ onAuthStateChanged(auth, async (user) => {
     await loadPageData(user.uid)
   } catch (error) {
     console.error("Erro ao carregar pagamento Pix:", error)
-    alert("Nao foi possivel abrir a pagina de pagamento agora.")
+    alert("Não foi possível abrir a página de pagamento agora.")
     redirectToProfile()
   }
 })

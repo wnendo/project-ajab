@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AJAB - Gerenciar Campeonato</title>
+  <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
+  <script type="module" crossorigin src="/assets/championshipManage-CsRJkjAb.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Btlm8H0F.js">
+  <link rel="modulepreload" crossorigin href="/assets/firebase-VBRKn9At.js">
+  <link rel="modulepreload" crossorigin href="/assets/tournament-rules-DUbpQbwy.js">
+  <link rel="stylesheet" crossorigin href="/assets/global-BlVylZPw.css">
+</head>
+<body class="dashboard-page championship-page">
+  <div class="header">
+    <img src="/assets/logo-DnYXdFXg.png" class="logo-img">
+    <div id="userSummary" class="user-summary"></div>
+  </div>
+
+  <main class="admin-hub-shell championship-shell">
+    <section class="championship-hero">
+      <div>
+        <span class="panel-tag">Campeonato</span>
+        <h1 id="championshipTitle">Carregando campeonato...</h1>
+        <p id="championshipSubtitle" class="profile-subtitle"></p>
+      </div>
+      <div class="championship-hero-actions">
+        <button class="btn secondary" onclick="openTournamentRegistrations()">Gerenciar inscricoes</button>
+        <button class="btn secondary" onclick="editCurrentTournament()">Editar torneio</button>
+        <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
+      </div>
+    </section>
+
+    <section class="championship-summary-grid">
+      <article class="card championship-summary-card">
+        <span class="section-label">Visao geral</span>
+        <div class="championship-summary-list">
+          <div class="info-row"><span>Status</span><strong id="championshipStatus">-</strong></div>
+          <div class="info-row"><span>Categorias</span><strong id="championshipCategories">-</strong></div>
+          <div class="info-row"><span>Inscritos aprovados</span><strong id="championshipApprovedCount">0</strong></div>
+          <div class="info-row"><span>Classificacao</span><strong>2 por grupo</strong></div>
+        </div>
+      </article>
+
+      <article class="card championship-summary-card">
+        <span class="section-label">Regras</span>
+        <div class="championship-rule-list">
+          <p>Fase de grupos com distribuicao aleatoria por categoria.</p>
+          <p>Desempate: saldo de sets, depois pontos feitos menos pontos sofridos.</p>
+          <p>Os dois melhores de cada grupo avançam para a fase eliminatória simples.</p>
+        </div>
+      </article>
+    </section>
+
+    <section id="championshipCategoriesGrid" class="championship-category-grid"></section>
+  </main>
+
+</body>
+</html>

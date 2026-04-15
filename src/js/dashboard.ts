@@ -2,6 +2,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth"
 import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, where, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import { UpcomingTournament, User } from "./types"
+import { getTournamentType } from "./tournament-rules"
 
 let checked = false
 let tournaments: UpcomingTournament[] = []
@@ -38,7 +39,7 @@ function redirectByRole(userData?: User | null) {
 }
 
 function formatDate(value?: number) {
-  if (!value) return "Nao informado"
+  if (!value) return "Não informado"
 
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(value)
 }
@@ -48,7 +49,7 @@ function getStatusLabel(status?: UpcomingTournament["status"]) {
     case "open":
       return "Em andamento"
     case "closed":
-      return "Inscricoes encerradas"
+      return "Inscrições encerradas"
     case "finished":
       return "Finalizado"
     default:
@@ -99,6 +100,10 @@ function renderTournamentCard(tournament: UpcomingTournament, mode: "registered"
   `
 }
 
+function getManagePagePath(tournament?: UpcomingTournament) {
+  return getTournamentType(tournament) === "championship" ? "/pages/championship-manage.html" : "/pages/tournament-manage.html"
+}
+
 function renderTournaments() {
   const registeredEl = document.getElementById("registeredTournaments")
   const ongoingEl = document.getElementById("ongoingTournaments")
@@ -141,7 +146,6 @@ function renderAthletes(filter = "") {
 
   container.innerHTML = filtered.length
     ? filtered
-        .slice(0, 20)
         .map(
           (athlete) => `
             <div class="admin-athlete-card">
@@ -200,7 +204,8 @@ async function loadHubData() {
 }
 
 ;(window as any).manageTournament = (id: string) => {
-  window.location.href = `/pages/tournament-manage.html?id=${id}`
+  const tournament = tournaments.find((entry) => entry.id === id)
+  window.location.href = `${getManagePagePath(tournament)}?id=${id}`
 }
 
 ;(window as any).startTournament = async (id: string) => {
@@ -215,7 +220,8 @@ async function loadHubData() {
     })
 
     await batch.commit()
-    window.location.href = `/pages/tournament-manage.html?id=${id}`
+    const tournament = tournaments.find((entry) => entry.id === id)
+    window.location.href = `${getManagePagePath(tournament)}?id=${id}`
   } catch (error: any) {
     alert("Erro ao iniciar torneio: " + error.message)
   }

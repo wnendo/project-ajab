@@ -2,6 +2,7 @@ import { onAuthStateChanged, signOut } from "firebase/auth"
 import { addDoc, collection, doc, getDoc, updateDoc } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import { UpcomingTournament, User } from "./types"
+import { getTournamentType } from "./tournament-rules"
 
 const tournamentId = new URLSearchParams(window.location.search).get("id")
 let currentTournament: UpcomingTournament | null = null
@@ -76,6 +77,19 @@ function getSelectedCategories() {
   )
 }
 
+function toggleTournamentTypeFields() {
+  const tournamentType = getField<HTMLSelectElement>("tournamentType").value
+  const championshipCategoriesWrap = document.getElementById("championshipCategoriesWrap") as HTMLElement | null
+  const rankingModeWrap = document.getElementById("rankingModeWrap") as HTMLElement | null
+  const doubleFeeWrap = document.getElementById("tournamentDoubleRegistrationFeeWrap") as HTMLElement | null
+  if (!championshipCategoriesWrap || !rankingModeWrap || !doubleFeeWrap) return
+
+  const isRanking = tournamentType === "ranking"
+  championshipCategoriesWrap.style.display = isRanking ? "none" : "block"
+  rankingModeWrap.style.display = isRanking ? "block" : "none"
+  doubleFeeWrap.style.display = isRanking ? "none" : "block"
+}
+
 function setSelectedCategories(categories: string[]) {
   const selected = new Set(categories)
 
@@ -107,6 +121,8 @@ async function loadTournamentIfNeeded() {
 
   currentTournament = { id: snapshot.id, ...snapshot.data() } as UpcomingTournament
   ;(document.getElementById("tournamentFormTitle") as HTMLElement).textContent = "Editar torneio"
+  getField<HTMLSelectElement>("tournamentType").value = getTournamentType(currentTournament)
+  getField<HTMLSelectElement>("rankingMode").value = currentTournament.rankingMode ?? "single"
   getField<HTMLInputElement>("tournamentTitle").value = currentTournament.title ?? ""
   getField<HTMLInputElement>("tournamentLocation").value = currentTournament.location ?? ""
   setSelectedCategories(normalizeCategories(currentTournament))
@@ -115,18 +131,26 @@ async function loadTournamentIfNeeded() {
   getField<HTMLInputElement>("tournamentEndDate").value = toDateInputValue(currentTournament.endDate)
   getField<HTMLInputElement>("tournamentRegistrationDeadline").value = toDateInputValue(currentTournament.registrationDeadline)
   getField<HTMLInputElement>("tournamentRegistrationFee").value = currentTournament.registrationFee?.toFixed(2) ?? ""
+  getField<HTMLInputElement>("tournamentDoubleRegistrationFee").value = currentTournament.doubleRegistrationFee?.toFixed(2) ?? ""
   getField<HTMLInputElement>("tournamentPixKey").value = currentTournament.pixKey ?? ""
   getField<HTMLInputElement>("tournamentPixHolder").value = currentTournament.pixHolder ?? ""
   getField<HTMLSelectElement>("tournamentStatus").value = currentTournament.status ?? "upcoming"
   getField<HTMLTextAreaElement>("tournamentDescription").value = currentTournament.description ?? ""
+  toggleTournamentTypeFields()
 }
 
 ;(window as any).goToDashboard = () => {
   window.location.href = "/pages/dashboard.html"
 }
 
+;(window as any).toggleTournamentTypeFields = () => {
+  toggleTournamentTypeFields()
+}
+
 ;(window as any).saveTournamentForm = async () => {
   const title = getField<HTMLInputElement>("tournamentTitle").value.trim()
+  const tournamentType = getField<HTMLSelectElement>("tournamentType").value as UpcomingTournament["tournamentType"]
+  const rankingMode = getField<HTMLSelectElement>("rankingMode").value as UpcomingTournament["rankingMode"]
   const location = getField<HTMLInputElement>("tournamentLocation").value.trim()
   const categories = getSelectedCategories()
   const startDate = fromDateInputValue(getField<HTMLInputElement>("tournamentStartDate").value)
@@ -134,6 +158,7 @@ async function loadTournamentIfNeeded() {
   const endDate = fromDateInputValue(getField<HTMLInputElement>("tournamentEndDate").value)
   const registrationDeadline = fromDateInputValue(getField<HTMLInputElement>("tournamentRegistrationDeadline").value)
   const registrationFee = parseCurrencyInput(getField<HTMLInputElement>("tournamentRegistrationFee").value)
+  const doubleRegistrationFee = parseCurrencyInput(getField<HTMLInputElement>("tournamentDoubleRegistrationFee").value)
   const pixKey = getField<HTMLInputElement>("tournamentPixKey").value.trim()
   const pixHolder = getField<HTMLInputElement>("tournamentPixHolder").value.trim()
   const status = getField<HTMLSelectElement>("tournamentStatus").value as UpcomingTournament["status"]
@@ -145,29 +170,48 @@ async function loadTournamentIfNeeded() {
   }
 
   if (endDate && endDate < startDate) {
-    alert("A data final nao pode ser antes da data inicial.")
+    alert("A data final não pode ser antes da data inicial.")
     return
   }
 
   if (!registrationFee || !pixKey || !pixHolder) {
-    alert("Informe valor da inscricao, chave Pix e favorecido para cadastrar o torneio.")
+    alert("Informe valor da inscrição, chave Pix e favorecido para cadastrar o torneio.")
+    return
+  }
+
+  if (tournamentType === "championship" && doubleRegistrationFee !== undefined && doubleRegistrationFee < registrationFee) {
+    alert("O valor para duas categorias não pode ser menor que o valor da inscrição simples.")
+    return
+  }
+
+  if (tournamentType !== "ranking" && !categories.length) {
+    alert("Selecione pelo menos uma categoria para o campeonato.")
     return
   }
 
   const payload = {
     title,
+    tournamentType,
+    ...(tournamentType === "ranking" ? { rankingMode, categories: ["A", "B"], category: "A, B" } : {}),
     ...(location ? { location } : {}),
-    ...(categories.length ? { categories, category: categories.join(", ") } : {}),
+    ...(tournamentType !== "ranking" && categories.length ? { categories, category: categories.join(", ") } : {}),
     startDate,
     ...(startTime ? { startTime } : {}),
     ...(endDate ? { endDate } : {}),
     ...(registrationDeadline ? { registrationDeadline } : {}),
     ...(registrationFee !== undefined ? { registrationFee } : {}),
+    ...(tournamentType === "championship" && doubleRegistrationFee !== undefined ? { doubleRegistrationFee } : {}),
     ...(pixKey ? { pixKey } : {}),
     ...(pixHolder ? { pixHolder } : {}),
     status,
     ...(description ? { description } : {}),
     isActive: currentTournament?.isActive ?? false,
+    groupStates: currentTournament?.groupStates ?? {
+      general: { started: false, tableCount: 1 },
+      A: { started: false, tableCount: 1 },
+      B: { started: false, tableCount: 1 }
+    },
+    championshipState: currentTournament?.championshipState ?? {},
     updatedAt: Date.now()
   }
 
@@ -208,6 +252,7 @@ onAuthStateChanged(auth, async (user) => {
 
   setUserHeader(data)
   await loadTournamentIfNeeded()
+  toggleTournamentTypeFields()
 })
 
 document.addEventListener("keydown", (event) => {
