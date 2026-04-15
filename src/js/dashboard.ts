@@ -1,8 +1,9 @@
-import { onAuthStateChanged, signOut } from "firebase/auth"
+﻿import { onAuthStateChanged, signOut } from "firebase/auth"
 import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, where, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import { UpcomingTournament, User } from "./types"
 import { getTournamentType } from "./tournament-rules"
+import { showToast } from "./toast"
 
 let checked = false
 let tournaments: UpcomingTournament[] = []
@@ -40,7 +41,6 @@ function redirectByRole(userData?: User | null) {
 
 function formatDate(value?: number) {
   if (!value) return "Não informado"
-
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(value)
 }
 
@@ -68,7 +68,7 @@ function renderTournamentCard(tournament: UpcomingTournament, mode: "registered"
 
   if (mode === "ongoing") {
     actions.push(`<button class="btn primary" onclick="manageTournament('${tournament.id}')">Entrar no gerenciamento</button>`)
-    actions.push(`<button class="btn secondary" onclick="resetTournamentStatus('${tournament.id}')">Voltar para nao iniciado</button>`)
+    actions.push(`<button class="btn secondary" onclick="resetTournamentStatus('${tournament.id}')">Voltar para não iniciado</button>`)
     actions.push(`<button class="btn secondary" onclick="editTournament('${tournament.id}')">Editar</button>`)
   }
 
@@ -90,7 +90,7 @@ function renderTournamentCard(tournament: UpcomingTournament, mode: "registered"
       </div>
       <div class="admin-tournament-meta">
         <span>Categoria: ${tournament.category || "Livre"}</span>
-        <span>Inicio: ${formatDate(tournament.startDate)}</span>
+        <span>Início: ${formatDate(tournament.startDate)}</span>
         <span>Fim: ${formatDate(tournament.endDate)}</span>
       </div>
       ${tournament.description ? `<p class="admin-tournament-description">${tournament.description}</p>` : ""}
@@ -117,7 +117,7 @@ function renderTournaments() {
   if (registeredEl) {
     registeredEl.innerHTML = scheduled.length
       ? scheduled.map((entry) => renderTournamentCard(entry, "registered")).join("")
-      : '<div class="empty-state">Nenhum proximo torneio cadastrado no momento.</div>'
+      : '<div class="empty-state">Nenhum próximo torneio cadastrado no momento.</div>'
   }
 
   if (ongoingEl) {
@@ -229,7 +229,7 @@ async function loadHubData() {
     const tournament = tournaments.find((entry) => entry.id === id)
     window.location.href = `${getManagePagePath(tournament)}?id=${id}`
   } catch (error: any) {
-    alert("Erro ao iniciar torneio: " + error.message)
+    showToast("Erro ao iniciar torneio: " + error.message, "error")
   }
 }
 
@@ -248,8 +248,9 @@ async function loadHubData() {
     )
 
     renderTournaments()
+    showToast("Torneio voltou para o estado de não iniciado.", "success")
   } catch (error: any) {
-    alert("Erro ao voltar torneio para nao iniciado: " + error.message)
+    showToast("Erro ao voltar torneio para não iniciado: " + error.message, "error")
   }
 }
 

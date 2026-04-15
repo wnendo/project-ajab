@@ -1,4 +1,4 @@
-import { onAuthStateChanged } from "firebase/auth"
+﻿import { onAuthStateChanged } from "firebase/auth"
 import { collection, doc, getDoc, getDocs, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import { TournamentRegistration, UpcomingTournament, User, UserTournamentRegistration } from "./types"
@@ -31,7 +31,7 @@ function setPaymentLoading(isLoading: boolean) {
 
   if (confirmButton) {
     confirmButton.disabled = isLoading
-    confirmButton.textContent = isLoading ? "Enviando..." : "Ja realizei o pagamento"
+    confirmButton.textContent = isLoading ? "Enviando..." : "Já realizei o pagamento"
   }
 }
 
@@ -45,7 +45,7 @@ function goToProfileWithToast(message: string, type: "success" | "error" | "warn
 }
 
 function formatCurrency(value?: number) {
-  if (value === undefined) return "Nao informado"
+  if (value === undefined) return "Não informado"
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)
 }
 
@@ -63,16 +63,16 @@ function renderPaymentPage() {
   ;(document.getElementById("paymentSubtitle") as HTMLElement).textContent =
     `${tournament.location || "Local a definir"} - finalize o Pix antes de enviar sua inscrição.`
   ;(document.getElementById("paymentCategory") as HTMLElement).textContent =
-    selectedCategories.length ? formatRegistrationCategories(selectedCategories) : "Nao informada"
+    selectedCategories.length ? formatRegistrationCategories(selectedCategories) : "Não informada"
   ;(document.getElementById("paymentAmount") as HTMLElement).textContent = formatCurrency(getSelectedRegistrationFee())
   ;(document.getElementById("paymentPixKey") as HTMLElement).textContent = tournament.pixKey || "-"
   ;(document.getElementById("paymentPixHolder") as HTMLElement).textContent =
-    tournament.pixHolder ? `Favorecido: ${tournament.pixHolder}` : "Favorecido nao informado."
+    tournament.pixHolder ? `Favorecido: ${tournament.pixHolder}` : "Favorecido não informado."
 }
 
 async function loadPageData(uid: string) {
   if (!tournamentId || !selectedCategories.length) {
-    goToProfileWithToast("Pagamento invalido. Escolha o torneio novamente.", "warning")
+    goToProfileWithToast("Pagamento inválido. Escolha o torneio novamente.", "warning")
     return
   }
 
@@ -83,7 +83,7 @@ async function loadPageData(uid: string) {
   ])
 
   if (!userSnapshot.exists() || !tournamentSnapshot.exists()) {
-    goToProfileWithToast("Nao foi possivel carregar os dados do pagamento.", "error")
+    goToProfileWithToast("Não foi possível carregar os dados do pagamento.", "error")
     return
   }
 
@@ -94,7 +94,7 @@ async function loadPageData(uid: string) {
 
   const allowedCategories = getAllowedRegistrationCategories(tournament, currentUserProfile.category)
   if (!selectedCategories.every((category) => allowedCategories.includes(category))) {
-    goToProfileWithToast("Sua categoria atual nao permite essa inscrição.", "warning")
+    goToProfileWithToast("Sua categoria atual não permite essa inscrição.", "warning")
     return
   }
 
@@ -104,18 +104,18 @@ async function loadPageData(uid: string) {
   }
 
   if (selectedCategories.some((category) => isCategoryFull(tournament, registrations, category))) {
-    goToProfileWithToast("Uma das categorias selecionadas ja atingiu o limite de inscritos.", "warning")
+    goToProfileWithToast("Uma das categorias selecionadas já atingiu o limite de inscritos.", "warning")
     return
   }
 
   if (!getSelectedRegistrationFee() || !tournament.pixKey || !tournament.pixHolder) {
-    goToProfileWithToast("Este torneio ainda nao esta configurado para pagamento Pix.", "warning")
+    goToProfileWithToast("Este torneio ainda não está configurado para pagamento Pix.", "warning")
     return
   }
 
   const existingRegistration = await getDoc(doc(db, "tournaments", tournamentId, "registrations", uid))
   if (existingRegistration.exists()) {
-    goToProfileWithToast("Voce ja possui uma inscrição vinculada a este torneio.", "warning")
+    goToProfileWithToast("Você já possui uma inscrição vinculada a este torneio.", "warning")
     return
   }
 
@@ -129,7 +129,7 @@ async function loadPageData(uid: string) {
     await navigator.clipboard.writeText(currentTournament.pixKey)
     showToast("Chave Pix copiada.", "success")
   } catch {
-    showToast("Nao foi possivel copiar automaticamente. Copie manualmente a chave exibida.", "warning")
+    showToast("Não foi possível copiar automaticamente. Copie manualmente a chave exibida.", "warning")
   }
 }
 
@@ -139,7 +139,6 @@ async function loadPageData(uid: string) {
 
 ;(window as any).confirmPixPayment = async () => {
   const firebaseUser = auth.currentUser
-
   const userProfile = currentUserProfile
   const tournament = currentTournament
 
@@ -149,7 +148,7 @@ async function loadPageData(uid: string) {
   }
 
   if (selectedCategories.some((category) => isCategoryFull(tournament, registrations, category))) {
-    goToProfileWithToast("Uma das categorias selecionadas ja atingiu o limite de inscritos.", "warning")
+    goToProfileWithToast("Uma das categorias selecionadas já atingiu o limite de inscritos.", "warning")
     return
   }
 
@@ -197,7 +196,7 @@ async function loadPageData(uid: string) {
     batch.set(doc(db, "users", firebaseUser.uid, "registrations", tournamentId), userRegistrationPayload)
     await batch.commit()
 
-    goToProfileWithToast("Pagamento enviado para analise. Aguarde a confirmação da organização.", "success")
+    goToProfileWithToast("Pagamento enviado para análise. Aguarde a confirmação da organização.", "success")
   } catch (error: any) {
     setPaymentLoading(false)
     showToast("Erro ao enviar pagamento: " + error.message, "error")
@@ -214,6 +213,6 @@ onAuthStateChanged(auth, async (user) => {
     await loadPageData(user.uid)
   } catch (error) {
     console.error("Erro ao carregar pagamento Pix:", error)
-    goToProfileWithToast("Nao foi possivel abrir a pagina de pagamento agora.", "error")
+    goToProfileWithToast("Não foi possível abrir a página de pagamento agora.", "error")
   }
 })

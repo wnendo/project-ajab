@@ -1,4 +1,4 @@
-import { onAuthStateChanged, signOut } from "firebase/auth"
+﻿import { onAuthStateChanged, signOut } from "firebase/auth"
 import { collection, doc, getDoc, getDocs, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import { TournamentRegistration, UpcomingTournament, User, UserTournamentRegistration } from "./types"
@@ -30,18 +30,18 @@ function getSelectedRegistrationCategories() {
 }
 
 function formatDate(value?: number) {
-  if (!value) return "Nao informado"
+  if (!value) return "Não informado"
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(value)
 }
 
 function formatDateRange(startDate?: number, endDate?: number) {
-  if (!startDate) return "Nao informado"
+  if (!startDate) return "Não informado"
   if (!endDate || endDate === startDate) return formatDate(startDate)
-  return `${formatDate(startDate)} ate ${formatDate(endDate)}`
+  return `${formatDate(startDate)} até ${formatDate(endDate)}`
 }
 
 function formatCurrency(value?: number) {
-  if (value === undefined) return "Nao informado"
+  if (value === undefined) return "Não informado"
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)
 }
 
@@ -58,18 +58,9 @@ function getTournamentFeeLabel(entry: UpcomingTournament) {
 }
 
 function isRegistrationClosed(entry: UpcomingTournament) {
-  if (entry.status === "finished" || entry.status === "closed") {
-    return true
-  }
-
-  if (entry.status === "open") {
-    return false
-  }
-
-  if (entry.registrationDeadline && entry.registrationDeadline < Date.now()) {
-    return true
-  }
-
+  if (entry.status === "finished" || entry.status === "closed") return true
+  if (entry.status === "open") return false
+  if (entry.registrationDeadline && entry.registrationDeadline < Date.now()) return true
   return false
 }
 
@@ -83,7 +74,7 @@ function openRegistrationModal() {
 
   const categories = getAllowedRegistrationCategories(tournament, currentUserProfile?.category)
   if (!categories.length) {
-    showToast("Sua categoria atual nao permite inscrição neste torneio.", "warning")
+    showToast("Sua categoria atual não permite inscrição neste torneio.", "warning")
     return
   }
 
@@ -123,18 +114,18 @@ function renderTournamentInfo() {
   }
 
   titleEl.textContent = tournament.title
-  subtitleEl.textContent = `${tournament.location || "Local a definir"} - confira as informacoes antes de seguir para a inscrição.`
+  subtitleEl.textContent = `${tournament.location || "Local a definir"} - confira as informações antes de seguir para a inscrição.`
 
   infoEl.innerHTML = `
     <div class="info-card"><span>Tipo</span><strong>${getTournamentType(tournament) === "ranking" ? "Ranking" : "Campeonato"}</strong></div>
     <div class="info-card"><span>Data</span><strong>${formatDateRange(tournament.startDate, tournament.endDate)}</strong></div>
     <div class="info-card"><span>Local</span><strong>${tournament.location || "Local a definir"}</strong></div>
-    <div class="info-card"><span>Inscricoes ate</span><strong>${formatDate(tournament.registrationDeadline)}</strong></div>
+    <div class="info-card"><span>Inscrições até</span><strong>${formatDate(tournament.registrationDeadline)}</strong></div>
     <div class="info-card"><span>Valor</span><strong>${getTournamentFeeLabel(tournament)}</strong></div>
-    <div class="info-card"><span>Status</span><strong>${isRegistrationClosed(tournament) ? "Inscricoes encerradas" : "Inscricoes abertas"}</strong></div>
+    <div class="info-card"><span>Status</span><strong>${isRegistrationClosed(tournament) ? "Inscrições encerradas" : "Inscrições abertas"}</strong></div>
   `
 
-  descriptionEl.innerHTML = `<p>${tournament.description || "Texto do torneio ainda nao definido. Depois voce pode editar essa apresentação no cadastro do torneio."}</p>`
+  descriptionEl.innerHTML = `<p>${tournament.description || "Texto do torneio ainda não definido. Depois você pode editar essa apresentação no cadastro do torneio."}</p>`
 
   if (isRankingTournament(tournament)) {
     rankingCard.style.display = "block"
@@ -156,7 +147,7 @@ function renderTournamentInfo() {
             `
           )
           .join("")
-      : '<div class="empty-state">Ainda nao ha inscritos confirmados neste ranking.</div>'
+      : '<div class="empty-state">Ainda não há inscritos confirmados neste ranking.</div>'
   } else {
     rankingCard.style.display = "none"
   }
@@ -170,7 +161,7 @@ function renderTournamentInfo() {
       : currentRegistrationStatus === "pending_payment"
         ? currentRegistrationMethod === "pay_on_day"
           ? "Pagar no dia - pendente"
-          : "Pagamento em analise"
+          : "Pagamento em análise"
         : !hasAvailableCategory
           ? "Categoria lotada"
           : "Inscreva-se"
@@ -182,15 +173,15 @@ function renderTournamentInfo() {
       <div class="stack-item-header">
         <div>
           <strong>${buttonLabel}</strong>
-          <span>${isRankingTournament(tournament) ? "Ranking com visao completa dos inscritos e das informacoes do evento." : "Campeonato com informacoes gerais antes de seguir para a inscrição."}</span>
+          <span>${isRankingTournament(tournament) ? "Ranking com visão completa dos inscritos e das informações do evento." : "Campeonato com informações gerais antes de seguir para a inscrição."}</span>
         </div>
       </div>
       <div class="stack-item-grid">
         <span>Valor: ${getTournamentFeeLabel(tournament)}</span>
-        <span>Pix: ${pixAvailable ? "Disponivel" : "Ainda nao configurado"}</span>
-        <span>Favorecido: ${tournament.pixHolder || "Nao informado"}</span>
-        <span>Pagamento no dia: disponivel</span>
-        <span>Status da inscrição: ${currentRegistrationStatus === "pending_payment" ? "pendente de aprovação" : currentRegistrationStatus === "approved" ? "aprovada" : "nao enviada"}</span>
+        <span>Pix: ${pixAvailable ? "Disponível" : "Ainda não configurado"}</span>
+        <span>Favorecido: ${tournament.pixHolder || "Não informado"}</span>
+        <span>Pagamento no dia: disponível</span>
+        <span>Status da inscrição: ${currentRegistrationStatus === "pending_payment" ? "pendente de aprovação" : currentRegistrationStatus === "approved" ? "aprovada" : "não enviada"}</span>
       </div>
       <div class="admin-tournament-actions">
         <button
@@ -249,12 +240,7 @@ async function loadPageData(uid: string) {
 }
 
 ;(window as any).startRegistrationFlow = () => {
-  if (!currentTournament) return
-
-  if (currentRegistrationStatus) {
-    return
-  }
-
+  if (!currentTournament || currentRegistrationStatus) return
   openRegistrationModal()
 }
 
@@ -328,13 +314,13 @@ async function createPendingRegistration(paymentMethod: "pix" | "pay_on_day", se
   }
 
   if (selectedCategories.some((category) => isCategoryFull(tournament, registrations, category))) {
-    showToast("Uma das categorias selecionadas ja atingiu o limite de inscritos.", "warning")
+    showToast("Uma das categorias selecionadas já atingiu o limite de inscritos.", "warning")
     return
   }
 
   if (paymentMethod === "pix") {
     if (!tournament.pixKey || !tournament.pixHolder) {
-      showToast("Este torneio ainda nao esta configurado para pagamento Pix.", "warning")
+      showToast("Este torneio ainda não está configurado para pagamento Pix.", "warning")
       return
     }
 
@@ -369,7 +355,7 @@ onAuthStateChanged(auth, async (user) => {
     await loadPageData(user.uid)
   } catch (error) {
     console.error("Erro ao carregar detalhes do torneio:", error)
-    redirectWithToast("/pages/profile.html", "Nao foi possivel carregar os detalhes do torneio agora.", "error")
+    redirectWithToast("/pages/profile.html", "Não foi possível carregar os detalhes do torneio agora.", "error")
     window.location.replace("/pages/profile.html")
   }
 })
