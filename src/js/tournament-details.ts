@@ -83,7 +83,7 @@ function openRegistrationModal() {
 
   const categories = getAllowedRegistrationCategories(tournament, currentUserProfile?.category)
   if (!categories.length) {
-    showToast("Sua categoria atual nao permite inscricao neste torneio.", "warning")
+    showToast("Sua categoria atual nao permite inscrição neste torneio.", "warning")
     return
   }
 
@@ -123,7 +123,7 @@ function renderTournamentInfo() {
   }
 
   titleEl.textContent = tournament.title
-  subtitleEl.textContent = `${tournament.location || "Local a definir"} - confira as informacoes antes de seguir para a inscricao.`
+  subtitleEl.textContent = `${tournament.location || "Local a definir"} - confira as informacoes antes de seguir para a inscrição.`
 
   infoEl.innerHTML = `
     <div class="info-card"><span>Tipo</span><strong>${getTournamentType(tournament) === "ranking" ? "Ranking" : "Campeonato"}</strong></div>
@@ -134,7 +134,7 @@ function renderTournamentInfo() {
     <div class="info-card"><span>Status</span><strong>${isRegistrationClosed(tournament) ? "Inscricoes encerradas" : "Inscricoes abertas"}</strong></div>
   `
 
-  descriptionEl.innerHTML = `<p>${tournament.description || "Texto do torneio ainda nao definido. Depois voce pode editar essa apresentacao no cadastro do torneio."}</p>`
+  descriptionEl.innerHTML = `<p>${tournament.description || "Texto do torneio ainda nao definido. Depois voce pode editar essa apresentação no cadastro do torneio."}</p>`
 
   if (isRankingTournament(tournament)) {
     rankingCard.style.display = "block"
@@ -182,7 +182,7 @@ function renderTournamentInfo() {
       <div class="stack-item-header">
         <div>
           <strong>${buttonLabel}</strong>
-          <span>${isRankingTournament(tournament) ? "Ranking com visao completa dos inscritos e das informacoes do evento." : "Campeonato com informacoes gerais antes de seguir para a inscricao."}</span>
+          <span>${isRankingTournament(tournament) ? "Ranking com visao completa dos inscritos e das informacoes do evento." : "Campeonato com informacoes gerais antes de seguir para a inscrição."}</span>
         </div>
       </div>
       <div class="stack-item-grid">
@@ -190,7 +190,7 @@ function renderTournamentInfo() {
         <span>Pix: ${pixAvailable ? "Disponivel" : "Ainda nao configurado"}</span>
         <span>Favorecido: ${tournament.pixHolder || "Nao informado"}</span>
         <span>Pagamento no dia: disponivel</span>
-        <span>Status da inscricao: ${currentRegistrationStatus === "pending_payment" ? "pendente de aprovacao" : currentRegistrationStatus === "approved" ? "aprovada" : "nao enviada"}</span>
+        <span>Status da inscrição: ${currentRegistrationStatus === "pending_payment" ? "pendente de aprovação" : currentRegistrationStatus === "approved" ? "aprovada" : "nao enviada"}</span>
       </div>
       <div class="admin-tournament-actions">
         <button
@@ -318,12 +318,12 @@ async function createPendingRegistration(paymentMethod: "pix" | "pay_on_day", se
 
   const selectedCategories = getSelectedRegistrationCategories()
   if (!selectedCategories.length) {
-    showToast("Escolha pelo menos uma categoria para concluir a inscricao.", "warning")
+    showToast("Escolha pelo menos uma categoria para concluir a inscrição.", "warning")
     return
   }
 
   if (!isRankingTournament(tournament) && !isValidChampionshipSelection(userProfile.category, selectedCategories)) {
-    showToast("Sua selecao de categorias nao e valida para o Campeonato.", "warning")
+    showToast("Sua seleção de categorias não é válida para o Campeonato.", "warning")
     return
   }
 
@@ -347,10 +347,10 @@ async function createPendingRegistration(paymentMethod: "pix" | "pay_on_day", se
   try {
     await createPendingRegistration("pay_on_day", selectedCategories)
     ;(window as any).closeRegistrationModal()
-    redirectWithToast("/pages/profile.html", "Inscricao registrada com pagamento no dia. Ela ficara pendente de aprovacao pela organizacao.", "success")
+    redirectWithToast("/pages/profile.html", "Inscrição registrada com pagamento no dia. Ela ficará pendente de aprovação pela organização.", "success")
     window.location.replace("/pages/profile.html")
   } catch (error: any) {
-    showToast("Erro ao registrar inscricao: " + error.message, "error")
+    showToast("Erro ao registrar inscrição: " + error.message, "error")
   }
 }
 

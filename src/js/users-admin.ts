@@ -253,7 +253,7 @@ async function deleteUserData(userId: string) {
     await deleteUserData(userId)
     users = users.filter((entry) => entry.id !== userId)
     renderUsers((document.getElementById("userSearch") as HTMLInputElement)?.value ?? "")
-    showToast("Usuario removido dos dados do sistema. A conta de autenticacao do Firebase pode continuar existindo.", "success")
+    showToast("Usuario removido dos dados do sistema. A conta de autenticação do Firebase pode continuar existindo.", "success")
   } catch (error: any) {
     showToast("Erro ao excluir usuario: " + error.message, "error")
   }

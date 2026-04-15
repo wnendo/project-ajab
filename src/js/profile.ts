@@ -135,7 +135,7 @@ function renderTournamentHistory(entries: UserTournament[]) {
             <span class="stack-item-date">${formatDate(entry.playedAt)}</span>
           </div>
           <div class="stack-item-grid">
-            <span>Colocacao: ${entry.placement || "Não informada"}</span>
+            <span>Colocação: ${entry.placement || "Não informada"}</span>
             <span>Resultado: ${entry.result || "Não informado"}</span>
             <span>Partidas: ${entry.matchCount ?? 0}</span>
             <span>Campanha: ${entry.wins ?? 0}V / ${entry.losses ?? 0}D</span>
@@ -386,15 +386,15 @@ async function loadUserProfile(uid: string) {
 ;(window as any).requestPasswordReset = async () => {
   const email = currentUserProfile?.email || auth.currentUser?.email
   if (!email) {
-    showToast("Seu perfil nao possui email cadastrado para redefinicao de senha.", "warning")
+    showToast("Seu perfil nao possui email cadastrado para redefinição de senha.", "warning")
     return
   }
 
   try {
     await sendPasswordResetEmail(auth, email)
-    showToast("Enviamos um link de redefinicao de senha para o seu email.", "success")
+    showToast("Enviamos um link de redefinição de senha para o seu email.", "success")
   } catch (error: any) {
-    showToast("Erro ao enviar redefinicao de senha: " + error.message, "error")
+    showToast("Erro ao enviar redefinição de senha: " + error.message, "error")
   }
 }
 

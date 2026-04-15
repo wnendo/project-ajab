@@ -61,7 +61,7 @@ function renderPaymentPage() {
 
   ;(document.getElementById("paymentTournamentTitle") as HTMLElement).textContent = tournament.title
   ;(document.getElementById("paymentSubtitle") as HTMLElement).textContent =
-    `${tournament.location || "Local a definir"} - finalize o Pix antes de enviar sua inscricao.`
+    `${tournament.location || "Local a definir"} - finalize o Pix antes de enviar sua inscrição.`
   ;(document.getElementById("paymentCategory") as HTMLElement).textContent =
     selectedCategories.length ? formatRegistrationCategories(selectedCategories) : "Nao informada"
   ;(document.getElementById("paymentAmount") as HTMLElement).textContent = formatCurrency(getSelectedRegistrationFee())
@@ -94,12 +94,12 @@ async function loadPageData(uid: string) {
 
   const allowedCategories = getAllowedRegistrationCategories(tournament, currentUserProfile.category)
   if (!selectedCategories.every((category) => allowedCategories.includes(category))) {
-    goToProfileWithToast("Sua categoria atual nao permite essa inscricao.", "warning")
+    goToProfileWithToast("Sua categoria atual nao permite essa inscrição.", "warning")
     return
   }
 
   if (isRankingTournament(tournament) && selectedCategories.length !== 1) {
-    goToProfileWithToast("O ranking permite apenas uma categoria por inscricao.", "warning")
+    goToProfileWithToast("O ranking permite apenas uma categoria por inscrição.", "warning")
     return
   }
 
@@ -115,7 +115,7 @@ async function loadPageData(uid: string) {
 
   const existingRegistration = await getDoc(doc(db, "tournaments", tournamentId, "registrations", uid))
   if (existingRegistration.exists()) {
-    goToProfileWithToast("Voce ja possui uma inscricao vinculada a este torneio.", "warning")
+    goToProfileWithToast("Voce ja possui uma inscrição vinculada a este torneio.", "warning")
     return
   }
 
@@ -197,7 +197,7 @@ async function loadPageData(uid: string) {
     batch.set(doc(db, "users", firebaseUser.uid, "registrations", tournamentId), userRegistrationPayload)
     await batch.commit()
 
-    goToProfileWithToast("Pagamento enviado para analise. Aguarde a confirmacao da organizacao.", "success")
+    goToProfileWithToast("Pagamento enviado para analise. Aguarde a confirmação da organização.", "success")
   } catch (error: any) {
     setPaymentLoading(false)
     showToast("Erro ao enviar pagamento: " + error.message, "error")

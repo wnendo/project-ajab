@@ -145,7 +145,7 @@ function getCandidateStatus(candidate: AthleteSearchCandidate) {
   }
 
   return {
-    label: "Sem inscricao",
+    label: "Sem inscrição",
     tone: "neutral"
   }
 }
@@ -261,7 +261,7 @@ function openAthleteActivationModal(candidate: AthleteSearchCandidate) {
   pendingAthleteCandidate = candidate
   title.textContent = `Ativar ${candidate.user.name}?`
   description.textContent =
-    "Confirme o status do pagamento para concluir a inscricao ou enviar o atleta para analise."
+    "Confirme o status do pagamento para concluir a inscrição ou enviar o atleta para análise."
   modal.style.display = "flex"
 }
 
@@ -930,7 +930,7 @@ window.addEventListener("beforeunload", () => {
     if (status === "approved") {
       showToast("Atleta adicionado automaticamente ao campeonato.", "success")
     } else {
-      showToast("Inscricao adicionada para analise no gerenciamento de inscricoes.", "info")
+      showToast("Inscrição adicionada para análise no gerenciamento de inscrições.", "info")
     }
 
     selectedAthleteId = null
@@ -975,8 +975,8 @@ window.addEventListener("beforeunload", () => {
   if (!registration) return
 
   const confirmed = await confirmAction({
-    title: "Remover inscricao",
-    message: `Remover a inscricao de ${registration.name}?`,
+    title: "Remover inscrição",
+    message: `Remover a inscrição de ${registration.name}?`,
     confirmLabel: "Remover",
     tone: "danger"
   })
@@ -996,7 +996,7 @@ window.addEventListener("beforeunload", () => {
     await loadPlayers()
     render()
   } catch (error: any) {
-    showToast("Erro ao remover inscricao: " + error.message, "error")
+    showToast("Erro ao remover inscrição: " + error.message, "error")
   }
 }
 
@@ -1116,7 +1116,7 @@ window.addEventListener("beforeunload", () => {
 
   const confirmed = await confirmAction({
     title: "Encerrar torneio",
-    message: `Encerrar o torneio "${tournament.title}"?\n\nEssa acao finaliza o ranking e grava a classificacao dos atletas.`,
+    message: `Encerrar o torneio "${tournament.title}"?\n\nEssa ação finaliza o ranking e grava a classificação dos atletas.`,
     confirmLabel: "Encerrar",
     tone: "danger"
   })

@@ -1,0 +1,27 @@
+import"./modulepreload-polyfill-Btlm8H0F.js";import{_ as e,a as t,d as n,f as r,i,n as a,p as o,t as s,x as c}from"./firebase-VBRKn9At.js";import{n as l}from"./toast-kV3jSCF7.js";/* empty css               */import{u}from"./tournament-rules-D9Tq3W95.js";import{t as d}from"./confirm-modal-Dnnch5Ng.js";var f=new URLSearchParams(window.location.search).get(`id`),p=!1,m=null,h=[],g=null;function _(e){let t=document.getElementById(`userSummary`);t&&(t.innerHTML=`
+    <strong>${e.name}</strong>
+    <span>${e.club||`Sem clube`}</span>
+    <span>${e.category||`Sem categoria`}</span>
+  `)}function v(e){return e?e.profileComplete?e.role===`admin`?e:(window.location.replace(`/pages/profile.html`),null):(window.location.replace(`/pages/complete-profile.html`),null):(window.location.replace(`/pages/login.html`),null)}async function y(e){return v((await i(o(a,`users`,e))).data())}function b(e){return e===void 0?`Não informado`:new Intl.NumberFormat(`pt-BR`,{style:`currency`,currency:`BRL`}).format(e)}function x(e){return Array.isArray(e.categories)&&e.categories.length?e.categories.join(`, `):e.category||`Não informada`}function S(e){return e.paymentMethod===`pay_on_day`?`Pagar no dia`:`Pix`}function C(e){return e.paymentStatus===`approved`?`Pagamento aprovado`:e.paymentMethod===`pay_on_day`?`Pagar no dia - pendente de aprovação`:`Aguardando análise`}function w(){let e=(document.getElementById(`registrationSearch`)?.value??``).trim().toLowerCase();return[...h].filter(t=>e?[t.name,t.email,t.club,t.category].some(t=>(t??``).toLowerCase().includes(e)):!0).sort((e,t)=>e.name.localeCompare(t.name))}function T(){let e=document.getElementById(`registrationTournamentTitle`),t=document.getElementById(`registrationTournamentSubtitle`),n=document.getElementById(`registrationTotalCount`),r=document.getElementById(`registrationPendingCount`),i=document.getElementById(`registrationList`);if(!e||!t||!n||!r||!i)return;e.textContent=m?.title||`Inscricoes`,t.textContent=m?`${m.location||`Local a definir`} - acompanhe os pagamentos Pix e confirme as inscricoes.`:`Não foi possivel carregar o torneio.`,n.textContent=String(h.length),r.textContent=String(h.filter(e=>e.paymentStatus!==`approved`).length);let a=w();i.innerHTML=a.length?a.map(e=>`
+            <div class="stack-item ${e.paymentStatus===`approved`?``:`pending-payment-item`}">
+              <div class="stack-item-header">
+                <div>
+                  <strong>${e.name}</strong>
+                  <span>${e.email||`Email não informado`}</span>
+                </div>
+                <span class="result-pill ${e.paymentStatus===`approved`?`win`:`neutral`}">
+                  ${C(e)}
+                </span>
+              </div>
+              <div class="stack-item-grid">
+                <span>Clube: ${e.club||`Não informado`}</span>
+                <span>Categoria: ${x(e)}</span>
+                <span>Valor: ${b(e.registrationFee)}</span>
+                <span>Metodo: ${S(e)}</span>
+              </div>
+              <div class="admin-tournament-actions">
+                ${e.paymentStatus===`approved`?`<button class="btn secondary" disabled>Pagamento aprovado</button>`:`<button class="btn primary" onclick="approveRegistration('${e.id}')">Aprovar pagamento</button>`}
+                <button class="btn danger" onclick="removeRegistration('${e.id}')">Remover inscrição</button>
+              </div>
+            </div>
+          `).join(``):`<div class="empty-state">Nenhuma inscrição encontrada para esse filtro.</div>`}async function E(){if(!f){window.location.replace(`/pages/dashboard.html`);return}let e=await i(o(a,`tournaments`,f));if(!e.exists()){window.location.replace(`/pages/dashboard.html`);return}m={id:e.id,...e.data()}}async function D(){if(!m){h=[];return}h=(await t(r(a,`tournaments`,m.id,`registrations`))).docs.map(e=>({id:e.id,...e.data()}))}async function O(){await E(),await D(),T()}window.filterRegistrations=()=>{T()},window.approveRegistration=async e=>{if(m&&h.find(t=>t.id===e))try{let t=n(a);t.update(o(a,`tournaments`,m.id,`registrations`,e),{paymentStatus:`approved`}),t.update(o(a,`users`,e,`registrations`,m.id),{paymentStatus:`approved`}),await t.commit(),await D(),T()}catch(e){l(`Erro ao aprovar pagamento: `+e.message,`error`)}},window.removeRegistration=async e=>{if(!m)return;let t=h.find(t=>t.id===e);if(t&&await d({title:`Remover inscrição`,message:`Remover a inscrição de ${t.name}?`,confirmLabel:`Remover`,tone:`danger`}))try{let t=n(a);t.delete(o(a,`tournaments`,m.id,`registrations`,e)),t.delete(o(a,`users`,e,`registrations`,m.id)),t.update(o(a,`users`,e),{"playerProfile.active":!1,"playerProfile.games":0,"playerProfile.wins":0,"playerProfile.losses":0,"playerProfile.lastPlayed":null}),await t.commit(),await D(),T()}catch(e){l(`Erro ao remover inscrição: `+e.message,`error`)}},window.goBackToTournament=()=>{if(!m){window.location.href=`/pages/dashboard.html`;return}let e=u(m)===`championship`?`championship-manage`:`tournament-manage`;window.location.href=`/pages/${e}.html?id=${m.id}`},window.goToDashboard=()=>{window.location.href=`/pages/dashboard.html`},window.openProfile=()=>{window.location.href=`/pages/profile.html`},window.logout=async()=>{await c(s),window.location.replace(`/pages/login.html`)},e(s,async e=>{if(p)return;if(p=!0,!e){window.location.replace(`/pages/login.html`);return}let t=await y(e.uid);t&&(_(t),await O(),g=window.setInterval(async()=>{await D(),T()},15e3))}),window.addEventListener(`beforeunload`,()=>{g!==null&&(window.clearInterval(g),g=null)});

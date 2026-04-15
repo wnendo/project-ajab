@@ -53,7 +53,7 @@ function getFinalStandingsMarkup(
     <div class="stack-item">
       <div class="stack-item-header">
         <div>
-          <strong>Classificacao final</strong>
+          <strong>Classificação final</strong>
           <span>Resultado oficial da categoria</span>
         </div>
       </div>

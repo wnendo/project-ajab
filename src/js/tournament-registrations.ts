@@ -72,8 +72,8 @@ function getPaymentStatusLabel(registration: TournamentRegistration) {
   }
 
   return registration.paymentMethod === "pay_on_day"
-    ? "Pagar no dia - pendente de aprovacao"
-    : "Aguardando analise"
+    ? "Pagar no dia - pendente de aprovação"
+    : "Aguardando análise"
 }
 
 function getFilteredRegistrations() {
@@ -228,7 +228,7 @@ async function loadPageData() {
     await loadRegistrations()
     renderPage()
   } catch (error: any) {
-    showToast("Erro ao remover inscricao: " + error.message, "error")
+    showToast("Erro ao remover inscrição: " + error.message, "error")
   }
 }
 

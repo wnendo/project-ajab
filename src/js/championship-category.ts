@@ -239,8 +239,8 @@ function getFinalStandingsMarkup(state: ChampionshipCategoryState) {
   return `
     <section class="championship-block">
       <div class="championship-block-head">
-        <h3>Classificacao final</h3>
-        <p>Encerramento oficial da categoria com definicao do 1o ao 4o lugar.</p>
+        <h3>Classificação final</h3>
+        <p>Encerramento oficial da categoria com definição do 1° ao 4° lugar.</p>
       </div>
       <div class="stack-list">
         ${finalStandings.slice(0, 4).map((playerId, index) => `
@@ -955,7 +955,7 @@ function renderPage() {
                         </div>
                         <div class="championship-group-standings">
                           <div class="championship-group-standings-head">
-                            <strong>Classificacao do grupo</strong>
+                            <strong>Classificação do grupo</strong>
                             <span>${group.playerIds.length} atleta(s)</span>
                           </div>
                           ${getGroupStandingsMarkup(group, state)}

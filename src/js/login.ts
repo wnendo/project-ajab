@@ -119,15 +119,15 @@ async function ensureGoogleUserDocument() {
   const email = (document.getElementById("email") as HTMLInputElement | null)?.value.trim()
 
   if (!email) {
-    showToast("Informe seu email para receber o link de redefinicao de senha.", "warning")
+    showToast("Informe seu email para receber o link de redefinição de senha.", "warning")
     return
   }
 
   try {
     await sendPasswordResetEmail(auth, email)
-    showToast("Enviamos um link de redefinicao de senha para o seu email.", "success")
+    showToast("Enviamos um link de redefinição de senha para o seu email.", "success")
   } catch (error: any) {
-    showToast("Erro ao enviar redefinicao de senha: " + error.message, "error")
+    showToast("Erro ao enviar redefinição de senha: " + error.message, "error")
   }
 }
 

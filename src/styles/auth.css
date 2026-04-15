@@ -26,7 +26,7 @@ body.login-page {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(circle at 20% 20%, rgba(47, 107, 255, 0.28), transparent 28%),
+    radial-gradient(circle at 20% 20%, rgba(217, 47, 76, 0.28), transparent 28%),
     radial-gradient(circle at 80% 10%, rgba(217, 47, 76, 0.18), transparent 24%),
     radial-gradient(circle at 80% 10%, rgba(255, 255, 255, 0.08), transparent 20%),
     linear-gradient(135deg, rgba(8, 15, 31, 0.45), rgba(8, 15, 31, 0.2));
@@ -40,7 +40,7 @@ body.login-page {
   min-height: 100vh;
   padding: 32px 20px;
   background:
-    radial-gradient(circle at top left, rgba(47, 107, 255, 0.16), transparent 30%),
+    radial-gradient(circle at top left, rgba(217, 47, 76, 0.16), transparent 30%),
     radial-gradient(circle at top right, rgba(217, 47, 76, 0.16), transparent 26%),
     linear-gradient(180deg, #0d172a, #050912);
 }
@@ -99,7 +99,7 @@ body.login-page .container {
   width: fit-content;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(47, 107, 255, 0.14);
+  background: rgba(217, 47, 76, 0.14);
   color: #b7ccff;
   font-size: 12px;
   font-weight: 700;
@@ -204,7 +204,7 @@ button {
 
 button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(47, 107, 255, 0.2), 0 10px 24px rgba(217, 47, 76, 0.18);
+  box-shadow: 0 10px 24px rgba(217, 47, 76, 0.2), 0 10px 24px rgba(217, 47, 76, 0.18);
 }
 
 .primary-btn {

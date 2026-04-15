@@ -261,7 +261,7 @@ function renderSummary() {
       ? "Finalizado"
       : currentTournament?.status === "open"
         ? "Em andamento"
-        : "Preparacao"
+        : "Preparação"
   ;(document.getElementById("championshipCategories") as HTMLElement).textContent = formatRegistrationCategories(getTournamentCategories())
   ;(document.getElementById("championshipApprovedCount") as HTMLElement).textContent = String(getApprovedRegistrations().length)
 }
@@ -315,7 +315,7 @@ function renderCategoryCard(category: ChampionshipCategory) {
         <summary class="championship-collapse-summary">
           <div class="championship-block-head">
             <h3>Grupos sorteados</h3>
-            <p>${groups.length ? state.defined ? "A categoria ja foi iniciada. A configuracao desta pagina ficou travada e a operacao segue dentro da pagina da categoria." : "Ao abrir a pagina da categoria, esta configuracao fica travada e a operacao segue por la." : "Defina o tamanho dos grupos e sorteie a categoria para montar os confrontos."}</p>
+            <p>${groups.length ? state.defined ? "A categoria ja foi iniciada. A configuração desta pagina ficou travada e a operação segue dentro da pagina da categoria." : "Ao abrir a pagina da categoria, esta configuração fica travada e a operação segue por la." : "Defina o tamanho dos grupos e sorteie a categoria para montar os confrontos."}</p>
           </div>
         </summary>
         <div class="championship-collapse-content">
@@ -362,7 +362,7 @@ function renderCategoryCard(category: ChampionshipCategory) {
             <details class="championship-block championship-manage-finals championship-collapse" open>
               <summary class="championship-collapse-summary">
                 <div class="championship-block-head">
-                  <h3>Classificacao final</h3>
+                  <h3>Classificação final</h3>
                   <p>Resumo final da categoria.</p>
                 </div>
               </summary>
