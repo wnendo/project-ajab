@@ -126,10 +126,10 @@ function getPlayerMeta(playerId: string) {
 }
 
 function getFinalPlacementLabel(position: number) {
-  if (position === 1) return "1o lugar"
-  if (position === 2) return "2o lugar"
-  if (position === 3) return "3o lugar"
-  return "4o lugar"
+  if (position === 1) return "1° lugar"
+  if (position === 2) return "2° lugar"
+  if (position === 3) return "3° lugar"
+  return "4° lugar"
 }
 
 function getFinalPlacementClass(position: number) {

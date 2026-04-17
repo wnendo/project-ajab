@@ -2,17 +2,23 @@ import { onAuthStateChanged, sendPasswordResetEmail, signOut } from "firebase/au
 import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import {
+  ChampionshipCategory,
+  ChampionshipCategoryState,
+  ChampionshipGroup,
+  ChampionshipMatch,
+  TournamentRegistration,
   UpcomingTournament,
   User,
   UserMatchHistory,
   UserTournament,
   UserTournamentRegistration
 } from "./types"
-import { getTournamentType } from "./tournament-rules"
+import { getPlayerCompetitionGroup, getTournamentType, isRankingTournament } from "./tournament-rules"
 import { showToast } from "./toast"
 
 let currentUserProfile: User | null = null
 let upcomingTournaments: UpcomingTournament[] = []
+let allTournaments: UpcomingTournament[] = []
 let registrationStatusByTournament = new Map<string, UserTournamentRegistration["paymentStatus"]>()
 let registrationMethodByTournament = new Map<string, UserTournamentRegistration["paymentMethod"] | undefined>()
 
@@ -32,6 +38,15 @@ function formatDateRange(startDate: number, endDate?: number) {
   return `${formatDate(startDate)} ate ${formatDate(endDate)}`
 }
 
+function formatDateTime(value?: number) {
+  if (!value) return "Nao informado"
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(value)
+}
+
 function formatCurrency(value?: number) {
   if (value === undefined) return "Não informado"
 
@@ -39,6 +54,25 @@ function formatCurrency(value?: number) {
     style: "currency",
     currency: "BRL"
   }).format(value)
+}
+
+function escapeHtml(value?: string) {
+  return (value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
+function normalizeChampionshipCategory(value?: string): ChampionshipCategory | null {
+  const normalized = (value ?? "").trim().toUpperCase()
+  if (normalized === "A") return "A"
+  if (normalized === "B") return "B"
+  if (normalized === "C") return "C"
+  if (normalized === "D") return "D"
+  if (normalized === "INICIANTE" || normalized === "INICIANTES") return "Iniciante"
+  return null
 }
 
 function formatTournamentFee(entry: UpcomingTournament) {
@@ -114,6 +148,198 @@ function renderProfileInfo(user: User) {
     .join("")
 }
 
+function getTournamentById(tournamentId: string) {
+  return allTournaments.find((entry) => entry.id === tournamentId) ?? null
+}
+
+function getRoundRobinMatchesForGroup(category: ChampionshipCategory, group: ChampionshipGroup): ChampionshipMatch[] {
+  const matches: ChampionshipMatch[] = []
+
+  for (let first = 0; first < group.playerIds.length; first++) {
+    for (let second = first + 1; second < group.playerIds.length; second++) {
+      matches.push({
+        id: `${category}_${group.id}_${group.playerIds[first]}_${group.playerIds[second]}`,
+        stage: "groups",
+        category,
+        groupId: group.id,
+        playerIds: [group.playerIds[first], group.playerIds[second]]
+      })
+    }
+  }
+
+  return matches
+}
+
+function getChampionshipGroupStandings(
+  group: ChampionshipGroup,
+  state: ChampionshipCategoryState,
+  nameMap: Map<string, string>
+) {
+  const standings = new Map<string, { wins: number; losses: number; pointsWon: number; pointsLost: number }>()
+
+  group.playerIds.forEach((playerId) => {
+    standings.set(playerId, { wins: 0, losses: 0, pointsWon: 0, pointsLost: 0 })
+  })
+
+  ;(state.completedMatches ?? [])
+    .filter((match) => match.stage === "groups" && match.groupId === group.id)
+    .forEach((match) => {
+      const [p1Id, p2Id] = match.playerIds
+      const p1 = standings.get(p1Id)
+      const p2 = standings.get(p2Id)
+      if (!p1 || !p2) return
+
+      const score1 = match.score1 ?? 0
+      const score2 = match.score2 ?? 0
+      p1.pointsWon += score1
+      p1.pointsLost += score2
+      p2.pointsWon += score2
+      p2.pointsLost += score1
+
+      if (match.winnerId === p1Id) {
+        p1.wins += 1
+        p2.losses += 1
+      } else if (match.winnerId === p2Id) {
+        p2.wins += 1
+        p1.losses += 1
+      }
+    })
+
+  return [...standings.entries()]
+    .map(([playerId, stats]) => ({ playerId, ...stats }))
+    .sort((a, b) => {
+      if (b.wins !== a.wins) return b.wins - a.wins
+      const diffA = a.pointsWon - a.pointsLost
+      const diffB = b.pointsWon - b.pointsLost
+      if (diffB !== diffA) return diffB - diffA
+      return (nameMap.get(a.playerId) || "Atleta").localeCompare(nameMap.get(b.playerId) || "Atleta")
+    })
+}
+
+function getRankingResultShowcase(tournament: UpcomingTournament) {
+  const standings = tournament.finalStandings ?? []
+  if (!standings.length) {
+    return '<div class="empty-state">O resultado final deste ranking ainda nao foi publicado.</div>'
+  }
+
+  const podium = standings.slice(0, 3)
+  const others = standings.slice(3)
+
+  return `
+    <div class="ranking-showcase">
+      <div class="ranking-showcase-podium">
+        ${podium
+          .map(
+            (entry, index) => `
+              <article class="ranking-showcase-podium-card place-${index + 1}">
+                <span class="ranking-showcase-place">${entry.placement}</span>
+                <strong>${escapeHtml(entry.name)}</strong>
+                <small>${escapeHtml(entry.category)}</small>
+                <div class="ranking-showcase-score">${entry.wins}V - ${entry.losses}D - ${entry.games} jogos</div>
+              </article>
+            `
+          )
+          .join("")}
+      </div>
+      <div class="ranking-showcase-table">
+        ${standings
+          .map(
+            (entry) => `
+              <div class="ranking-showcase-row">
+                <span>${escapeHtml(entry.placement)}</span>
+                <strong>${escapeHtml(entry.name)}</strong>
+                <small>${escapeHtml(entry.result)}</small>
+                <span>${entry.wins}V / ${entry.losses}D</span>
+              </div>
+            `
+          )
+          .join("")}
+      </div>
+      ${
+        others.length
+          ? `<div class="schema-note"><p>${others.length} atleta${others.length === 1 ? "" : "s"} adicional${others.length === 1 ? "" : "is"} aparecem na tabela completa do ranking.</p></div>`
+          : ""
+      }
+    </div>
+  `
+}
+
+async function getTournamentRegistrationNameMap(tournamentId: string) {
+  const snapshot = await getDocs(collection(db, "tournaments", tournamentId, "registrations"))
+  const nameMap = new Map<string, string>()
+
+  snapshot.docs.forEach((entry) => {
+    const registration = { id: entry.id, ...entry.data() } as TournamentRegistration
+    nameMap.set(registration.id, registration.name)
+  })
+
+  return nameMap
+}
+
+async function getChampionshipResultShowcase(tournament: UpcomingTournament) {
+  const nameMap = await getTournamentRegistrationNameMap(tournament.id)
+  const categoryStates = Object.entries(tournament.championshipState ?? {}).filter(([, state]) => state?.groups?.length)
+
+  if (!categoryStates.length) {
+    return '<div class="empty-state">Este campeonato ainda nao possui grupos ou mata-mata definidos.</div>'
+  }
+
+  return categoryStates
+    .map(([categoryKey, state]) => {
+      const typedState = state as ChampionshipCategoryState
+      const category = categoryKey as ChampionshipCategory
+
+      return `
+        <section class="championship-result-section">
+          <div class="section-header compact-section-header">
+            <div>
+              <span class="section-label">Categoria ${escapeHtml(category)}</span>
+              <h3>${typedState.finished ? "Resultado final" : "Andamento do campeonato"}</h3>
+            </div>
+          </div>
+          <div class="championship-result-groups">
+            ${(typedState.groups ?? [])
+              .map((group) => {
+                const totalMatches = getRoundRobinMatchesForGroup(category, group).length
+                const playedMatches = (typedState.completedMatches ?? []).filter(
+                  (match) => match.stage === "groups" && match.groupId === group.id
+                ).length
+                const standings = getChampionshipGroupStandings(group, typedState, nameMap).slice(0, 2)
+
+                return `
+                  <div class="championship-result-group-card">
+                    <strong>${escapeHtml(group.name)}</strong>
+                    <span>${playedMatches}/${totalMatches} jogos</span>
+                    <div class="championship-result-group-mini">
+                      ${standings.length
+                        ? standings
+                            .map(
+                              (entry, index) => `
+                                <small>${index + 1}o ${escapeHtml(nameMap.get(entry.playerId) || "Atleta")} - ${entry.wins}V</small>
+                              `
+                            )
+                            .join("")
+                        : "<small>Aguardando jogos</small>"}
+                    </div>
+                  </div>
+                `
+              })
+              .join("")}
+          </div>
+          <div class="championship-bracket-frame-wrap championship-result-bracket-wrap">
+            <iframe
+              class="championship-bracket-frame championship-result-bracket"
+              title="Mata-mata ${escapeHtml(category)}"
+              loading="lazy"
+              src="/pages/championship-bracket-frame.html?id=${encodeURIComponent(tournament.id)}&category=${encodeURIComponent(category)}"
+            ></iframe>
+          </div>
+        </section>
+      `
+    })
+    .join("")
+}
+
 function renderTournamentHistory(entries: UserTournament[]) {
   const container = document.getElementById("tournamentsList")
   if (!container) return
@@ -177,12 +403,84 @@ function renderMatchHistory(entries: UserMatchHistory[]) {
     .join("")
 }
 
+function decorateTournamentHistory(entries: UserTournament[]) {
+  const container = document.getElementById("tournamentsList")
+  if (!container) return
+
+  Array.from(container.children).forEach((child, index) => {
+    const element = child as HTMLElement
+    const entry = entries[index]
+    if (!element || !entry || element.querySelector(".history-result-action")) return
+
+    const tournamentId = entry.tournamentId || entry.id
+    const tournament = getTournamentById(tournamentId)
+    const actions = document.createElement("div")
+    actions.className = "admin-tournament-actions history-result-action"
+    actions.innerHTML = `<button class="btn secondary" ${tournament ? "" : "disabled"} onclick="openProfileTournamentResult('${tournamentId}')">Ver resultado</button>`
+    element.appendChild(actions)
+  })
+}
+
 function getRegisteredChampionshipCategories(registration: UserTournamentRegistration) {
   if (Array.isArray(registration.categories) && registration.categories.length) {
     return registration.categories
   }
 
   return registration.category ? registration.category.split(",").map((entry) => entry.trim()).filter(Boolean) : []
+}
+
+function renderMyTournamentsCard(entries: UpcomingTournament[], registrations: UserTournamentRegistration[]) {
+  const container = document.getElementById("myChampionshipsCard")
+  if (!container) return
+
+  const approvedTournaments = registrations
+    .filter((entry) => entry.paymentStatus === "approved")
+    .map((entry) => {
+      const tournamentId = entry.tournamentId || entry.id
+      const tournament = entries.find((item) => item.id === tournamentId)
+      if (!tournament) return null
+
+      return {
+        id: tournament.id,
+        title: tournament.title,
+        type: getTournamentType(tournament),
+        categories: Array.isArray(entry.categories) && entry.categories.length
+          ? entry.categories
+          : entry.category
+            ? entry.category.split(",").map((item) => item.trim()).filter(Boolean)
+            : []
+      }
+    })
+    .filter(Boolean) as Array<{ id: string; title: string; type: string; categories: string[] }>
+
+  if (!approvedTournaments.length) {
+    container.innerHTML = `
+      <div class="empty-state">Voce ainda nao possui torneios aprovados para acompanhar.</div>
+      <button class="btn secondary" onclick="openMyTournaments()">Abrir meus torneios</button>
+    `
+    return
+  }
+
+  const rankingCount = approvedTournaments.filter((entry) => entry.type === "ranking").length
+  const championshipCount = approvedTournaments.filter((entry) => entry.type === "championship").length
+  const highlight = approvedTournaments[0]
+
+  container.innerHTML = `
+    <div class="stack-item">
+      <div class="stack-item-header">
+        <div>
+          <strong>${approvedTournaments.length} torneio${approvedTournaments.length === 1 ? "" : "s"} em acompanhamento</strong>
+          <span>${rankingCount} ranking${rankingCount === 1 ? "" : "s"} e ${championshipCount} campeonato${championshipCount === 1 ? "" : "s"}</span>
+        </div>
+        <span class="result-pill neutral">Ao vivo</span>
+      </div>
+      <div class="stack-item-grid">
+        <span>Destaque: ${highlight.title}</span>
+        <span>Categoria(s): ${highlight.categories.join(", ") || "A definir"}</span>
+      </div>
+    </div>
+    <button class="btn primary" onclick="openMyTournaments()">Abrir meus torneios</button>
+  `
 }
 
 function renderMyChampionshipsCard(entries: UpcomingTournament[], registrations: UserTournamentRegistration[]) {
@@ -347,22 +645,25 @@ async function loadUserProfile(uid: string) {
   const matches = matchesSnapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }) as UserMatchHistory)
   const registrations = registrationsSnapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }) as UserTournamentRegistration)
   const now = Date.now()
-  const upcoming = upcomingSnapshot.docs
+  const resolvedTournaments = upcomingSnapshot.docs
     .map((entry) => ({ id: entry.id, ...entry.data() }) as UpcomingTournament)
+  const upcoming = resolvedTournaments
     .filter((entry) => (entry.status ? entry.status !== "finished" && entry.status !== "closed" : true))
     .filter((entry) => entry.startDate >= now || entry.endDate === undefined || entry.endDate >= now)
     .slice(0, 6)
 
   currentUserProfile = user
   upcomingTournaments = upcoming
+  allTournaments = resolvedTournaments
   registrationStatusByTournament = new Map(registrations.map((entry) => [entry.tournamentId || entry.id, entry.paymentStatus]))
   registrationMethodByTournament = new Map(registrations.map((entry) => [entry.tournamentId || entry.id, entry.paymentMethod]))
 
   updateHeader(user, tournaments, matches, upcoming)
   renderProfileInfo(user)
   renderTournamentHistory(tournaments)
+  decorateTournamentHistory(tournaments)
   renderMatchHistory(matches)
-  renderMyChampionshipsCard(upcoming, registrations)
+  renderMyTournamentsCard(resolvedTournaments, registrations)
   renderUpcoming(upcoming)
 }
 
@@ -379,8 +680,44 @@ async function loadUserProfile(uid: string) {
   window.location.href = "/pages/dashboard.html"
 }
 
+;(window as any).openMyTournaments = () => {
+  window.location.href = "/pages/my-championships.html"
+}
+
 ;(window as any).openMyChampionships = () => {
   window.location.href = "/pages/my-championships.html"
+}
+
+;(window as any).closeProfileTournamentResultModal = () => {
+  const modal = document.getElementById("profileTournamentResultModal") as HTMLElement | null
+  if (modal) {
+    modal.style.display = "none"
+  }
+}
+
+;(window as any).openProfileTournamentResult = async (tournamentId: string) => {
+  const tournament = getTournamentById(tournamentId)
+  const title = document.getElementById("profileTournamentResultTitle")
+  const content = document.getElementById("profileTournamentResultContent")
+  const modal = document.getElementById("profileTournamentResultModal") as HTMLElement | null
+
+  if (!tournament || !title || !content || !modal) {
+    showToast("Nao foi possivel abrir o resultado deste torneio.", "warning")
+    return
+  }
+
+  title.textContent = `Resultado - ${tournament.title}`
+  content.innerHTML = '<div class="empty-state">Carregando resultado...</div>'
+  modal.style.display = "flex"
+
+  try {
+    content.innerHTML = isRankingTournament(tournament)
+      ? getRankingResultShowcase(tournament)
+      : await getChampionshipResultShowcase(tournament)
+  } catch (error: any) {
+    content.innerHTML = `<div class="empty-state">Nao foi possivel carregar o resultado agora.</div>`
+    showToast("Erro ao carregar resultado: " + error.message, "error")
+  }
 }
 
 ;(window as any).requestPasswordReset = async () => {
@@ -448,4 +785,3 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 })
-

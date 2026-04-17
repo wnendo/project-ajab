@@ -172,11 +172,23 @@ function getGroupStandings(group: ChampionshipGroup, state: ChampionshipCategory
   })
 }
 
+function isGroupCompleted(group: ChampionshipGroup, state: ChampionshipCategoryState) {
+  const category = currentCategory
+  if (!category) return false
+
+  const totalMatches = buildRoundRobinMatchesForGroup(category, group).length
+  return getGroupCompletedMatches(state, group.id).length >= totalMatches
+}
+
 function getQualifiedEntries(groups: ChampionshipGroup[], state: ChampionshipCategoryState) {
   const winners: QualifiedEntry[] = []
   const runnersUp: QualifiedEntry[] = []
 
   groups.forEach((group) => {
+    if (!isGroupCompleted(group, state)) {
+      return
+    }
+
     const standings = getGroupStandings(group, state)
     const first = standings[0]
     const second = standings[1]

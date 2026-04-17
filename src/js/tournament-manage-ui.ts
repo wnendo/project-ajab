@@ -65,13 +65,16 @@ function renderRankingRow(player: Player, index: number, faded = false) {
   const stats = getPlayerStats(player.id)
 
   return `
-    <div class="player-row ${medalClass} ${faded ? "faded" : ""}">
+    <div class="player-row compact-player-row ${medalClass} ${faded ? "faded" : ""}">
       <div class="player-row-main">
         <span>${index + 1} -</span>
         <span class="player-name" title="${player.name}" onclick="showHistory('${player.id}')">${abbreviatePlayerName(player.name)}</span>
       </div>
       <div class="player-row-stats">
         W:${stats.wins} L:${stats.losses} J:${stats.games}
+      </div>
+      <div class="player-inline-action">
+        <button type="button" onclick="openAthleteProfile('${player.id}')">Perfil</button>
       </div>
       <div class="player-actions">
         <button onclick="editPlayer('${player.id}')">✏️</button>

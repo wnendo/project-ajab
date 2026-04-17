@@ -68,6 +68,18 @@ export type RankingLiveGroupState = {
 
 export type RankingLiveState = Partial<Record<CompetitionGroup, RankingLiveGroupState>>
 
+export type TournamentFinalStanding = {
+  playerId: string
+  name: string
+  category: string
+  group: CompetitionGroup
+  placement: string
+  result: string
+  wins: number
+  losses: number
+  games: number
+}
+
 export type ChampionshipGroup = {
   id: string
   name: string
@@ -205,6 +217,7 @@ export type UpcomingTournament = {
   isActive?: boolean
   groupStates?: Partial<Record<CompetitionGroup, TournamentGroupState>>
   rankingLiveState?: RankingLiveState
+  finalStandings?: TournamentFinalStanding[]
   championshipState?: ChampionshipState
   createdAt?: number
   updatedAt?: number

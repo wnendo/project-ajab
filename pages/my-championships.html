@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AJAB - Meus Campeonatos</title>
+  <title>AJAB - Meus Torneios</title>
   <link rel="icon" type="image/png" href="/src/res/favicon.png">
   <link rel="stylesheet" href="/src/styles/global.css">
 </head>
@@ -12,9 +12,9 @@
     <header class="profile-hero">
       <div class="profile-hero-top">
         <div>
-          <span class="profile-eyebrow">Campeonato</span>
-          <h1>Meus campeonatos</h1>
-          <p class="profile-subtitle">Acompanhe seu grupo, seus proximos jogos e o desenho da eliminatoria de cada categoria.</p>
+          <span class="profile-eyebrow">Acompanhamento</span>
+          <h1>Meus torneios</h1>
+          <p class="profile-subtitle">Acompanhe rankings e campeonatos em uma visao unica, com jogos em andamento, proximos confrontos e resultados.</p>
         </div>
         <div class="profile-actions">
           <button class="btn secondary" onclick="goBackToProfile()">Voltar ao perfil</button>
@@ -28,6 +28,29 @@
     </main>
   </div>
 
-  <script type="module" src="/src/js/my-championships.ts"></script>
+  <div id="tournamentCategoryChoiceModal" class="modal">
+    <div class="modal-card athlete-activation-card">
+      <div class="modal-header">
+        <span>Escolha a categoria</span>
+        <button class="close-btn" onclick="closeTournamentCategoryChoiceModal()">Fechar</button>
+      </div>
+      <div class="modal-body">
+        <p id="tournamentCategoryChoiceText" class="registration-modal-text"></p>
+        <div id="tournamentCategoryChoiceOptions" class="athlete-activation-actions"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tournamentViewerModal" class="modal">
+    <div class="modal-card tournament-viewer-modal-card">
+      <div class="modal-header">
+        <span id="tournamentViewerTitle">Visualizacao do torneio</span>
+        <button class="close-btn" onclick="closeTournamentViewerModal()">Fechar</button>
+      </div>
+      <div id="tournamentViewerContent" class="modal-body registration-modal-body"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/js/my-tournaments.ts"></script>
 </body>
 </html>

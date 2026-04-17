@@ -67,6 +67,7 @@
         <button class="btn secondary" onclick="resetMatches()">Resetar</button>
         <button id="rankingModeAction" class="btn secondary" onclick="toggleRankingMode()" style="display:none;">Separar A e B</button>
         <button class="btn primary" onclick="finishTournament()">Encerrar torneio</button>
+        <button class="btn secondary" onclick="openFinalResultsModal()">Ver resultado</button>
       </div>
     </section>
 
@@ -138,6 +139,26 @@
         <button class="btn danger" onclick="confirmAthletePaymentStatus('cancel')">Cancelar operação</button>
       </div>
     </div>
+  </div>
+</div>
+
+<div id="athleteProfileModal" class="modal">
+  <div class="modal-card athlete-profile-modal-card">
+    <div class="modal-header">
+      <span>Perfil do atleta</span>
+      <button class="close-btn" onclick="closeAthleteProfileModal()">Fechar</button>
+    </div>
+    <div id="athleteProfileContent" class="modal-body"></div>
+  </div>
+</div>
+
+<div id="finalResultsModal" class="modal">
+  <div class="modal-card registration-modal-card tournament-results-modal-card">
+    <div class="modal-header">
+      <span>Resultado final do ranking</span>
+      <button class="close-btn" onclick="closeFinalResultsModal()">Fechar</button>
+    </div>
+    <div id="finalResultsList" class="modal-body registration-modal-body"></div>
   </div>
 </div>
 

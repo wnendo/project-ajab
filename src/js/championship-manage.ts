@@ -155,10 +155,10 @@ function getPlayerNameById(category: ChampionshipCategory, playerId: string) {
 }
 
 function getPlacementLabel(index: number) {
-  if (index === 0) return "1o lugar"
-  if (index === 1) return "2o lugar"
-  if (index === 2) return "3o lugar"
-  return "4o lugar"
+  if (index === 0) return "1° lugar"
+  if (index === 1) return "2° lugar"
+  if (index === 2) return "3° lugar"
+  return "4° lugar"
 }
 
 function getPlacementClass(index: number) {

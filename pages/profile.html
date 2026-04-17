@@ -127,8 +127,8 @@
         <details class="card profile-card profile-collapse" open>
           <summary class="profile-collapse-summary">
             <div>
-              <span class="section-label">Campeonato</span>
-              <h3>Meus campeonatos</h3>
+              <span class="section-label">Acompanhamento</span>
+              <h3>Meus torneios</h3>
             </div>
           </summary>
           <div class="profile-collapse-content">
@@ -149,6 +149,16 @@
         </details>
       </aside>
     </main>
+  </div>
+
+  <div id="profileTournamentResultModal" class="modal">
+    <div class="modal-card tournament-results-modal-card profile-tournament-result-modal-card">
+      <div class="modal-header">
+        <span id="profileTournamentResultTitle">Resultado do torneio</span>
+        <button class="close-btn" onclick="closeProfileTournamentResultModal()">Fechar</button>
+      </div>
+      <div id="profileTournamentResultContent" class="modal-body registration-modal-body"></div>
+    </div>
   </div>
 
   <script type="module" src="/src/js/profile.ts"></script>

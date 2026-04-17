@@ -25,7 +25,7 @@
 
     <main class="profile-layout">
       <section class="profile-main">
-        <article class="card profile-card">
+        <article class="card profile-card tournament-summary-card">
           <div class="section-header">
             <div>
               <span class="section-label">Informacoes</span>
@@ -51,8 +51,23 @@
               <span class="section-label">Ranking</span>
               <h3>Inscritos confirmados</h3>
             </div>
+            <span id="rankingRegistrationsCount" class="section-meta"></span>
           </div>
-          <div id="rankingRegistrationsList" class="stack-list"></div>
+          <div class="ranking-registration-toolbar">
+            <input id="rankingRegistrationsSearch" type="search" placeholder="Buscar atleta inscrito" oninput="filterRankingRegistrations()">
+          </div>
+          <div id="rankingRegistrationsList" class="stack-list ranking-registration-list scroll-list"></div>
+        </article>
+
+        <article id="tournamentResultsCard" class="card profile-card" style="display:none">
+          <div class="section-header">
+            <div>
+              <span class="section-label">Resultado</span>
+              <h3>Classificação final</h3>
+            </div>
+            <button class="btn secondary" onclick="openTournamentResultsModal()">Ver resultado completo</button>
+          </div>
+          <div id="tournamentResultsList" class="stack-list"></div>
         </article>
       </section>
 
@@ -85,6 +100,26 @@
           <button class="btn secondary" onclick="closeRegistrationModal()">Cancelar</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div id="tournamentResultsModal" class="modal">
+    <div class="modal-card registration-modal-card tournament-results-modal-card">
+      <div class="modal-header">
+        <span>Resultado final do ranking</span>
+        <button class="close-btn" onclick="closeTournamentResultsModal()">Fechar</button>
+      </div>
+      <div id="tournamentResultsModalList" class="modal-body registration-modal-body"></div>
+    </div>
+  </div>
+
+  <div id="registeredAthleteProfileModal" class="modal">
+    <div class="modal-card athlete-profile-modal-card">
+      <div class="modal-header">
+        <span>Perfil do atleta</span>
+        <button class="close-btn" onclick="closeRegisteredAthleteProfileModal()">Fechar</button>
+      </div>
+      <div id="registeredAthleteProfileContent" class="modal-body"></div>
     </div>
   </div>
 

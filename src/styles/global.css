@@ -13,6 +13,9 @@
   --accent-red-soft: #ff94a6;
   --border-soft: rgba(143, 167, 202, 0.16);
   --shadow-soft: rgba(1, 7, 18, 0.38);
+  --scrollbar-track: rgba(15, 23, 42, 0.58);
+  --scrollbar-thumb: linear-gradient(180deg, rgba(217, 47, 76, 0.9), rgba(183, 31, 59, 0.9));
+  --scrollbar-thumb-hover: linear-gradient(180deg, rgba(255, 148, 166, 0.95), rgba(217, 47, 76, 0.92));
 }
 
 body {
@@ -84,6 +87,61 @@ body {
   gap: 20px;
 }
 
+.admin-athlete-results,
+.athlete-search-results,
+.scroll-list,
+.tournament-mini-grid,
+.ranking-athlete-grid,
+.ranking-completed-grid,
+.championship-bracket-frame-content {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(217, 47, 76, 0.9) rgba(15, 23, 42, 0.58);
+}
+
+.admin-athlete-results::-webkit-scrollbar,
+.athlete-search-results::-webkit-scrollbar,
+.scroll-list::-webkit-scrollbar,
+.tournament-mini-grid::-webkit-scrollbar,
+.ranking-athlete-grid::-webkit-scrollbar,
+.ranking-completed-grid::-webkit-scrollbar,
+.championship-bracket-frame-content::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.admin-athlete-results::-webkit-scrollbar-track,
+.athlete-search-results::-webkit-scrollbar-track,
+.scroll-list::-webkit-scrollbar-track,
+.tournament-mini-grid::-webkit-scrollbar-track,
+.ranking-athlete-grid::-webkit-scrollbar-track,
+.ranking-completed-grid::-webkit-scrollbar-track,
+.championship-bracket-frame-content::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 999px;
+}
+
+.admin-athlete-results::-webkit-scrollbar-thumb,
+.athlete-search-results::-webkit-scrollbar-thumb,
+.scroll-list::-webkit-scrollbar-thumb,
+.tournament-mini-grid::-webkit-scrollbar-thumb,
+.ranking-athlete-grid::-webkit-scrollbar-thumb,
+.ranking-completed-grid::-webkit-scrollbar-thumb,
+.championship-bracket-frame-content::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid rgba(15, 23, 42, 0.52);
+}
+
+.admin-athlete-results::-webkit-scrollbar-thumb:hover,
+.athlete-search-results::-webkit-scrollbar-thumb:hover,
+.scroll-list::-webkit-scrollbar-thumb:hover,
+.tournament-mini-grid::-webkit-scrollbar-thumb:hover,
+.ranking-athlete-grid::-webkit-scrollbar-thumb:hover,
+.ranking-completed-grid::-webkit-scrollbar-thumb:hover,
+.championship-bracket-frame-content::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
 .admin-athlete-results {
   display: flex;
   flex-direction: column;
@@ -94,25 +152,6 @@ body {
   overflow-x: hidden;
   padding-right: 6px;
   scrollbar-gutter: stable;
-}
-
-.admin-athlete-results::-webkit-scrollbar {
-  width: 10px;
-}
-
-.admin-athlete-results::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.55);
-  border-radius: 999px;
-}
-
-.admin-athlete-results::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(217, 47, 76, 0.88), rgba(217, 47, 76, 0.82));
-  border-radius: 999px;
-  border: 2px solid rgba(15, 23, 42, 0.55);
-}
-
-.admin-athlete-results::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(255, 148, 166, 0.95), rgba(255, 148, 166, 0.9));
 }
 
 .admin-athlete-card {
@@ -685,6 +724,327 @@ body {
   gap: 8px;
 }
 
+.section-meta {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.compact-section-header {
+  margin-bottom: 10px;
+}
+
+.tournament-summary-card .profile-info-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tournament-registration-panel {
+  padding: 18px;
+}
+
+.registration-note {
+  margin-top: 14px;
+}
+
+.ranking-registration-toolbar {
+  margin-bottom: 12px;
+}
+
+.scroll-list {
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+}
+
+.ranking-registration-item {
+  padding: 10px 12px;
+}
+
+.ranking-registration-item .stack-item-header {
+  margin-bottom: 0;
+  align-items: center;
+}
+
+.tournament-results-group + .tournament-results-group {
+  margin-top: 14px;
+}
+
+.tournament-results-modal-card {
+  width: min(92vw, 620px);
+}
+
+.profile-tournament-result-modal-card,
+.tournament-viewer-modal-card {
+  width: min(96vw, 1320px);
+}
+
+.tournament-viewer-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.tournament-tracker-card {
+  padding: 18px;
+}
+
+.ranking-showcase {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(217, 47, 76, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(10, 18, 33, 0.96), rgba(12, 22, 38, 0.94));
+  border: 1px solid rgba(143, 167, 202, 0.16);
+}
+
+.ranking-athlete-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.ranking-athlete-card {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.68);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ranking-athlete-card.highlight,
+.championship-result-group-card.highlight {
+  border-color: rgba(217, 47, 76, 0.36);
+  box-shadow: 0 0 0 1px rgba(217, 47, 76, 0.12);
+}
+
+.ranking-athlete-card strong,
+.ranking-athlete-card small,
+.ranking-athlete-card span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-athlete-card > span:first-child {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #f8fafc;
+}
+
+.ranking-athlete-card > small {
+  display: none;
+}
+
+.ranking-athlete-stats,
+.ranking-athlete-card > span:last-child {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.ranking-athlete-card.podium-gold {
+  border-color: rgba(250, 204, 21, 0.88);
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.16);
+}
+
+.ranking-athlete-card.podium-silver {
+  border-color: rgba(203, 213, 225, 0.82);
+  box-shadow: 0 0 0 1px rgba(203, 213, 225, 0.14);
+}
+
+.ranking-athlete-card.podium-bronze {
+  border-color: rgba(205, 127, 50, 0.88);
+  box-shadow: 0 0 0 1px rgba(205, 127, 50, 0.16);
+}
+
+.ranking-history-filter {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ranking-history-filter input {
+  width: min(240px, 100%);
+  min-height: 36px;
+  margin-bottom: 0;
+  padding: 8px 10px;
+}
+
+.ranking-completed-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.ranking-completed-card {
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ranking-completed-card strong {
+  font-size: 12px;
+  color: #e8eef8;
+}
+
+.ranking-completed-card span {
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.championship-result-section + .championship-result-section {
+  margin-top: 22px;
+}
+
+.championship-result-groups {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.championship-result-group-card {
+  padding: 10px 11px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.58);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.championship-result-group-card > span {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.championship-result-group-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.championship-result-group-mini small {
+  color: #dbe4f0;
+  font-size: 11px;
+}
+
+.championship-result-bracket-wrap {
+  margin-top: 12px;
+}
+
+.championship-result-bracket {
+  height: 420px;
+}
+
+.tournament-feed-card {
+  padding: 12px;
+}
+
+.tournament-mini-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tournament-mini-card {
+  padding: 7px 8px;
+  border-radius: 12px;
+  text-align: left;
+  min-height: auto;
+}
+
+.tournament-mini-card .queue-card-top {
+  margin-bottom: 6px;
+}
+
+.tournament-mini-card .queue-order {
+  font-size: 9px;
+}
+
+.tournament-mini-card .queue-player-block {
+  gap: 2px;
+}
+
+.tournament-mini-card .queue-player-block strong {
+  font-size: 11px;
+}
+
+.tournament-mini-card .queue-player-block span {
+  font-size: 10px;
+}
+
+.tournament-mini-card .queue-versus {
+  margin: 3px 0;
+  font-size: 10px;
+}
+
+.championship-live-card .tournament-mini-grid,
+.championship-history-card .tournament-mini-grid {
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.championship-history-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.championship-history-filter label {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.championship-history-filter select {
+  min-height: 36px;
+  margin-bottom: 0;
+  padding: 8px 10px;
+}
+
+.championship-history-inner {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.final-results-section + .final-results-section {
+  margin-top: 18px;
+}
+
+.final-results-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.final-results-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .result-pill {
   display: inline-flex;
   align-items: center;
@@ -1003,25 +1363,6 @@ body {
   scrollbar-gutter: stable;
   padding-right: 6px;
   mask-image: linear-gradient(to bottom, transparent 0, black 18px, black calc(100% - 18px), transparent 100%);
-}
-
-.athlete-search-results::-webkit-scrollbar {
-  width: 10px;
-}
-
-.athlete-search-results::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.55);
-  border-radius: 999px;
-}
-
-.athlete-search-results::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(217, 47, 76, 0.9), rgba(217, 47, 76, 0.8));
-  border-radius: 999px;
-  border: 2px solid rgba(15, 23, 42, 0.55);
-}
-
-.athlete-search-results::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(255, 148, 166, 0.95), rgba(255, 148, 166, 0.9));
 }
 
 .athlete-search-item {
@@ -1805,26 +2146,6 @@ body {
     linear-gradient(90deg, rgba(5, 11, 22, 0.98) 0, rgba(5, 11, 22, 0) 24px, rgba(5, 11, 22, 0) calc(100% - 24px), rgba(5, 11, 22, 0.98) 100%);
 }
 
-.championship-bracket-frame-content::-webkit-scrollbar {
-  height: 8px;
-}
-
-.championship-bracket-frame-content::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.26);
-  border-radius: 999px;
-  margin: 10px 22px;
-}
-
-.championship-bracket-frame-content::-webkit-scrollbar-thumb {
-  background: linear-gradient(90deg, rgba(217, 47, 76, 0.74), rgba(217, 47, 76, 0.7));
-  border-radius: 999px;
-  border: 1px solid rgba(15, 23, 42, 0.24);
-}
-
-.championship-bracket-frame-content::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(90deg, rgba(255, 148, 166, 0.88), rgba(255, 148, 166, 0.84));
-}
-
 .championship-bracket-frame-board {
   display: grid;
   grid-auto-flow: column;
@@ -1970,7 +2291,7 @@ body {
 }
 
 .championship-frame-entry.focus {
-  border-color: rgba(250, 204, 21, 0.72);
+  border-color: rgba(0, 255, 21, 0.72);
   box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.22);
 }
 
@@ -2621,6 +2942,12 @@ button:disabled {
   gap: 8px;
 }
 
+.compact-player-row {
+  padding: 6px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
 .player-row-main {
   display: flex;
   align-items: center;
@@ -2634,6 +2961,13 @@ button:disabled {
   flex: 0 0 auto;
   min-width: 60px;
   color: #cbd5e1;
+}
+
+.player-inline-action button {
+  width: auto;
+  padding: 4px 8px;
+  font-size: 11px;
+  background: rgba(15, 23, 42, 0.85);
 }
 
 .player-row:hover {
@@ -2666,6 +3000,56 @@ button:disabled {
   padding: 4px 7px;
   background: #0f172a;
   font-size: 11px;
+}
+
+.athlete-profile-modal-card {
+  width: min(92vw, 720px);
+}
+
+.athlete-profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.athlete-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.athlete-profile-avatar-wrap {
+  flex: 0 0 auto;
+}
+
+.athlete-profile-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.athlete-profile-copy h3,
+.athlete-profile-copy p {
+  margin: 0;
+}
+
+.athlete-profile-copy p {
+  color: #94a3b8;
+}
+
+.athlete-profile-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.athlete-profile-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.athlete-profile-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .player-actions button:hover {
@@ -3059,6 +3443,22 @@ h2 {
   .date-grid {
     grid-template-columns: 1fr;
   }
+
+  .ranking-athlete-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .championship-result-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tournament-mini-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ranking-completed-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -3168,6 +3568,24 @@ h2 {
 
   .stack-item-grid-dense span {
     min-width: 0;
+  }
+
+  .ranking-athlete-grid,
+  .ranking-completed-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .championship-result-groups {
+    grid-template-columns: 1fr;
+  }
+
+  .tournament-mini-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .championship-result-bracket,
+  .championship-bracket-frame-profile {
+    height: 320px;
   }
 
   .profile-stats {
@@ -3476,4 +3894,3 @@ h2 {
     font-size: 10px;
   }
 }
-

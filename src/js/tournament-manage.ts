@@ -21,6 +21,7 @@ import {
   Player,
   PlayerProfile,
   RankingLiveGroupState,
+  TournamentFinalStanding,
   TournamentRegistration,
   UpcomingTournament,
   User,
@@ -58,6 +59,24 @@ type AthleteSearchCandidate = {
   player?: Player
 }
 
+function escapeHtml(value?: string) {
+  return (value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("")
+}
+
 function getDefaultPlayerProfile(): PlayerProfile {
   return {
     wins: 0,
@@ -93,8 +112,17 @@ function normalizeText(value?: string) {
     .toLowerCase()
 }
 
+function formatDate(value?: number) {
+  if (!value) return "Nao informado"
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(value)
+}
+
 function getRegistrationByUserId(userId: string) {
   return registrations.find((entry) => entry.id === userId || entry.uid === userId)
+}
+
+function getUserById(userId: string) {
+  return allUsers.find((entry) => entry.id === userId) ?? null
 }
 
 function getAthleteSearchCandidates(search = "") {
@@ -469,6 +497,125 @@ function updateTournamentSummary() {
           : "Aguardando inicio"
 }
 
+function renderFinalResultsModal(standings = currentTournament?.finalStandings ?? []) {
+  const container = document.getElementById("finalResultsList")
+  if (!container) return
+
+  if (!standings.length) {
+    container.innerHTML = '<div class="empty-state">O resultado final ainda nao foi gerado.</div>'
+    return
+  }
+
+  const grouped = getActiveGroups().filter((group) => standings.some((entry) => entry.group === group))
+  container.innerHTML = grouped
+    .map((group) => {
+      const items = standings.filter((entry) => entry.group === group)
+      return `
+        <section class="final-results-section">
+          <div class="final-results-head">
+            <span class="section-label">${getGroupLabel(group)}</span>
+            <strong>${items.length} atleta${items.length === 1 ? "" : "s"}</strong>
+          </div>
+          <div class="ranking-showcase">
+            <div class="ranking-showcase-podium">
+              ${items
+                .slice(0, 3)
+                .map(
+                  (entry, index) => `
+                    <article class="ranking-showcase-podium-card place-${index + 1}">
+                      <span class="ranking-showcase-place">${escapeHtml(entry.placement)}</span>
+                      <strong>${escapeHtml(entry.name)}</strong>
+                      <small>${escapeHtml(entry.category)}</small>
+                      <div class="ranking-showcase-score">${entry.wins}V - ${entry.losses}D - ${entry.games} jogos</div>
+                    </article>
+                  `
+                )
+                .join("")}
+            </div>
+            <div class="ranking-showcase-table">
+              ${items
+                .map(
+                  (entry) => `
+                    <div class="ranking-showcase-row">
+                      <span>${escapeHtml(entry.placement)}</span>
+                      <strong>${escapeHtml(entry.name)}</strong>
+                      <small>${escapeHtml(entry.result)}</small>
+                      <span>${entry.wins}V / ${entry.losses}D</span>
+                    </div>
+                  `
+                )
+                .join("")}
+            </div>
+          </div>
+        </section>
+      `
+    })
+    .join("")
+}
+
+function openFinalResultsModal() {
+  renderFinalResultsModal()
+  const modal = document.getElementById("finalResultsModal") as HTMLElement | null
+  if (modal) {
+    modal.style.display = "flex"
+  }
+}
+
+function closeFinalResultsModal() {
+  const modal = document.getElementById("finalResultsModal") as HTMLElement | null
+  if (modal) {
+    modal.style.display = "none"
+  }
+}
+
+function renderAthleteProfileModal(userId: string) {
+  const modal = document.getElementById("athleteProfileModal") as HTMLElement | null
+  const content = document.getElementById("athleteProfileContent") as HTMLElement | null
+  if (!modal || !content) return
+
+  const user = getUserById(userId)
+  const player = players.find((entry) => entry.id === userId)
+  if (!user) {
+    showToast("Nao foi possivel carregar o perfil do atleta.", "warning")
+    return
+  }
+
+  const stats = getPlayerStats(userId)
+  const initials = getInitials(user.name || "Atleta")
+  const avatar = user.photoURL
+    ? `<img class="profile-avatar" src="${escapeHtml(user.photoURL)}" alt="Foto de ${escapeHtml(user.name)}">`
+    : `<div class="profile-avatar profile-avatar-fallback">${escapeHtml(initials)}</div>`
+
+  content.innerHTML = `
+    <div class="athlete-profile-card">
+      <div class="athlete-profile-head">
+        <div class="athlete-profile-avatar-wrap">${avatar}</div>
+        <div class="athlete-profile-copy">
+          <h3>${escapeHtml(user.name)}</h3>
+          <p>${escapeHtml(user.club || "Sem clube")} - ${escapeHtml(user.category || "Sem categoria")}</p>
+          <div class="athlete-profile-badges">
+            <span class="result-pill neutral">${player?.active ? "Ativo no ranking" : "Sem jogos ativos"}</span>
+            <span class="result-pill ${getRegistrationByUserId(userId)?.paymentStatus === "approved" ? "win" : "loss"}">${getRegistrationByUserId(userId)?.paymentStatus === "approved" ? "Inscricao aprovada" : "Inscricao pendente"}</span>
+          </div>
+        </div>
+      </div>
+      <div class="profile-info-grid athlete-profile-grid">
+        <div class="info-card"><span>Email</span><strong>${escapeHtml(user.email || "Nao informado")}</strong></div>
+        <div class="info-card"><span>Telefone</span><strong>${escapeHtml(user.phone || "Nao informado")}</strong></div>
+        <div class="info-card"><span>Partidas</span><strong>${stats.games}</strong></div>
+        <div class="info-card"><span>Vitorias</span><strong>${stats.wins}</strong></div>
+        <div class="info-card"><span>Derrotas</span><strong>${stats.losses}</strong></div>
+        <div class="info-card"><span>Ultimo jogo</span><strong>${formatDate(player?.lastPlayed)}</strong></div>
+      </div>
+      <div class="athlete-profile-actions">
+        <button class="btn danger" onclick="resetAthleteMatches('${userId}')">Resetar partidas do atleta</button>
+      </div>
+    </div>
+  `
+
+  modal.style.display = "flex"
+}
+
 async function loadTournament() {
   if (!tournamentId) {
     window.location.replace("/pages/dashboard.html")
@@ -605,13 +752,66 @@ function getTournamentParticipants() {
   return players.filter((player) => player.games > 0 || player.active)
 }
 
-function getTournamentRanking() {
-  return [...getTournamentParticipants()].sort((a, b) => {
+function sortPlayersByRanking(list: Player[]) {
+  return [...list].sort((a, b) => {
     if (b.wins !== a.wins) return b.wins - a.wins
     if (a.losses !== b.losses) return a.losses - b.losses
     if (b.games !== a.games) return b.games - a.games
     return a.name.localeCompare(b.name)
   })
+}
+
+function getTournamentRanking() {
+  return sortPlayersByRanking(getTournamentParticipants())
+}
+
+function getPlayedMatchesForGroup(group: CompetitionGroup) {
+  return matches.filter((match) => match.tournamentId === currentTournament?.id && (match.group ?? "general") === group)
+}
+
+function getPendingRoundRobinMatches(group: CompetitionGroup) {
+  const groupPlayers = getPlayersForGroup(group)
+  const pending: Array<[Player, Player]> = []
+
+  for (let index = 0; index < groupPlayers.length; index++) {
+    for (let nextIndex = index + 1; nextIndex < groupPlayers.length; nextIndex++) {
+      const current = groupPlayers[index]
+      const opponent = groupPlayers[nextIndex]
+      const alreadyPlayed = getPlayedMatchesForGroup(group).some(
+        (match) =>
+          (match.p1 === current.id && match.p2 === opponent.id) || (match.p1 === opponent.id && match.p2 === current.id)
+      )
+
+      if (!alreadyPlayed) {
+        pending.push([current, opponent])
+      }
+    }
+  }
+
+  return pending
+}
+
+function getFinalStandings() {
+  return getActiveGroups().flatMap((group) =>
+    sortPlayersByRanking(
+      getTournamentParticipants().filter(
+        (player) => getPlayerCompetitionGroup(currentTournament, player.registrationCategory) === group
+      )
+    ).map((player, index) => {
+      const position = index + 1
+      return {
+        playerId: player.id,
+        name: player.name,
+        category: player.registrationCategory || getGroupLabel(group),
+        group,
+        placement: `${position}o lugar`,
+        result: getPlacementLabel(position),
+        wins: player.wins,
+        losses: player.losses,
+        games: player.games
+      } satisfies TournamentFinalStanding
+    })
+  )
 }
 
 function getPlacementLabel(position: number) {
@@ -783,6 +983,25 @@ async function requireAdminUserData(firebaseUserId: string) {
 
 ;(window as any).openProfile = () => {
   window.location.href = "/pages/profile.html"
+}
+
+;(window as any).openAthleteProfile = (userId: string) => {
+  renderAthleteProfileModal(userId)
+}
+
+;(window as any).closeAthleteProfileModal = () => {
+  const modal = document.getElementById("athleteProfileModal") as HTMLElement | null
+  if (modal) {
+    modal.style.display = "none"
+  }
+}
+
+;(window as any).openFinalResultsModal = () => {
+  openFinalResultsModal()
+}
+
+;(window as any).closeFinalResultsModal = () => {
+  closeFinalResultsModal()
 }
 
 ;(window as any).openTournamentRegistrations = () => {
@@ -1104,13 +1323,135 @@ window.addEventListener("beforeunload", () => {
   }
 }
 
+;(window as any).resetAthleteMatches = async (userId: string) => {
+  if (!currentTournament) return
+
+  const user = getUserById(userId)
+  const player = players.find((entry) => entry.id === userId)
+  if (!user || !player) {
+    showToast("Atleta nao encontrado no torneio atual.", "warning")
+    return
+  }
+
+  const athleteMatches = matches.filter(
+    (match) => match.tournamentId === currentTournament?.id && (match.p1 === userId || match.p2 === userId)
+  )
+
+  if (!athleteMatches.length) {
+    showToast("Esse atleta ainda nao possui partidas registradas neste ranking.", "info")
+    return
+  }
+
+  const confirmed = await confirmAction({
+    title: "Resetar partidas do atleta",
+    message: `Limpar ${athleteMatches.length} partida(s) de ${user.name} neste ranking?`,
+    confirmLabel: "Resetar partidas",
+    tone: "danger"
+  })
+  if (!confirmed) return
+
+  try {
+    const affectedIds = new Set<string>([userId])
+    athleteMatches.forEach((match) => {
+      affectedIds.add(match.p1)
+      affectedIds.add(match.p2)
+    })
+
+    const remainingMatches = matches.filter((match) => !athleteMatches.some((entry) => entry.id === match.id))
+    const batch = writeBatch(db)
+
+    athleteMatches.forEach((match) => {
+      batch.delete(doc(db, "matches", match.id))
+      batch.delete(doc(db, "users", match.p1, "matches", match.id))
+      batch.delete(doc(db, "users", match.p2, "matches", match.id))
+    })
+
+    affectedIds.forEach((affectedId) => {
+      const playerMatches = remainingMatches.filter(
+        (match) => match.tournamentId === currentTournament?.id && (match.p1 === affectedId || match.p2 === affectedId)
+      )
+      const wins = playerMatches.filter((match) => match.winner === affectedId).length
+      const losses = playerMatches.length - wins
+      const lastPlayed = playerMatches.length ? Math.max(...playerMatches.map((match) => match.createdAt)) : null
+
+      batch.update(doc(db, "users", affectedId), {
+        "playerProfile.wins": wins,
+        "playerProfile.losses": losses,
+        "playerProfile.games": playerMatches.length,
+        "playerProfile.lastPlayed": lastPlayed
+      })
+
+      if (playerMatches.length) {
+        batch.set(
+          doc(db, "users", affectedId, "tournaments", currentTournament.id),
+          {
+            tournamentId: currentTournament.id,
+            title: currentTournament.title,
+            category: getRegistrationByUserId(affectedId)?.category || currentTournament.category || "Livre",
+            result: "Em andamento",
+            matchCount: playerMatches.length,
+            wins,
+            losses,
+            playedAt: lastPlayed ?? Date.now()
+          },
+          { merge: true }
+        )
+      } else {
+        batch.delete(doc(db, "users", affectedId, "tournaments", currentTournament.id))
+      }
+    })
+
+    await batch.commit()
+
+    matches.length = 0
+    matches.push(...remainingMatches)
+
+    affectedIds.forEach((affectedId) => {
+      const playerEntry = players.find((entry) => entry.id === affectedId)
+      const playerMatches = remainingMatches.filter(
+        (match) => match.tournamentId === currentTournament?.id && (match.p1 === affectedId || match.p2 === affectedId)
+      )
+      if (!playerEntry) return
+
+      playerEntry.wins = playerMatches.filter((match) => match.winner === affectedId).length
+      playerEntry.losses = playerMatches.length - playerEntry.wins
+      playerEntry.games = playerMatches.length
+      playerEntry.lastPlayed = playerMatches.length ? Math.max(...playerMatches.map((match) => match.createdAt)) : undefined
+    })
+
+    const group = getPlayerCompetitionGroup(currentTournament, player.registrationCategory)
+    clearQueueForGroup(group)
+    tablesByGroup[group] = tablesByGroup[group].map((table) =>
+      table.p1?.id === userId || table.p2?.id === userId ? { id: table.id, group } : table
+    )
+
+    if (isGroupStarted(group) && !hasBusyTables(group)) {
+      buildQueueForGroup(group, getPlayersForGroup(group))
+      fillOpenTables(group)
+    }
+
+    await persistRankingLiveState()
+    render()
+    renderAthleteProfileModal(userId)
+    showToast("Partidas do atleta resetadas com sucesso.", "success")
+  } catch (error: any) {
+    showToast("Erro ao resetar partidas do atleta: " + error.message, "error")
+  }
+}
+
 ;(window as any).finishTournament = async () => {
   const tournament = currentTournament
   if (!tournament) return
 
-  const ranking = getTournamentRanking()
-  if (!ranking.length) {
+  const standings = getFinalStandings()
+  if (!standings.length) {
     showToast("Adicione atletas e finalize partidas antes de encerrar o torneio.", "warning")
+    return
+  }
+
+  const pendingMatches = getActiveGroups().flatMap((group) => getPendingRoundRobinMatches(group))
+  if (pendingMatches.length) {
+    showToast("Ainda existem confrontos obrigatorios pendentes neste ranking.", "warning")
     return
   }
 
@@ -1126,24 +1467,23 @@ window.addEventListener("beforeunload", () => {
     const batch = writeBatch(db)
     const now = Date.now()
 
-    ranking.forEach((player, index) => {
-      const position = index + 1
+    standings.forEach((entry) => {
       const tournamentRecord: UserTournament = {
         id: tournament.id,
         tournamentId: tournament.id,
         title: tournament.title,
-        category: player.registrationCategory || tournament.category || "Livre",
-        placement: `${position}o lugar`,
-        result: getPlacementLabel(position),
-        matchCount: player.games,
-        wins: player.wins,
-        losses: player.losses,
+        category: entry.category || tournament.category || "Livre",
+        placement: entry.placement,
+        result: entry.result,
+        matchCount: entry.games,
+        wins: entry.wins,
+        losses: entry.losses,
         playedAt: now
       }
 
-      batch.set(doc(db, "users", player.id, "tournaments", tournament.id), tournamentRecord, { merge: true })
+      batch.set(doc(db, "users", entry.playerId, "tournaments", tournament.id), tournamentRecord, { merge: true })
 
-      batch.update(doc(db, "users", player.id), {
+      batch.update(doc(db, "users", entry.playerId), {
         "playerProfile.wins": 0,
         "playerProfile.losses": 0,
         "playerProfile.games": 0,
@@ -1155,16 +1495,18 @@ window.addEventListener("beforeunload", () => {
     batch.update(doc(db, "tournaments", tournament.id), {
       isActive: false,
       status: "finished",
+      finalStandings: standings,
       updatedAt: now,
       completedAt: now
     })
 
     await batch.commit()
-    currentTournament = { ...tournament, isActive: false, status: "finished", updatedAt: now }
+    currentTournament = { ...tournament, isActive: false, status: "finished", finalStandings: standings, updatedAt: now }
     updateTournamentSummary()
     resetLocalChampionshipState()
     await persistRankingLiveState()
     render()
+    openFinalResultsModal()
     showToast("Torneio encerrado com sucesso.", "success")
   } catch (error: any) {
     showToast("Erro ao encerrar torneio: " + error.message, "error")

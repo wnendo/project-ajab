@@ -18,6 +18,10 @@ function alreadyPlayed(a: string, b: string, group: CompetitionGroup) {
   )
 }
 
+function hasUnplayedOpponent(player: Player, availablePlayers: Player[], group: CompetitionGroup) {
+  return availablePlayers.some((opponent) => opponent.id !== player.id && !alreadyPlayed(player.id, opponent.id, group))
+}
+
 function getPriorityScore(player: Player) {
   const waitTime = player.lastPlayed ? Date.now() - player.lastPlayed : 999999999
   return -player.games * 1000 + waitTime / 1000
@@ -25,8 +29,7 @@ function getPriorityScore(player: Player) {
 
 function matchScore(a: Player, b: Player, group: CompetitionGroup) {
   const winDiff = Math.abs(a.wins - b.wins)
-  const repeatPenalty = alreadyPlayed(a.id, b.id, group) ? 1000000 : 0
-  return winDiff * 1000 + repeatPenalty
+  return winDiff * 1000
 }
 
 export function buildQueueForGroup(group: CompetitionGroup, activePlayers: Player[]) {
@@ -34,7 +37,8 @@ export function buildQueueForGroup(group: CompetitionGroup, activePlayers: Playe
     return
   }
 
-  const sorted = [...activePlayers].sort((a, b) => getPriorityScore(a) - getPriorityScore(b))
+  const eligiblePlayers = activePlayers.filter((player) => hasUnplayedOpponent(player, activePlayers, group))
+  const sorted = [...eligiblePlayers].sort((a, b) => getPriorityScore(a) - getPriorityScore(b))
   const used = new Set<string>()
   const queue: [Player, Player][] = []
 
@@ -48,6 +52,7 @@ export function buildQueueForGroup(group: CompetitionGroup, activePlayers: Playe
     for (let j = i + 1; j < sorted.length; j++) {
       const p2 = sorted[j]
       if (used.has(p2.id)) continue
+      if (alreadyPlayed(p1.id, p2.id, group)) continue
 
       const score = matchScore(p1, p2, group)
       if (score < bestScore) {

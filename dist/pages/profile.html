@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AJAB - Meu Perfil</title>
   <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
-  <script type="module" crossorigin src="/assets/profile-B22pedQ9.js"></script>
+  <script type="module" crossorigin src="/assets/profile-Enjgt4kU.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Btlm8H0F.js">
   <link rel="modulepreload" crossorigin href="/assets/firebase-VBRKn9At.js">
   <link rel="modulepreload" crossorigin href="/assets/toast-kV3jSCF7.js">
   <link rel="modulepreload" crossorigin href="/assets/tournament-rules-D9Tq3W95.js">
-  <link rel="stylesheet" crossorigin href="/assets/global-BY5laT4q.css">
+  <link rel="stylesheet" crossorigin href="/assets/global-Ba-C_4GS.css">
 </head>
 <body class="profile-page">
   <div class="profile-shell">
@@ -132,8 +132,8 @@
         <details class="card profile-card profile-collapse" open>
           <summary class="profile-collapse-summary">
             <div>
-              <span class="section-label">Campeonato</span>
-              <h3>Meus campeonatos</h3>
+              <span class="section-label">Acompanhamento</span>
+              <h3>Meus torneios</h3>
             </div>
           </summary>
           <div class="profile-collapse-content">
@@ -154,6 +154,16 @@
         </details>
       </aside>
     </main>
+  </div>
+
+  <div id="profileTournamentResultModal" class="modal">
+    <div class="modal-card tournament-results-modal-card profile-tournament-result-modal-card">
+      <div class="modal-header">
+        <span id="profileTournamentResultTitle">Resultado do torneio</span>
+        <button class="close-btn" onclick="closeProfileTournamentResultModal()">Fechar</button>
+      </div>
+      <div id="profileTournamentResultContent" class="modal-body registration-modal-body"></div>
+    </div>
   </div>
 
 </body>
