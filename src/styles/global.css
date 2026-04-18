@@ -690,6 +690,7 @@ body.championship-bracket-frame-page::-webkit-scrollbar-thumb:hover,
   border-radius: 14px;
   background: rgba(30, 41, 59, 0.7);
   border: 1px solid rgba(148, 163, 184, 0.08);
+  font-size: 12px;
 }
 
 .info-card span {
@@ -838,6 +839,111 @@ body.championship-bracket-frame-page::-webkit-scrollbar-thumb:hover,
 
 .tournament-results-group + .tournament-results-group {
   margin-top: 14px;
+}
+
+.tournament-results-group .section-header {
+  margin-bottom: 10px;
+}
+
+.tournament-results-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(13, 21, 36, 0.9), rgba(12, 20, 34, 0.76));
+  border: 1px solid rgba(143, 167, 202, 0.12);
+}
+
+.tournament-results-summary p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.tournament-results-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ranking-public-results-list {
+  max-height: min(74vh, 760px);
+  overflow-y: auto;
+  padding-right: 6px;
+  gap: 6px;
+}
+
+.ranking-public-results-list.expanded {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.ranking-public-results-card {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  padding: 7px 9px;
+  border-radius: 13px;
+  background:
+    linear-gradient(180deg, rgba(13, 21, 36, 0.92), rgba(12, 20, 34, 0.82));
+}
+
+.ranking-public-results-card > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  padding: 5px 0;
+  border-radius: 10px;
+  background: rgba(143, 180, 255, 0.08);
+  font-size: 10px;
+}
+
+.ranking-public-results-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ranking-public-results-copy strong,
+.ranking-public-results-copy small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-public-results-copy strong {
+  font-size: 12px;
+  color: #f8fafc;
+  line-height: 1.2;
+}
+
+.ranking-public-results-copy small {
+  display: block;
+  font-size: 9px;
+  color: #94a3b8;
+  line-height: 1.2;
+}
+
+.ranking-public-results-card .ranking-athlete-stats {
+  font-size: 9px;
+  color: #cbd5e1;
+}
+
+.tournament-results-expand-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.btn-sm {
+  width: auto;
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 12px;
 }
 
 .tournament-results-modal-card {

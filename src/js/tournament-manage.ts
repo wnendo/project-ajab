@@ -1385,6 +1385,15 @@ window.addEventListener("beforeunload", () => {
 
   try {
     const batch = writeBatch(db)
+    const nextStatus =
+      tournament.registrationDeadline && tournament.registrationDeadline < Date.now()
+        ? "closed"
+        : "open"
+    const resetRankingLiveState = {
+      general: { queue: [], activeTables: tablesByGroup.general.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
+      A: { queue: [], activeTables: tablesByGroup.A.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
+      B: { queue: [], activeTables: tablesByGroup.B.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } }
+    }
 
     matches.forEach((match) => {
       batch.delete(doc(db, "matches", match.id))
@@ -1410,11 +1419,11 @@ window.addEventListener("beforeunload", () => {
 
     batch.update(doc(db, "tournaments", tournament.id), {
       groupStates: resetGroupStates,
-      rankingLiveState: {
-        general: { queue: [], activeTables: tablesByGroup.general.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
-        A: { queue: [], activeTables: tablesByGroup.A.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
-        B: { queue: [], activeTables: tablesByGroup.B.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } }
-      },
+      rankingLiveState: resetRankingLiveState,
+      isActive: false,
+      status: nextStatus,
+      finalStandings: [],
+      completedAt: null,
       updatedAt: Date.now()
     })
 
@@ -1422,13 +1431,13 @@ window.addEventListener("beforeunload", () => {
     matches.length = 0
     currentTournament = {
       ...tournament,
+      isActive: false,
+      status: nextStatus,
+      finalStandings: [],
       groupStates: resetGroupStates,
-      rankingLiveState: {
-        general: { queue: [], activeTables: tablesByGroup.general.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
-        A: { queue: [], activeTables: tablesByGroup.A.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
-        B: { queue: [], activeTables: tablesByGroup.B.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } }
-      }
+      rankingLiveState: resetRankingLiveState
     }
+    updateTournamentSummary()
     clearQueue()
     resetTables()
     rankingSchedulerStateByGroup = {

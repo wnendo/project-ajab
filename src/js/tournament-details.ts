@@ -13,7 +13,7 @@ import {
   isRankingTournament,
   isValidChampionshipSelection
 } from "./tournament-rules"
-import { redirectWithToast, showToast } from "./toast"
+import { showToast } from "./toast"
 
 const tournamentId = new URLSearchParams(window.location.search).get("id")
 
@@ -24,6 +24,8 @@ let currentRegistrationStatus: UserTournamentRegistration["paymentStatus"] | nul
 let currentRegistrationMethod: UserTournamentRegistration["paymentMethod"] | null = null
 let rankingSearchTerm = ""
 let athleteProfiles = new Map<string, User>()
+let selectedResultsGroup: TournamentFinalStanding["group"] | null = null
+let expandedResultsGroup: TournamentFinalStanding["group"] | null = null
 
 function getSelectedRegistrationCategories() {
   return Array.from(document.querySelectorAll<HTMLInputElement>('input[name="registrationCategory"]:checked'))
@@ -96,40 +98,53 @@ function getFinalStandingsByGroup(standings: TournamentFinalStanding[]) {
   }))
 }
 
-function getFinalStandingsShowcase(entries: TournamentFinalStanding[]) {
-  const podium = entries.slice(0, 3)
+function getOrderedResultGroups(standings: TournamentFinalStanding[]) {
+  const preferredOrder: TournamentFinalStanding["group"][] = ["general", "A", "B"]
+  const groups = getFinalStandingsByGroup(standings).map(({ group }) => group)
+  return groups.sort((first, second) => preferredOrder.indexOf(first) - preferredOrder.indexOf(second))
+}
+
+function getResultGroupLabel(group: TournamentFinalStanding["group"]) {
+  return group === "general" ? "Ranking geral" : `Categoria ${group}`
+}
+
+function getFinalStandingsShowcase(entries: TournamentFinalStanding[], expanded = false, group?: TournamentFinalStanding["group"]) {
+  const getPlacementClass = (index: number) => {
+    if (index === 0) return "podium-gold"
+    if (index === 1) return "podium-silver"
+    if (index === 2) return "podium-bronze"
+    return ""
+  }
+
+  const visibleEntries = expanded ? entries : entries.slice(0, 5)
+  const hasMoreEntries = entries.length > 5
 
   return `
-    <div class="ranking-showcase">
-      <div class="ranking-showcase-podium">
-        ${podium
+    <div class="ranking-public-results-list ranking-athlete-grid ${expanded ? "expanded" : ""}">
+        ${visibleEntries
           .map(
             (entry, index) => `
-              <article class="ranking-showcase-podium-card place-${index + 1}">
-                <span class="ranking-showcase-place">${escapeHtml(entry.placement)}</span>
-                <strong>${escapeHtml(entry.name)}</strong>
-                <small>${escapeHtml(entry.category)}</small>
-                <div class="ranking-showcase-score">${entry.wins}V - ${entry.losses}D - ${entry.games} jogos</div>
+              <article class="ranking-athlete-card ranking-public-results-card ${getPlacementClass(index)}">
+                <span>${index + 1}o</span>
+                <div class="ranking-public-results-copy">
+                  <strong>${escapeHtml(entry.name)}</strong>
+                  <small>${entry.wins}V - ${entry.losses}D - ${entry.games}J</small>
+                </div>
+                <span class="ranking-athlete-stats">${entry.wins}V / ${entry.losses}D / ${entry.games}J</span>
               </article>
             `
           )
           .join("")}
-      </div>
-      <div class="ranking-showcase-table">
-        ${entries
-          .map(
-            (entry) => `
-              <div class="ranking-showcase-row">
-                <span>${escapeHtml(entry.placement)}</span>
-                <strong>${escapeHtml(entry.name)}</strong>
-                <small>${escapeHtml(entry.result)}</small>
-                <span>${entry.wins}V / ${entry.losses}D</span>
-              </div>
-            `
-          )
-          .join("")}
-      </div>
     </div>
+    ${
+      hasMoreEntries
+        ? `<div class="tournament-results-expand-row">
+            <button class="btn secondary btn-sm" onclick="toggleTournamentResultsExpanded('${group ?? ""}')">
+              ${expanded ? "Mostrar menos" : `Mostrar mais (${entries.length - visibleEntries.length})`}
+            </button>
+          </div>`
+        : ""
+    }
   `
 }
 
@@ -227,40 +242,59 @@ function renderFinalStandingsCard() {
   }
 
   resultsCard.style.display = "block"
-  resultsList.innerHTML = getFinalStandingsByGroup(currentTournament.finalStandings)
-    .map(
-      ({ group, entries }) => `
-        <div class="tournament-results-group">
-          <div class="section-header compact-section-header">
-            <div>
-              <span class="section-label">${group === "general" ? "Ranking geral" : `Categoria ${group}`}</span>
-              <h3>${entries[0]?.result || "Classificação final"}</h3>
-            </div>
-          </div>
-          ${getFinalStandingsShowcase(entries)}
-        </div>
-      `
-    )
-    .join("")
+  resultsList.innerHTML = `
+    <div class="tournament-results-summary">
+      <p>Escolha uma categoria para abrir o resultado completo com todos os participantes e estatisticas.</p>
+      <div class="tournament-results-actions">
+        ${getOrderedResultGroups(currentTournament.finalStandings)
+          .map(
+            (group) => `
+              <button class="btn secondary btn-sm" onclick="openTournamentResultsModal('${group}')">
+                ${escapeHtml(getResultGroupLabel(group))}
+              </button>
+            `
+          )
+          .join("")}
+      </div>
+    </div>
+  `
 }
 
-function renderFinalStandingsModal() {
+function renderFinalStandingsModal(group?: TournamentFinalStanding["group"]) {
   const modalList = document.getElementById("tournamentResultsModalList")
-  if (!modalList || !currentTournament?.finalStandings?.length) return
+  if (!modalList) return
+  if (!currentTournament?.finalStandings?.length) {
+    modalList.innerHTML = '<div class="empty-state">O resultado final ainda nao foi gerado.</div>'
+    return
+  }
 
-  modalList.innerHTML = getFinalStandingsByGroup(currentTournament.finalStandings)
-    .map(
-      ({ group, entries }) => `
-        <section class="final-results-section">
-          <div class="final-results-head">
-            <span class="section-label">${group === "general" ? "Ranking geral" : `Categoria ${group}`}</span>
-            <strong>${entries.length} atleta${entries.length === 1 ? "" : "s"}</strong>
-          </div>
-          ${getFinalStandingsShowcase(entries)}
-        </section>
-      `
-    )
-    .join("")
+  const groups = getOrderedResultGroups(currentTournament.finalStandings)
+  const activeGroup = groups.includes(group as TournamentFinalStanding["group"])
+    ? (group as TournamentFinalStanding["group"])
+    : groups[0]
+  selectedResultsGroup = activeGroup
+  const isExpanded = expandedResultsGroup === activeGroup
+  const entries = currentTournament.finalStandings.filter((entry) => entry.group === activeGroup)
+
+  modalList.innerHTML = `
+    <div class="form-group championship-result-selector">
+      <span>Categoria</span>
+      <select onchange="setTournamentResultsGroup(this.value)">
+        ${groups
+          .map(
+            (entry) => `<option value="${entry}" ${entry === activeGroup ? "selected" : ""}>${escapeHtml(getResultGroupLabel(entry))}</option>`
+          )
+          .join("")}
+      </select>
+    </div>
+    <section class="final-results-section">
+      <div class="final-results-head">
+        <span class="section-label">${escapeHtml(getResultGroupLabel(activeGroup))}</span>
+        <strong>${entries.length} atleta${entries.length === 1 ? "" : "s"}</strong>
+      </div>
+      ${getFinalStandingsShowcase(entries, isExpanded, activeGroup)}
+    </section>
+  `
 }
 
 function renderAthleteProfileModal(userId: string) {
@@ -345,9 +379,7 @@ function renderTournamentInfo() {
     currentRegistrationStatus === "approved"
       ? "Inscrito"
       : currentRegistrationStatus === "pending_payment"
-        ? currentRegistrationMethod === "pay_on_day"
-          ? "Pagar no dia - pendente"
-          : "Pagamento em análise"
+        ? "Pagamento em análise"
         : !hasAvailableCategory
           ? "Categoria lotada"
           : "Inscreva-se"
@@ -368,11 +400,11 @@ function renderTournamentInfo() {
         <span>Pix: ${pixAvailable ? "Disponível" : "Ainda não configurado"}</span>
         <span>Favorecido: ${tournament.pixHolder || "Não informado"}</span>
         <span>Chave Pix: ${tournament.pixKey || "Não informada"}</span>
-        <span>Pagamento no dia: disponível</span>
+        <span>Forma de pagamento: apenas Pix</span>
         <span>Status da inscrição: ${currentRegistrationStatus === "pending_payment" ? "pendente de aprovação" : currentRegistrationStatus === "approved" ? "aprovada" : "não enviada"}</span>
       </div>
       <div class="schema-note registration-note">
-        <p>${isRankingTournament(tournament) ? "Cada atleta joga contra todos da mesma categoria e não há repetição de confronto. Se entrar um novo inscrito depois, apenas os duelos inéditos voltam para a fila." : "Selecione as categorias permitidas para o seu perfil e conclua a inscrição pelo método desejado."}</p>
+        <p>${isRankingTournament(tournament) ? "Cada atleta joga contra todos da mesma categoria e não há repetição de confronto. Se entrar um novo inscrito depois, apenas os duelos inéditos voltam para a fila." : "Selecione as categorias permitidas para o seu perfil e conclua a inscrição via Pix."}</p>
       </div>
       <div class="admin-tournament-actions">
         <button
@@ -456,12 +488,23 @@ async function loadPageData(uid: string) {
   renderRankingRegistrations()
 }
 
-;(window as any).openTournamentResultsModal = () => {
-  renderFinalStandingsModal()
+;(window as any).openTournamentResultsModal = (group?: TournamentFinalStanding["group"]) => {
+  renderFinalStandingsModal(group ?? selectedResultsGroup ?? undefined)
   const modal = document.getElementById("tournamentResultsModal") as HTMLElement | null
   if (modal) {
     modal.style.display = "flex"
   }
+}
+
+;(window as any).setTournamentResultsGroup = (group: string) => {
+  expandedResultsGroup = null
+  renderFinalStandingsModal(group as TournamentFinalStanding["group"])
+}
+
+;(window as any).toggleTournamentResultsExpanded = (group: string) => {
+  const normalizedGroup = group as TournamentFinalStanding["group"]
+  expandedResultsGroup = expandedResultsGroup === normalizedGroup ? null : normalizedGroup
+  renderFinalStandingsModal(normalizedGroup)
 }
 
 ;(window as any).closeTournamentResultsModal = () => {
@@ -476,59 +519,7 @@ async function loadPageData(uid: string) {
   openRegistrationModal()
 }
 
-async function createPendingRegistration(paymentMethod: "pix" | "pay_on_day", selectedCategories: string[]) {
-  const tournament = currentTournament
-  const userProfile = currentUserProfile
-
-  if (!tournament || !userProfile) return
-
-  if (selectedCategories.some((category) => isCategoryFull(tournament, registrations, category))) {
-    throw new Error("Uma das categorias selecionadas atingiu o limite de inscritos.")
-  }
-
-  const registrationCategoryLabel = formatRegistrationCategories(selectedCategories)
-  const registrationFee = getRegistrationFeeForSelection(tournament, selectedCategories)
-  const now = Date.now()
-
-  const registrationPayload: TournamentRegistration = {
-    id: userProfile.id,
-    uid: userProfile.id,
-    name: userProfile.name,
-    email: userProfile.email,
-    club: userProfile.club,
-    category: registrationCategoryLabel,
-    categories: selectedCategories,
-    registrationFee,
-    paymentStatus: "pending_payment",
-    paymentMethod,
-    registeredAt: now,
-    status: "registered"
-  }
-
-  const userRegistrationPayload: UserTournamentRegistration = {
-    id: tournament.id,
-    tournamentId: tournament.id,
-    title: tournament.title,
-    location: tournament.location ?? "",
-    category: registrationCategoryLabel,
-    categories: selectedCategories,
-    registrationFee,
-    paymentStatus: "pending_payment",
-    paymentMethod,
-    startDate: tournament.startDate,
-    endDate: tournament.endDate,
-    registrationDeadline: tournament.registrationDeadline,
-    registeredAt: now,
-    status: "registered"
-  }
-
-  const batch = writeBatch(db)
-  batch.set(doc(db, "tournaments", tournament.id, "registrations", userProfile.id), registrationPayload)
-  batch.set(doc(db, "users", userProfile.id, "registrations", tournament.id), userRegistrationPayload)
-  await batch.commit()
-}
-
-;(window as any).confirmTournamentRegistration = async (paymentMethod: "pix" | "pay_on_day") => {
+;(window as any).confirmTournamentRegistration = async (paymentMethod: "pix") => {
   const tournament = currentTournament
   const userProfile = currentUserProfile
 
@@ -550,26 +541,14 @@ async function createPendingRegistration(paymentMethod: "pix" | "pay_on_day", se
     return
   }
 
-  if (paymentMethod === "pix") {
-    if (!tournament.pixKey || !tournament.pixHolder) {
-      showToast("Este torneio ainda não está configurado para pagamento Pix.", "warning")
-      return
-    }
-
-    ;(window as any).closeRegistrationModal()
-    const categoriesParam = encodeURIComponent(selectedCategories.join(","))
-    window.location.href = `/pages/payment-pix.html?tournamentId=${encodeURIComponent(tournament.id)}&categories=${categoriesParam}`
+  if (!tournament.pixKey || !tournament.pixHolder) {
+    showToast("Este torneio ainda não está configurado para pagamento Pix.", "warning")
     return
   }
 
-  try {
-    await createPendingRegistration("pay_on_day", selectedCategories)
-    ;(window as any).closeRegistrationModal()
-    redirectWithToast("/pages/profile.html", "Inscrição registrada com pagamento no dia. Ela ficará pendente de aprovação pela organização.", "success")
-    window.location.replace("/pages/profile.html")
-  } catch (error: any) {
-    showToast("Erro ao registrar inscrição: " + error.message, "error")
-  }
+  ;(window as any).closeRegistrationModal()
+  const categoriesParam = encodeURIComponent(selectedCategories.join(","))
+  window.location.href = `/pages/payment-pix.html?tournamentId=${encodeURIComponent(tournament.id)}&categories=${categoriesParam}`
 }
 
 ;(window as any).logout = async () => {
