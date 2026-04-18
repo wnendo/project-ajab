@@ -44,6 +44,17 @@
 
       <input id="registrationSearch" placeholder="Pesquisar inscrição por nome, email, clube ou categoria" oninput="filterRegistrations()">
 
+      <div class="registration-filters">
+        <select id="registrationCategoryFilter" oninput="filterRegistrations()" style="display: none;">
+          <option value="all">Todas as categorias</option>
+          <option value="A">Categoria A</option>
+          <option value="B">Categoria B</option>
+          <option value="C">Categoria C</option>
+          <option value="D">Categoria D</option>
+          <option value="Iniciante">Iniciante</option>
+        </select>
+      </div>
+
       <div id="registrationList" class="stack-list"></div>
     </section>
   </div>

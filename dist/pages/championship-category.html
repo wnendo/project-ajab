@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AJAB - Categoria do Campeonato</title>
   <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
-  <script type="module" crossorigin src="/assets/championshipCategory-BuFq6cYY.js"></script>
+  <script type="module" crossorigin src="/assets/championshipCategory-ZcNsBvpo.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Btlm8H0F.js">
   <link rel="modulepreload" crossorigin href="/assets/firebase-VBRKn9At.js">
   <link rel="modulepreload" crossorigin href="/assets/toast-kV3jSCF7.js">
   <link rel="modulepreload" crossorigin href="/assets/tournament-rules-D9Tq3W95.js">
-  <link rel="stylesheet" crossorigin href="/assets/global-tN3axVWq.css">
+  <link rel="stylesheet" crossorigin href="/assets/global-ofpLf_5b.css">
 </head>
 <body class="dashboard-page championship-page">
   <div class="header">
@@ -71,6 +71,30 @@
         <div class="actions">
           <button class="btn primary" onclick="confirmFinalizeCategory()">Encerrar categoria</button>
           <button class="btn secondary" onclick="closeFinalizeCategoryModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="resetCategoryMatchesModal" class="modal">
+    <div class="modal-card registration-modal-card">
+      <div class="modal-header">
+        <span>Resetar jogos da categoria</span>
+        <button class="close-btn" onclick="closeResetCategoryMatchesModal()">Fechar</button>
+      </div>
+      <div class="modal-body registration-modal-body">
+        <p class="registration-modal-text">
+          Escolha se deseja resetar todos os grupos da categoria ou apenas um grupo especifico. Em "Todos", os grupos sao liberados para novo sorteio.
+        </p>
+        <div class="championship-finalize-grid championship-reset-grid">
+          <label class="form-group">
+            <span>Grupo para resetar</span>
+            <select id="resetCategoryTarget"></select>
+          </label>
+        </div>
+        <div class="actions">
+          <button class="btn danger" onclick="confirmResetCategoryMatches()">Confirmar reset</button>
+          <button class="btn secondary" onclick="closeResetCategoryMatchesModal()">Cancelar</button>
         </div>
       </div>
     </div>

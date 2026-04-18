@@ -21,6 +21,9 @@ let upcomingTournaments: UpcomingTournament[] = []
 let allTournaments: UpcomingTournament[] = []
 let registrationStatusByTournament = new Map<string, UserTournamentRegistration["paymentStatus"]>()
 let registrationMethodByTournament = new Map<string, UserTournamentRegistration["paymentMethod"] | undefined>()
+let openProfileResultTournamentId: string | null = null
+let openProfileResultGroupId: string | null = null
+const CHAMPIONSHIP_CATEGORY_ORDER: ChampionshipCategory[] = ["A", "B", "C", "D", "Iniciante"]
 
 function formatDate(value?: number) {
   if (!value) return "Não informado"
@@ -276,68 +279,146 @@ async function getTournamentRegistrationNameMap(tournamentId: string) {
   return nameMap
 }
 
-async function getChampionshipResultShowcase(tournament: UpcomingTournament) {
+function getChampionshipResultCategories(tournament: UpcomingTournament) {
+  const configuredCategories = (Array.isArray(tournament.categories) ? tournament.categories : [])
+    .map((category) => normalizeChampionshipCategory(category))
+    .filter(Boolean) as ChampionshipCategory[]
+
+  const stateCategories = Object.keys(tournament.championshipState ?? {})
+    .map((category) => normalizeChampionshipCategory(category))
+    .filter(Boolean) as ChampionshipCategory[]
+
+  return [...new Set([...configuredCategories, ...stateCategories])]
+    .sort((left, right) => CHAMPIONSHIP_CATEGORY_ORDER.indexOf(left) - CHAMPIONSHIP_CATEGORY_ORDER.indexOf(right))
+}
+
+function renderChampionshipResultCategoryShowcase(
+  tournament: UpcomingTournament,
+  category: ChampionshipCategory,
+  typedState: ChampionshipCategoryState,
+  nameMap: Map<string, string>
+) {
+  if (!(typedState.groups ?? []).length) {
+    return `
+      <section class="championship-result-section">
+        <div class="section-header compact-section-header">
+          <div>
+            <span class="section-label">Categoria ${escapeHtml(category)}</span>
+            <h3>Categoria nao iniciada</h3>
+          </div>
+        </div>
+        <div class="empty-state">Categoria nao iniciada.</div>
+      </section>
+    `
+  }
+
+  const groups = typedState.groups ?? []
+  const selectedGroupId = groups.some((group) => group.id === openProfileResultGroupId)
+    ? openProfileResultGroupId
+    : groups[0]?.id
+  const selectedGroupMatches = (typedState.completedMatches ?? [])
+    .filter((match) => match.stage === "groups" && match.groupId === selectedGroupId)
+    .sort((a, b) => (b.playedAt ?? 0) - (a.playedAt ?? 0))
+
+  return `
+    <section class="championship-result-section">
+      <div class="section-header compact-section-header">
+        <div>
+          <span class="section-label">Categoria ${escapeHtml(category)}</span>
+          <h3>${typedState.finished ? "Resultado final" : "Andamento do campeonato"}</h3>
+        </div>
+      </div>
+      <div class="championship-result-groups">
+        ${groups
+          .map((group) => {
+            const totalMatches = getRoundRobinMatchesForGroup(category, group).length
+            const playedMatches = (typedState.completedMatches ?? []).filter(
+              (match) => match.stage === "groups" && match.groupId === group.id
+            ).length
+            const standings = getChampionshipGroupStandings(group, typedState, nameMap)
+
+            return `
+              <button class="championship-result-group-card ${selectedGroupId === group.id ? "active" : ""}" onclick="setProfileTournamentResultGroup('${group.id}')" type="button">
+                <strong>${escapeHtml(group.name)}</strong>
+                <span>${playedMatches}/${totalMatches} jogos</span>
+                <div class="championship-result-group-mini">
+                  ${standings.length
+                    ? standings
+                        .map(
+                          (entry, index) => `
+                            <small>${index + 1}o ${escapeHtml(nameMap.get(entry.playerId) || "Atleta")} - ${entry.wins}V</small>
+                          `
+                        )
+                        .join("")
+                    : "<small>Aguardando jogos</small>"}
+                </div>
+              </button>
+            `
+          })
+          .join("")}
+      </div>
+      <section class="group-section championship-history-inner">
+        <div class="group-section-header queue-section-header compact">
+          <div>
+            <span class="section-label">Historico do grupo</span>
+            <h3>${selectedGroupId ? escapeHtml(groups.find((group) => group.id === selectedGroupId)?.name || "Grupo") : "Grupo"}</h3>
+          </div>
+        </div>
+        ${
+          selectedGroupMatches.length
+            ? `
+              <div class="championship-history-compact-grid">
+                ${selectedGroupMatches
+                  .map((match) => `
+                    <article class="championship-history-compact-card">
+                      <strong>${escapeHtml(nameMap.get(match.playerIds[0]) || "Atleta")} ${match.score1 ?? 0} x ${match.score2 ?? 0} ${escapeHtml(nameMap.get(match.playerIds[1]) || "Atleta")}</strong>
+                      <span>${escapeHtml(match.groupId || "Grupo")} • ${escapeHtml(formatDateTime(match.playedAt))}</span>
+                    </article>
+                  `)
+                  .join("")}
+              </div>
+            `
+            : '<div class="empty-state">Nenhuma partida registrada neste grupo ainda.</div>'
+        }
+      </section>
+      <div class="championship-bracket-frame-wrap championship-result-bracket-wrap">
+        <iframe
+          class="championship-bracket-frame championship-result-bracket"
+          title="Mata-mata ${escapeHtml(category)}"
+          loading="lazy"
+          src="/pages/championship-bracket-frame.html?id=${encodeURIComponent(tournament.id)}&category=${encodeURIComponent(category)}"
+        ></iframe>
+      </div>
+    </section>
+  `
+}
+
+async function getChampionshipResultShowcase(tournament: UpcomingTournament, selectedCategory?: ChampionshipCategory) {
   const nameMap = await getTournamentRegistrationNameMap(tournament.id)
-  const categoryStates = Object.entries(tournament.championshipState ?? {}).filter(([, state]) => state?.groups?.length)
+  const categoryStates = getChampionshipResultCategories(tournament)
 
   if (!categoryStates.length) {
     return '<div class="empty-state">Este campeonato ainda nao possui grupos ou mata-mata definidos.</div>'
   }
 
-  return categoryStates
-    .map(([categoryKey, state]) => {
-      const typedState = state as ChampionshipCategoryState
-      const category = categoryKey as ChampionshipCategory
+  const activeCategory = categoryStates.includes(selectedCategory as ChampionshipCategory)
+    ? (selectedCategory as ChampionshipCategory)
+    : categoryStates[0]
+  const typedState = (tournament.championshipState?.[activeCategory] as ChampionshipCategoryState | undefined) ?? {}
 
-      return `
-        <section class="championship-result-section">
-          <div class="section-header compact-section-header">
-            <div>
-              <span class="section-label">Categoria ${escapeHtml(category)}</span>
-              <h3>${typedState.finished ? "Resultado final" : "Andamento do campeonato"}</h3>
-            </div>
-          </div>
-          <div class="championship-result-groups">
-            ${(typedState.groups ?? [])
-              .map((group) => {
-                const totalMatches = getRoundRobinMatchesForGroup(category, group).length
-                const playedMatches = (typedState.completedMatches ?? []).filter(
-                  (match) => match.stage === "groups" && match.groupId === group.id
-                ).length
-                const standings = getChampionshipGroupStandings(group, typedState, nameMap).slice(0, 2)
-
-                return `
-                  <div class="championship-result-group-card">
-                    <strong>${escapeHtml(group.name)}</strong>
-                    <span>${playedMatches}/${totalMatches} jogos</span>
-                    <div class="championship-result-group-mini">
-                      ${standings.length
-                        ? standings
-                            .map(
-                              (entry, index) => `
-                                <small>${index + 1}o ${escapeHtml(nameMap.get(entry.playerId) || "Atleta")} - ${entry.wins}V</small>
-                              `
-                            )
-                            .join("")
-                        : "<small>Aguardando jogos</small>"}
-                    </div>
-                  </div>
-                `
-              })
-              .join("")}
-          </div>
-          <div class="championship-bracket-frame-wrap championship-result-bracket-wrap">
-            <iframe
-              class="championship-bracket-frame championship-result-bracket"
-              title="Mata-mata ${escapeHtml(category)}"
-              loading="lazy"
-              src="/pages/championship-bracket-frame.html?id=${encodeURIComponent(tournament.id)}&category=${encodeURIComponent(category)}"
-            ></iframe>
-          </div>
-        </section>
-      `
-    })
-    .join("")
+  return `
+    <div class="form-group championship-result-selector">
+      <span>Categoria</span>
+      <select onchange="setProfileTournamentResultCategory(this.value)">
+        ${categoryStates
+          .map(
+            (category) => `<option value="${category}" ${category === activeCategory ? "selected" : ""}>Categoria ${escapeHtml(category)}</option>`
+          )
+          .join("")}
+      </select>
+    </div>
+    ${renderChampionshipResultCategoryShowcase(tournament, activeCategory, typedState, nameMap)}
+  `
 }
 
 function renderTournamentHistory(entries: UserTournament[]) {
@@ -429,6 +510,43 @@ function getRegisteredChampionshipCategories(registration: UserTournamentRegistr
   return registration.category ? registration.category.split(",").map((entry) => entry.trim()).filter(Boolean) : []
 }
 
+function isProfileTournamentStillTrackable(
+  tournament: UpcomingTournament,
+  registration: UserTournamentRegistration
+) {
+  if (getTournamentType(tournament) === "ranking") {
+    return tournament.status !== "finished"
+  }
+
+  const categories = getRegisteredChampionshipCategories(registration)
+    .map((category) => normalizeChampionshipCategory(category))
+    .filter(Boolean) as ChampionshipCategory[]
+
+  if (!categories.length) {
+    return tournament.status !== "finished"
+  }
+
+  return categories.some((category) => !(tournament.championshipState?.[category] as ChampionshipCategoryState | undefined)?.finished)
+}
+
+function getVisibleTournamentHistory(
+  entries: UserTournament[],
+  tournaments: UpcomingTournament[],
+  registrations: UserTournamentRegistration[]
+) {
+  return entries.filter((entry) => {
+    const tournamentId = entry.tournamentId || entry.id
+    const tournament = tournaments.find((item) => item.id === tournamentId)
+    const registration = registrations.find((item) => (item.tournamentId || item.id) === tournamentId && item.paymentStatus === "approved")
+
+    if (!tournament || !registration) {
+      return true
+    }
+
+    return !isProfileTournamentStillTrackable(tournament, registration)
+  })
+}
+
 function renderMyTournamentsCard(entries: UpcomingTournament[], registrations: UserTournamentRegistration[]) {
   const container = document.getElementById("myChampionshipsCard")
   if (!container) return
@@ -439,6 +557,7 @@ function renderMyTournamentsCard(entries: UpcomingTournament[], registrations: U
       const tournamentId = entry.tournamentId || entry.id
       const tournament = entries.find((item) => item.id === tournamentId)
       if (!tournament) return null
+      if (!isProfileTournamentStillTrackable(tournament, entry)) return null
 
       return {
         id: tournament.id,
@@ -658,10 +777,12 @@ async function loadUserProfile(uid: string) {
   registrationStatusByTournament = new Map(registrations.map((entry) => [entry.tournamentId || entry.id, entry.paymentStatus]))
   registrationMethodByTournament = new Map(registrations.map((entry) => [entry.tournamentId || entry.id, entry.paymentMethod]))
 
+  const visibleTournamentHistory = getVisibleTournamentHistory(tournaments, resolvedTournaments, registrations)
+
   updateHeader(user, tournaments, matches, upcoming)
   renderProfileInfo(user)
-  renderTournamentHistory(tournaments)
-  decorateTournamentHistory(tournaments)
+  renderTournamentHistory(visibleTournamentHistory)
+  decorateTournamentHistory(visibleTournamentHistory)
   renderMatchHistory(matches)
   renderMyTournamentsCard(resolvedTournaments, registrations)
   renderUpcoming(upcoming)
@@ -693,6 +814,8 @@ async function loadUserProfile(uid: string) {
   if (modal) {
     modal.style.display = "none"
   }
+  openProfileResultTournamentId = null
+  openProfileResultGroupId = null
 }
 
 ;(window as any).openProfileTournamentResult = async (tournamentId: string) => {
@@ -709,6 +832,8 @@ async function loadUserProfile(uid: string) {
   title.textContent = `Resultado - ${tournament.title}`
   content.innerHTML = '<div class="empty-state">Carregando resultado...</div>'
   modal.style.display = "flex"
+  openProfileResultTournamentId = tournamentId
+  openProfileResultGroupId = null
 
   try {
     content.innerHTML = isRankingTournament(tournament)
@@ -717,6 +842,49 @@ async function loadUserProfile(uid: string) {
   } catch (error: any) {
     content.innerHTML = `<div class="empty-state">Nao foi possivel carregar o resultado agora.</div>`
     showToast("Erro ao carregar resultado: " + error.message, "error")
+  }
+}
+
+;(window as any).setProfileTournamentResultCategory = async (category: string) => {
+  const tournamentId = openProfileResultTournamentId
+  const content = document.getElementById("profileTournamentResultContent")
+  if (!tournamentId || !content) return
+
+  const tournament = getTournamentById(tournamentId)
+  const normalizedCategory = normalizeChampionshipCategory(category)
+  if (!tournament || !normalizedCategory) return
+
+  content.innerHTML = '<div class="empty-state">Carregando resultado...</div>'
+  openProfileResultGroupId = null
+
+  try {
+    content.innerHTML = await getChampionshipResultShowcase(tournament, normalizedCategory)
+  } catch (error: any) {
+    content.innerHTML = `<div class="empty-state">Nao foi possivel carregar o resultado agora.</div>`
+    showToast("Erro ao carregar categoria: " + error.message, "error")
+  }
+}
+
+;(window as any).setProfileTournamentResultGroup = async (groupId: string) => {
+  const tournamentId = openProfileResultTournamentId
+  const content = document.getElementById("profileTournamentResultContent")
+  if (!tournamentId || !content) return
+
+  const tournament = getTournamentById(tournamentId)
+  if (!tournament) return
+
+  const selector = content.querySelector("select")
+  const normalizedCategory = normalizeChampionshipCategory((selector as HTMLSelectElement | null)?.value)
+  if (!normalizedCategory) return
+
+  openProfileResultGroupId = groupId
+  content.innerHTML = '<div class="empty-state">Carregando resultado...</div>'
+
+  try {
+    content.innerHTML = await getChampionshipResultShowcase(tournament, normalizedCategory)
+  } catch (error: any) {
+    content.innerHTML = `<div class="empty-state">Nao foi possivel carregar o resultado agora.</div>`
+    showToast("Erro ao carregar grupo: " + error.message, "error")
   }
 }
 

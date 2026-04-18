@@ -161,7 +161,6 @@ export function render() {
   const tablesEl = document.getElementById("tables") as HTMLElement
   const queueEl = document.getElementById("queue") as HTMLElement
   const tableCountEl = document.getElementById("tableCount") as HTMLElement
-  const startBtn = document.getElementById("startBtn") as HTMLButtonElement | null
   const modeLabel = document.getElementById("tournamentModeLabel") as HTMLElement | null
   const rankingModeAction = document.getElementById("rankingModeAction") as HTMLButtonElement | null
   const visibleGroups = getVisibleGroups()
@@ -170,22 +169,9 @@ export function render() {
     modeLabel.innerText = getTournamentTypeLabel()
   }
 
-  if (startBtn) {
-    if (!hasActiveTournament()) {
-      startBtn.disabled = true
-      startBtn.innerText = "Ative um torneio"
-    } else if (getStartedGroupsCount() === visibleGroups.length) {
-      startBtn.disabled = true
-      startBtn.innerText = "Categorias iniciadas"
-    } else {
-      startBtn.disabled = false
-      startBtn.innerText = "Use os paineis abaixo"
-    }
-  }
-
   if (rankingModeAction) {
     rankingModeAction.style.display = isRankingModeEnabled() ? "flow" : "none"
-    rankingModeAction.innerText = visibleGroups.length === 1 ? "Separar A e B" : "Juntar categorias"
+    rankingModeAction.innerText = visibleGroups.length === 1 ? "Separar A e B" : "Juntar Categorias"
   }
 
   if (tableCountEl) {

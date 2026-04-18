@@ -71,6 +71,30 @@
     </div>
   </div>
 
+  <div id="resetCategoryMatchesModal" class="modal">
+    <div class="modal-card registration-modal-card">
+      <div class="modal-header">
+        <span>Resetar jogos da categoria</span>
+        <button class="close-btn" onclick="closeResetCategoryMatchesModal()">Fechar</button>
+      </div>
+      <div class="modal-body registration-modal-body">
+        <p class="registration-modal-text">
+          Escolha se deseja resetar todos os grupos da categoria ou apenas um grupo especifico. Em "Todos", os grupos sao liberados para novo sorteio.
+        </p>
+        <div class="championship-finalize-grid championship-reset-grid">
+          <label class="form-group">
+            <span>Grupo para resetar</span>
+            <select id="resetCategoryTarget"></select>
+          </label>
+        </div>
+        <div class="actions">
+          <button class="btn danger" onclick="confirmResetCategoryMatches()">Confirmar reset</button>
+          <button class="btn secondary" onclick="closeResetCategoryMatchesModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="/src/js/championship-category.ts"></script>
 </body>
 </html>

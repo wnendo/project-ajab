@@ -10,6 +10,7 @@ import {
   TournamentRegistration,
   UpcomingTournament,
   User,
+  UserMatchHistory,
   UserTournament
 } from "./types"
 import { getTournamentType } from "./tournament-rules"
@@ -192,30 +193,198 @@ function getPlayerStatsForCategory(state: ChampionshipCategoryState, playerId: s
   )
 }
 
+function getTournamentRecordForPlayer(
+  tournament: UpcomingTournament,
+  category: ChampionshipCategory,
+  playerId: string,
+  state: ChampionshipCategoryState,
+  finalStandings: string[],
+  playedAt: number
+) {
+  const stats = getPlayerStatsForCategory(state, playerId)
+  const standingIndex = finalStandings.indexOf(playerId)
+  const recordId = `${tournament.id}_${category}`
+
+  return {
+    id: recordId,
+    tournamentId: tournament.id,
+    title: tournament.title,
+    category,
+    ...(standingIndex >= 0 ? { placement: `${standingIndex + 1}o lugar` } : {}),
+    result: standingIndex >= 0 ? getPlacementLabel(standingIndex + 1) : "Participacao",
+    matchCount: stats.matchCount,
+    wins: stats.wins,
+    losses: stats.losses,
+    playedAt
+  } satisfies UserTournament
+}
+
+function getTournamentProgressRecordForPlayer(
+  tournament: UpcomingTournament,
+  category: ChampionshipCategory,
+  playerId: string,
+  state: ChampionshipCategoryState,
+  playedAt: number
+) {
+  const stats = getPlayerStatsForCategory(state, playerId)
+  const recordId = `${tournament.id}_${category}`
+
+  return {
+    id: recordId,
+    tournamentId: tournament.id,
+    title: tournament.title,
+    category,
+    result: "Em andamento",
+    matchCount: stats.matchCount,
+    wins: stats.wins,
+    losses: stats.losses,
+    playedAt
+  } satisfies UserTournament
+}
+
+function getUserMatchEntries(match: ChampionshipMatch, tournament: UpcomingTournament) {
+  const [playerOneId, playerTwoId] = match.playerIds
+  const playerOneName = getPlayerDisplayName(playerOneId)
+  const playerTwoName = getPlayerDisplayName(playerTwoId)
+  const score1 = match.score1 ?? 0
+  const score2 = match.score2 ?? 0
+  const playedAt = match.playedAt ?? Date.now()
+  const stageLabel =
+    match.stage === "knockout"
+      ? match.roundTitle || "Mata-mata"
+      : match.groupId
+        ? `Fase de grupos - ${match.groupId}`
+        : "Fase de grupos"
+
+  const playerOneEntry: UserMatchHistory = {
+    id: match.id,
+    tournamentId: tournament.id,
+    tournamentTitle: tournament.title,
+    opponentName: playerTwoName,
+    scoreLabel: `${score1} x ${score2}`,
+    tableLabel: match.groupId || match.roundTitle,
+    stage: stageLabel,
+    result: match.winnerId === playerOneId ? "win" : "loss",
+    playedAt
+  }
+
+  const playerTwoEntry: UserMatchHistory = {
+    id: match.id,
+    tournamentId: tournament.id,
+    tournamentTitle: tournament.title,
+    opponentName: playerOneName,
+    scoreLabel: `${score2} x ${score1}`,
+    tableLabel: match.groupId || match.roundTitle,
+    stage: stageLabel,
+    result: match.winnerId === playerTwoId ? "win" : "loss",
+    playedAt
+  }
+
+  return {
+    playerOneId,
+    playerTwoId,
+    playerOneEntry,
+    playerTwoEntry
+  }
+}
+
 async function writeFinalStandingsToUsers(category: ChampionshipCategory, state: ChampionshipCategoryState, finalStandings: string[]) {
   const tournament = currentTournament
   if (!tournament || !finalStandings.length) return
 
   const batch = writeBatch(db)
   const now = Date.now()
+  const playerIds = getRegistrationsForCategory(category).map((registration) => registration.id)
 
-  finalStandings.forEach((playerId, index) => {
-    const position = index + 1
-    const stats = getPlayerStatsForCategory(state, playerId)
-    const tournamentRecord: UserTournament = {
-      id: tournament.id,
-      tournamentId: tournament.id,
-      title: tournament.title,
-      category,
-      placement: `${position}o lugar`,
-      result: getPlacementLabel(position),
-      matchCount: stats.matchCount,
-      wins: stats.wins,
-      losses: stats.losses,
-      playedAt: now
-    }
+  ;(state.completedMatches ?? []).forEach((match) => {
+    const { playerOneId, playerTwoId, playerOneEntry, playerTwoEntry } = getUserMatchEntries(match, tournament)
+    batch.set(doc(db, "users", playerOneId, "matches", match.id), playerOneEntry, { merge: true })
+    batch.set(doc(db, "users", playerTwoId, "matches", match.id), playerTwoEntry, { merge: true })
+  })
 
-    batch.set(doc(db, "users", playerId, "tournaments", tournament.id), tournamentRecord, { merge: true })
+  playerIds.forEach((playerId) => {
+    const tournamentRecord = getTournamentRecordForPlayer(tournament, category, playerId, state, finalStandings, now)
+    batch.set(doc(db, "users", playerId, "tournaments", tournamentRecord.id), tournamentRecord, { merge: true })
+  })
+
+  await batch.commit()
+}
+
+async function writeMatchHistoryForUsers(
+  category: ChampionshipCategory,
+  state: ChampionshipCategoryState,
+  completedMatch: ChampionshipMatch
+) {
+  const tournament = currentTournament
+  if (!tournament) return
+
+  const { playerOneId, playerTwoId, playerOneEntry, playerTwoEntry } = getUserMatchEntries(completedMatch, tournament)
+  const playerOneTournamentRecord = getTournamentProgressRecordForPlayer(
+    tournament,
+    category,
+    playerOneId,
+    state,
+    completedMatch.playedAt ?? Date.now()
+  )
+  const playerTwoTournamentRecord = getTournamentProgressRecordForPlayer(
+    tournament,
+    category,
+    playerTwoId,
+    state,
+    completedMatch.playedAt ?? Date.now()
+  )
+
+  const batch = writeBatch(db)
+  batch.set(doc(db, "users", playerOneId, "matches", completedMatch.id), playerOneEntry, { merge: true })
+  batch.set(doc(db, "users", playerTwoId, "matches", completedMatch.id), playerTwoEntry, { merge: true })
+  batch.set(doc(db, "users", playerOneId, "tournaments", playerOneTournamentRecord.id), playerOneTournamentRecord, { merge: true })
+  batch.set(doc(db, "users", playerTwoId, "tournaments", playerTwoTournamentRecord.id), playerTwoTournamentRecord, { merge: true })
+  await batch.commit()
+}
+
+async function syncCategoryHistoryToUsers(category: ChampionshipCategory, state: ChampionshipCategoryState) {
+  const tournament = currentTournament
+  if (!tournament) return
+
+  const completedMatches = state.completedMatches ?? []
+  if (!completedMatches.length) return
+
+  const batch = writeBatch(db)
+  const playerIds = getRegistrationsForCategory(category).map((registration) => registration.id)
+
+  completedMatches.forEach((match) => {
+    const { playerOneId, playerTwoId, playerOneEntry, playerTwoEntry } = getUserMatchEntries(match, tournament)
+    batch.set(doc(db, "users", playerOneId, "matches", match.id), playerOneEntry, { merge: true })
+    batch.set(doc(db, "users", playerTwoId, "matches", match.id), playerTwoEntry, { merge: true })
+  })
+
+  playerIds.forEach((playerId) => {
+    const tournamentRecord = state.finished && (state.finalStandings ?? []).length
+      ? getTournamentRecordForPlayer(tournament, category, playerId, state, state.finalStandings ?? [], Date.now())
+      : getTournamentProgressRecordForPlayer(tournament, category, playerId, state, Date.now())
+    batch.set(doc(db, "users", playerId, "tournaments", tournamentRecord.id), tournamentRecord, { merge: true })
+  })
+
+  await batch.commit()
+}
+
+async function clearCategoryHistoryFromUsers(category: ChampionshipCategory, matchesToRemove: ChampionshipMatch[]) {
+  const tournament = currentTournament
+  if (!tournament) return
+
+  const batch = writeBatch(db)
+  const affectedPlayerIds = new Set(getRegistrationsForCategory(category).map((registration) => registration.id))
+
+  matchesToRemove.forEach((match) => {
+    batch.delete(doc(db, "users", match.playerIds[0], "matches", match.id))
+    batch.delete(doc(db, "users", match.playerIds[1], "matches", match.id))
+    affectedPlayerIds.add(match.playerIds[0])
+    affectedPlayerIds.add(match.playerIds[1])
+  })
+
+  const tournamentRecordId = `${tournament.id}_${category}`
+  affectedPlayerIds.forEach((playerId) => {
+    batch.delete(doc(db, "users", playerId, "tournaments", tournamentRecordId))
   })
 
   await batch.commit()
@@ -242,11 +411,11 @@ function getFinalStandingsMarkup(state: ChampionshipCategoryState) {
         <h3>Classificação final</h3>
         <p>Encerramento oficial da categoria com definição do 1° ao 4° lugar.</p>
       </div>
-      <div class="stack-list">
+      <div class="championship-final-standings">
         ${finalStandings.slice(0, 4).map((playerId, index) => `
-          <div class="stack-item">
-            <div class="stack-item-header">
-              <div>
+          <div class="championship-final-card ${getFinalPlacementClass(index + 1)}">
+            <div class="championship-final-card-head">
+              <div class="championship-final-player">
                 <strong>${getPlayerDisplayName(playerId)}</strong>
                 <span>${getPlayerMeta(playerId)}</span>
               </div>
@@ -759,6 +928,10 @@ function canAddPlayersToGroups(state: ChampionshipCategoryState) {
   return !areAllGroupMatchesCompleted(state)
 }
 
+function getResettableGroups(state: ChampionshipCategoryState) {
+  return (state.groups ?? []).filter((group) => group.playerIds.length >= 2)
+}
+
 function getUnassignedRegistrations(state: ChampionshipCategoryState) {
   const category = currentCategory
   if (!category) return []
@@ -856,6 +1029,115 @@ async function saveCategoryState(partial: Partial<ChampionshipCategoryState>) {
   })
 }
 
+function openResetCategoryMatchesModalInternal() {
+  const category = currentCategory
+  if (!category) return
+
+  const state = getCategoryState(category)
+  const groups = getResettableGroups(state)
+  if (!groups.length && !(state.completedMatches ?? []).length) {
+    showToast("Nao ha grupos ou jogos para resetar nesta categoria.", "warning")
+    return
+  }
+
+  const select = document.getElementById("resetCategoryTarget") as HTMLSelectElement | null
+  if (select) {
+    select.innerHTML = [
+      '<option value="all">Todos os grupos da categoria</option>',
+      ...groups.map((group) => `<option value="${group.id}">${group.name}</option>`)
+    ].join("")
+  }
+
+  const modal = document.getElementById("resetCategoryMatchesModal") as HTMLElement | null
+  if (modal) {
+    modal.style.display = "flex"
+  }
+}
+
+function closeResetCategoryMatchesModalInternal() {
+  const modal = document.getElementById("resetCategoryMatchesModal") as HTMLElement | null
+  if (modal) {
+    modal.style.display = "none"
+  }
+}
+
+async function resetCurrentCategoryMatches(target: string) {
+  const category = currentCategory
+  if (!category) return
+
+  const state = getCategoryState(category)
+  if (!state.groups?.length && target !== "all") {
+    showToast("Nao ha grupos definidos para resetar.", "warning")
+    return
+  }
+
+  if (target === "all") {
+    await clearCategoryHistoryFromUsers(category, state.completedMatches ?? [])
+    await saveCategoryState({
+      defined: false,
+      started: false,
+      knockoutStarted: false,
+      finished: false,
+      groups: [],
+      queue: [],
+      completedMatches: [],
+      activeTables: normalizeTables([], state.tableCount ?? 1),
+      finalStandings: []
+    })
+    closeResetCategoryMatchesModalInternal()
+    renderPage()
+    return
+  }
+
+  const removedMatches = (state.completedMatches ?? []).filter((match) => {
+    if (match.stage === "knockout") return true
+    return match.groupId === target
+  })
+  await clearCategoryHistoryFromUsers(category, removedMatches)
+
+  const remainingCompletedMatches = (state.completedMatches ?? []).filter((match) => {
+    if (match.stage === "knockout") return false
+    return match.groupId !== target
+  })
+
+  const clearedTables = normalizeTables(state.activeTables, state.tableCount ?? 1).map((table) => {
+    if (table.match?.stage === "knockout") {
+      return { id: table.id, ...(table.groupId ? { groupId: table.groupId } : {}) }
+    }
+    if (table.match?.groupId === target) {
+      return { id: table.id, groupId: target }
+    }
+    return table
+  })
+
+  const clearedQueue = (state.queue ?? []).filter((match) => {
+    if (match.stage === "knockout") return false
+    return match.groupId !== target
+  })
+
+  const rebalanced = rebalanceGroupAssignments({
+    ...state,
+    knockoutStarted: false,
+    finished: false,
+    queue: clearedQueue,
+    activeTables: clearedTables,
+    completedMatches: remainingCompletedMatches,
+    finalStandings: []
+  })
+
+  await saveCategoryState({
+    knockoutStarted: false,
+    finished: false,
+    queue: rebalanced.queue,
+    activeTables: rebalanced.activeTables,
+    completedMatches: remainingCompletedMatches,
+    finalStandings: []
+  })
+
+  closeResetCategoryMatchesModalInternal()
+  renderPage()
+}
+
 async function loadTournament() {
   if (!tournamentId) {
     window.location.replace("/pages/dashboard.html")
@@ -904,6 +1186,7 @@ function renderPage() {
   const canStartKnockout = bracketRounds.some((round) => round.matches.some((match) => match.playerIds))
   const statusLabel = state.finished ? "Categoria encerrada" : groupsCompleted ? "Grupos concluidos" : state.started ? "Jogos em andamento" : "Categoria aberta"
   const categoryCanFinalize = canFinalizeCategory(state)
+  const canResetMatches = groups.length > 0 || (state.completedMatches ?? []).length > 0
 
   ;(document.getElementById("categoryPageTitle") as HTMLElement).textContent = `${tournament.title}`
   ;(document.getElementById("categoryTitle") as HTMLElement).textContent = `Categoria ${category}`
@@ -984,6 +1267,7 @@ function renderPage() {
               <button class="btn secondary" onclick="changeTables(-1)">- Mesa</button>
               <button class="btn secondary" onclick="changeTables(1)">+ Mesa</button>
               <button class="btn primary" ${groups.length && !state.finished ? "" : "disabled"} onclick="startCategory()">${state.started ? "Atualizar jogos" : "Iniciar jogos"}</button>
+              <button class="btn secondary" ${canResetMatches ? "" : "disabled"} onclick="openResetCategoryMatchesModal()">Resetar jogos</button>
               <button class="btn secondary" ${categoryCanFinalize ? "" : "disabled"} onclick="openFinalizeCategoryModal()">Encerrar categoria</button>
             </div>
           </div>
@@ -1466,6 +1750,7 @@ async function finalizeCurrentCategory() {
     queue: rebalanced.queue,
     completedMatches
   })
+  await writeMatchHistoryForUsers(category, { ...state, completedMatches }, completedMatch)
   renderPage()
 }
 
@@ -1491,6 +1776,23 @@ async function finalizeCurrentCategory() {
 
 ;(window as any).closeFinalizeCategoryModal = () => {
   closeFinalizeCategoryModalInternal()
+}
+
+;(window as any).openResetCategoryMatchesModal = () => {
+  openResetCategoryMatchesModalInternal()
+}
+
+;(window as any).closeResetCategoryMatchesModal = () => {
+  closeResetCategoryMatchesModalInternal()
+}
+
+;(window as any).confirmResetCategoryMatches = async () => {
+  try {
+    const target = getSelectValue("resetCategoryTarget") || "all"
+    await resetCurrentCategoryMatches(target)
+  } catch (error: any) {
+    showToast("Erro ao resetar jogos: " + error.message, "error")
+  }
 }
 
 ;(window as any).confirmFinalizeCategory = async () => {
@@ -1519,6 +1821,8 @@ onAuthStateChanged(auth, async (user) => {
   setUserHeader(userData)
   await loadTournament()
   await loadRegistrations()
+  if (currentCategory) {
+    await syncCategoryHistoryToUsers(currentCategory, getCategoryState(currentCategory))
+  }
   renderPage()
 })
-

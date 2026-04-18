@@ -61,9 +61,15 @@ export type RankingLiveTable = {
   playerIds?: [string, string]
 }
 
+export type RankingSchedulerState = {
+  winnerPoolIds?: string[]
+  loserPoolIds?: string[]
+}
+
 export type RankingLiveGroupState = {
   queue?: RankingLiveMatch[]
   activeTables?: RankingLiveTable[]
+  scheduler?: RankingSchedulerState
 }
 
 export type RankingLiveState = Partial<Record<CompetitionGroup, RankingLiveGroupState>>

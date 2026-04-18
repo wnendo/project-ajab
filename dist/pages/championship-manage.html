@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AJAB - Gerenciar Campeonato</title>
   <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
-  <script type="module" crossorigin src="/assets/championshipManage-CMG46uX8.js"></script>
+  <script type="module" crossorigin src="/assets/championshipManage-i6pXBPbs.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Btlm8H0F.js">
   <link rel="modulepreload" crossorigin href="/assets/firebase-VBRKn9At.js">
   <link rel="modulepreload" crossorigin href="/assets/toast-kV3jSCF7.js">
   <link rel="modulepreload" crossorigin href="/assets/tournament-rules-D9Tq3W95.js">
-  <link rel="stylesheet" crossorigin href="/assets/global-tN3axVWq.css">
+  <link rel="stylesheet" crossorigin href="/assets/global-ofpLf_5b.css">
 </head>
 <body class="dashboard-page championship-page">
   <div class="header">
@@ -27,6 +27,7 @@
       </div>
       <div class="championship-hero-actions">
         <button class="btn primary" onclick="openAddChampionshipAthleteModal()">Adicionar atleta</button>
+        <button class="btn secondary" onclick="openChampionshipResultsModal()">Finalizar torneio</button>
         <button class="btn secondary" onclick="openTournamentRegistrations()">Gerenciar inscricoes</button>
         <button class="btn secondary" onclick="editCurrentTournament()">Editar torneio</button>
         <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
@@ -140,6 +141,21 @@
             <button class="btn secondary" onclick="createAndAddChampionshipAthlete()">Cadastrar novo atleta e adicionar</button>
           </div>
         </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="championshipResultsModal" class="modal">
+    <div class="modal-card tournament-results-modal-card profile-tournament-result-modal-card">
+      <div class="modal-header">
+        <span id="championshipResultsModalTitle">Resultado do campeonato</span>
+        <button class="close-btn" onclick="closeChampionshipResultsModal()">Fechar</button>
+      </div>
+      <div id="championshipResultsModalContent" class="modal-body registration-modal-body"></div>
+      <div class="modal-footer championship-results-modal-footer">
+        <button id="championshipFinalizeButton" class="btn primary" onclick="confirmFinalizeChampionshipTournament()">
+          Finalizar torneio
+        </button>
       </div>
     </div>
   </div>

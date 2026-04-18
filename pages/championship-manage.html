@@ -22,6 +22,7 @@
       </div>
       <div class="championship-hero-actions">
         <button class="btn primary" onclick="openAddChampionshipAthleteModal()">Adicionar atleta</button>
+        <button class="btn secondary" onclick="openChampionshipResultsModal()">Finalizar torneio</button>
         <button class="btn secondary" onclick="openTournamentRegistrations()">Gerenciar inscricoes</button>
         <button class="btn secondary" onclick="editCurrentTournament()">Editar torneio</button>
         <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
@@ -135,6 +136,21 @@
             <button class="btn secondary" onclick="createAndAddChampionshipAthlete()">Cadastrar novo atleta e adicionar</button>
           </div>
         </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="championshipResultsModal" class="modal">
+    <div class="modal-card tournament-results-modal-card profile-tournament-result-modal-card">
+      <div class="modal-header">
+        <span id="championshipResultsModalTitle">Resultado do campeonato</span>
+        <button class="close-btn" onclick="closeChampionshipResultsModal()">Fechar</button>
+      </div>
+      <div id="championshipResultsModalContent" class="modal-body registration-modal-body"></div>
+      <div class="modal-footer championship-results-modal-footer">
+        <button id="championshipFinalizeButton" class="btn primary" onclick="confirmFinalizeChampionshipTournament()">
+          Finalizar torneio
+        </button>
       </div>
     </div>
   </div>

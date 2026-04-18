@@ -5,6 +5,7 @@ import {
   ChampionshipCategory,
   ChampionshipCategoryState,
   ChampionshipGroup,
+  ChampionshipMatch,
   TournamentRegistration,
   UpcomingTournament,
   User,
@@ -27,6 +28,9 @@ let currentTournament: UpcomingTournament | null = null
 let registrations: TournamentRegistration[] = []
 let allUsers: User[] = []
 let selectedChampionshipAthleteId: string | null = null
+let openResultsCategory: ChampionshipCategory | null = null
+let openResultsGroupId: string | null = null
+const CHAMPIONSHIP_CATEGORY_ORDER: ChampionshipCategory[] = ["A", "B", "C", "D", "Iniciante"]
 
 function setUserHeader(userData: User) {
   const header = document.getElementById("userSummary")
@@ -108,6 +112,11 @@ function escapeHtml(value?: string) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;")
+}
+
+function formatDateTime(value?: number) {
+  if (!value) return "Nao informado"
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(value)
 }
 
 function getTournamentRegistrationByUserId(userId: string) {
@@ -282,6 +291,243 @@ function getCategoryState(category: ChampionshipCategory): ChampionshipCategoryS
 
 function getPlayerNameById(category: ChampionshipCategory, playerId: string) {
   return getRegistrationsForCategory(category).find((registration) => registration.id === playerId)?.name || "Atleta"
+}
+
+function getRoundRobinMatchesForGroup(category: ChampionshipCategory, group: ChampionshipGroup) {
+  const matches: ChampionshipMatch[] = []
+
+  for (let first = 0; first < group.playerIds.length; first++) {
+    for (let second = first + 1; second < group.playerIds.length; second++) {
+      matches.push({
+        id: `${category}_${group.id}_${group.playerIds[first]}_${group.playerIds[second]}`,
+        stage: "groups",
+        category,
+        groupId: group.id,
+        playerIds: [group.playerIds[first], group.playerIds[second]]
+      })
+    }
+  }
+
+  return matches
+}
+
+function getChampionshipGroupStandings(group: ChampionshipGroup, state: ChampionshipCategoryState) {
+  const standings = new Map<string, { wins: number; losses: number; pointsWon: number; pointsLost: number }>()
+
+  group.playerIds.forEach((playerId) => {
+    standings.set(playerId, { wins: 0, losses: 0, pointsWon: 0, pointsLost: 0 })
+  })
+
+  ;(state.completedMatches ?? [])
+    .filter((match) => match.stage === "groups" && match.groupId === group.id)
+    .forEach((match) => {
+      const [p1Id, p2Id] = match.playerIds
+      const p1 = standings.get(p1Id)
+      const p2 = standings.get(p2Id)
+      if (!p1 || !p2) return
+
+      const score1 = match.score1 ?? 0
+      const score2 = match.score2 ?? 0
+      p1.pointsWon += score1
+      p1.pointsLost += score2
+      p2.pointsWon += score2
+      p2.pointsLost += score1
+
+      if (match.winnerId === p1Id) {
+        p1.wins += 1
+        p2.losses += 1
+      } else if (match.winnerId === p2Id) {
+        p2.wins += 1
+        p1.losses += 1
+      }
+    })
+
+  return [...standings.entries()]
+    .map(([playerId, stats]) => ({ playerId, ...stats }))
+    .sort((a, b) => {
+      if (b.wins !== a.wins) return b.wins - a.wins
+      const diffA = a.pointsWon - a.pointsLost
+      const diffB = b.pointsWon - b.pointsLost
+      if (diffB !== diffA) return diffB - diffA
+      return getPlayerNameById(group.id.split("-")[0] as ChampionshipCategory, a.playerId).localeCompare(
+        getPlayerNameById(group.id.split("-")[0] as ChampionshipCategory, b.playerId)
+      )
+    })
+}
+
+function getManageResultCategories(tournament: UpcomingTournament) {
+  const configuredCategories = getTournamentCategories()
+  const stateCategories = Object.keys(tournament.championshipState ?? {})
+    .map((category) => normalizeChampionshipCategory(category))
+    .filter(Boolean) as ChampionshipCategory[]
+
+  return [...new Set([...configuredCategories, ...stateCategories])]
+    .sort((left, right) => CHAMPIONSHIP_CATEGORY_ORDER.indexOf(left) - CHAMPIONSHIP_CATEGORY_ORDER.indexOf(right))
+}
+
+function renderManageResultCategory(category: ChampionshipCategory, state: ChampionshipCategoryState) {
+  const groups = state.groups ?? []
+  if (!groups.length) {
+    return `
+      <section class="championship-result-section">
+        <div class="section-header compact-section-header">
+          <div>
+            <span class="section-label">Categoria ${escapeHtml(category)}</span>
+            <h3>Categoria nao iniciada</h3>
+          </div>
+        </div>
+        <div class="empty-state">Categoria nao iniciada.</div>
+      </section>
+    `
+  }
+
+  const selectedGroupId = groups.some((group) => group.id === openResultsGroupId) ? openResultsGroupId : groups[0]?.id
+  const selectedMatches = (state.completedMatches ?? [])
+    .filter((match) => match.stage === "groups" && match.groupId === selectedGroupId)
+    .sort((a, b) => (b.playedAt ?? 0) - (a.playedAt ?? 0))
+
+  return `
+    <section class="championship-result-section">
+      <div class="section-header compact-section-header">
+        <div>
+          <span class="section-label">Categoria ${escapeHtml(category)}</span>
+          <h3>${state.finished ? "Resultado final" : "Andamento do campeonato"}</h3>
+        </div>
+      </div>
+      <div class="championship-result-groups">
+        ${groups
+          .map((group) => {
+            const totalMatches = getRoundRobinMatchesForGroup(category, group).length
+            const playedMatches = (state.completedMatches ?? []).filter((match) => match.stage === "groups" && match.groupId === group.id).length
+            const standings = getChampionshipGroupStandings(group, state)
+
+            return `
+              <button class="championship-result-group-card ${selectedGroupId === group.id ? "active" : ""}" onclick="setChampionshipResultsGroup('${group.id}')" type="button">
+                <strong>${escapeHtml(group.name)}</strong>
+                <span>${playedMatches}/${totalMatches} jogos</span>
+                <div class="championship-result-group-mini">
+                  ${standings.length
+                    ? standings.map((entry, index) => `<small>${index + 1}o ${escapeHtml(getPlayerNameById(category, entry.playerId))} - ${entry.wins}V</small>`).join("")
+                    : "<small>Aguardando jogos</small>"}
+                </div>
+              </button>
+            `
+          })
+          .join("")}
+      </div>
+      <section class="group-section championship-history-inner">
+        <div class="group-section-header queue-section-header compact">
+          <div>
+            <span class="section-label">Historico do grupo</span>
+            <h3>${selectedGroupId ? escapeHtml(groups.find((group) => group.id === selectedGroupId)?.name || "Grupo") : "Grupo"}</h3>
+          </div>
+        </div>
+        ${
+          selectedMatches.length
+            ? `
+              <div class="championship-history-compact-grid">
+                ${selectedMatches
+                  .map((match) => `
+                    <article class="championship-history-compact-card">
+                      <strong>${escapeHtml(getPlayerNameById(category, match.playerIds[0]))} ${match.score1 ?? 0} x ${match.score2 ?? 0} ${escapeHtml(getPlayerNameById(category, match.playerIds[1]))}</strong>
+                      <span>${escapeHtml(match.groupId || "Grupo")} • ${escapeHtml(formatDateTime(match.playedAt))}</span>
+                    </article>
+                  `)
+                  .join("")}
+              </div>
+            `
+            : '<div class="empty-state">Nenhuma partida registrada neste grupo ainda.</div>'
+        }
+      </section>
+      <div class="championship-bracket-frame-wrap championship-result-bracket-wrap">
+        <iframe
+          class="championship-bracket-frame championship-result-bracket"
+          title="Mata-mata ${escapeHtml(category)}"
+          loading="lazy"
+          src="/pages/championship-bracket-frame.html?id=${encodeURIComponent(currentTournament?.id || "")}&category=${encodeURIComponent(category)}"
+        ></iframe>
+      </div>
+    </section>
+  `
+}
+
+function renderChampionshipResultsModalContent(category?: ChampionshipCategory) {
+  const tournament = currentTournament
+  if (!tournament) return
+
+  const title = document.getElementById("championshipResultsModalTitle")
+  const content = document.getElementById("championshipResultsModalContent")
+  const finalizeButton = document.getElementById("championshipFinalizeButton") as HTMLButtonElement | null
+  if (!title || !content) return
+
+  const categories = getManageResultCategories(tournament)
+  if (!categories.length) {
+    title.textContent = `Resultado - ${tournament.title}`
+    content.innerHTML = '<div class="empty-state">Este campeonato ainda nao possui categorias configuradas.</div>'
+    if (finalizeButton) {
+      finalizeButton.disabled = false
+      finalizeButton.textContent = tournament.status === "finished" ? "Torneio finalizado" : "Finalizar torneio"
+    }
+    return
+  }
+
+  const activeCategory = categories.includes(category as ChampionshipCategory) ? (category as ChampionshipCategory) : categories[0]
+  const state = (tournament.championshipState?.[activeCategory] as ChampionshipCategoryState | undefined) ?? {}
+
+  title.textContent = `Resultado - ${tournament.title}`
+  content.innerHTML = `
+    <div class="form-group championship-result-selector">
+      <span>Categoria</span>
+      <select onchange="setChampionshipResultsCategory(this.value)">
+        ${categories.map((entry) => `<option value="${entry}" ${entry === activeCategory ? "selected" : ""}>Categoria ${escapeHtml(entry)}</option>`).join("")}
+      </select>
+    </div>
+    ${renderManageResultCategory(activeCategory, state)}
+  `
+
+  if (finalizeButton) {
+    finalizeButton.disabled = tournament.status === "finished"
+    finalizeButton.textContent = tournament.status === "finished" ? "Torneio finalizado" : "Finalizar torneio"
+  }
+}
+
+async function finalizeChampionshipTournament() {
+  const tournament = currentTournament
+  if (!tournament) return
+
+  const categoryState = tournament.championshipState ?? {}
+  const nextChampionshipState = getTournamentCategories().reduce((accumulator, category) => {
+    const previous = getCategoryState(category)
+    const nextTableCount = Math.max(1, previous.tableCount ?? 1)
+
+    accumulator[category] = {
+      ...previous,
+      defined: previous.groups?.length ? true : previous.defined ?? false,
+      started: false,
+      knockoutStarted: false,
+      finished: true,
+      queue: [],
+      activeTables: normalizeTables([], nextTableCount),
+      tableCount: nextTableCount
+    }
+
+    return accumulator
+  }, { ...categoryState } as NonNullable<UpcomingTournament["championshipState"]>)
+
+  currentTournament = {
+    ...tournament,
+    status: "finished",
+    isActive: false,
+    championshipState: nextChampionshipState,
+    updatedAt: Date.now()
+  }
+
+  await updateDoc(doc(db, "tournaments", tournament.id), {
+    status: "finished",
+    isActive: false,
+    championshipState: nextChampionshipState,
+    updatedAt: currentTournament.updatedAt
+  })
 }
 
 function getPlacementLabel(index: number) {
@@ -504,11 +750,11 @@ function renderCategoryCard(category: ChampionshipCategory) {
                 </div>
               </summary>
               <div class="championship-collapse-content">
-                <div class="stack-list compact-stack-list">
+                <div class="championship-final-standings">
                   ${state.finalStandings.slice(0, 4).map((playerId, index) => `
-                    <div class="stack-item compact-stack-item">
-                      <div class="stack-item-header">
-                        <div>
+                    <div class="championship-final-card ${getPlacementClass(index)}">
+                      <div class="championship-final-card-head">
+                        <div class="championship-final-player">
                           <strong>${getPlayerNameById(category, playerId)}</strong>
                         </div>
                         <span class="result-pill ${getPlacementClass(index)}">${getPlacementLabel(index)}</span>
@@ -750,6 +996,63 @@ async function createLooseChampionshipUser() {
 
 ;(window as any).closeAddChampionshipAthleteModal = () => {
   closeAddChampionshipAthleteModal()
+}
+
+;(window as any).openChampionshipResultsModal = () => {
+  const modal = document.getElementById("championshipResultsModal") as HTMLElement | null
+  if (!modal || !currentTournament) return
+  openResultsCategory = getManageResultCategories(currentTournament)[0] ?? null
+  openResultsGroupId = null
+  renderChampionshipResultsModalContent(openResultsCategory ?? undefined)
+  modal.style.display = "flex"
+}
+
+;(window as any).closeChampionshipResultsModal = () => {
+  const modal = document.getElementById("championshipResultsModal") as HTMLElement | null
+  if (modal) modal.style.display = "none"
+  openResultsCategory = null
+  openResultsGroupId = null
+}
+
+;(window as any).setChampionshipResultsCategory = (value: string) => {
+  const normalizedCategory = normalizeChampionshipCategory(value)
+  if (!normalizedCategory) return
+  openResultsCategory = normalizedCategory
+  openResultsGroupId = null
+  renderChampionshipResultsModalContent(normalizedCategory)
+}
+
+;(window as any).setChampionshipResultsGroup = (groupId: string) => {
+  openResultsGroupId = groupId || null
+  renderChampionshipResultsModalContent(openResultsCategory ?? undefined)
+}
+
+;(window as any).confirmFinalizeChampionshipTournament = async () => {
+  if (!currentTournament) return
+  if (currentTournament.status === "finished") {
+    showToast("Este campeonato ja esta finalizado.", "warning")
+    return
+  }
+
+  const finalizeButton = document.getElementById("championshipFinalizeButton") as HTMLButtonElement | null
+
+  try {
+    if (finalizeButton) {
+      finalizeButton.disabled = true
+      finalizeButton.textContent = "Finalizando..."
+    }
+
+    await finalizeChampionshipTournament()
+    renderPage()
+    renderChampionshipResultsModalContent(openResultsCategory ?? undefined)
+    showToast("Campeonato finalizado com sucesso.", "success")
+  } catch (error: any) {
+    if (finalizeButton) {
+      finalizeButton.disabled = false
+      finalizeButton.textContent = "Finalizar torneio"
+    }
+    showToast("Erro ao finalizar campeonato: " + error.message, "error")
+  }
 }
 
 ;(window as any).filterChampionshipAthletes = () => {

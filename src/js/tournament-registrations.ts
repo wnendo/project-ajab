@@ -1,7 +1,7 @@
 import { onAuthStateChanged, signOut } from "firebase/auth"
 import { doc, getDoc, getDocs, collection, updateDoc, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
-import { TournamentRegistration, UpcomingTournament, User } from "./types"
+import { ChampionshipCategory, ChampionshipCategoryState, ChampionshipTable, TournamentRegistration, UpcomingTournament, User } from "./types"
 import { getTournamentType } from "./tournament-rules"
 import { confirmAction } from "./confirm-modal"
 import { showToast } from "./toast"
@@ -62,6 +62,110 @@ function formatRegistrationCategories(registration: TournamentRegistration) {
   return registration.category || "Não informada"
 }
 
+function normalizeChampionshipCategory(value?: string): ChampionshipCategory | null {
+  const normalized = (value ?? "").trim().toUpperCase()
+  if (normalized === "A") return "A"
+  if (normalized === "B") return "B"
+  if (normalized === "C") return "C"
+  if (normalized === "D") return "D"
+  if (normalized === "INICIANTE" || normalized === "INICIANTES") return "Iniciante"
+  return null
+}
+
+function parseRegistrationCategories(registration: TournamentRegistration) {
+  const source = Array.isArray(registration.categories)
+    ? registration.categories
+    : (registration.category ?? "").split(",")
+
+  return [...new Set(source.map((entry) => normalizeChampionshipCategory(entry)).filter(Boolean))] as ChampionshipCategory[]
+}
+
+function normalizeChampionshipTables(tables: ChampionshipTable[] | undefined, tableCount: number) {
+  return Array.from({ length: Math.max(1, tableCount) }, (_, index) => {
+    const previous = tables?.[index]
+    return {
+      id: previous?.id ?? index + 1,
+      ...(previous?.groupId ? { groupId: previous.groupId } : {})
+    }
+  })
+}
+
+function getHasPlayedMatches(state: ChampionshipCategoryState, groupId?: string) {
+  return (state.completedMatches ?? []).some((match) => {
+    if (!groupId) return true
+    return match.groupId === groupId
+  })
+}
+
+function removePlayerFromChampionshipState(
+  tournament: UpcomingTournament,
+  registration: TournamentRegistration
+) {
+  const nextState = { ...(tournament.championshipState ?? {}) }
+
+  parseRegistrationCategories(registration).forEach((category) => {
+    const previous = nextState[category]
+    if (!previous) return
+
+    const cleanedGroups = (previous.groups ?? [])
+      .map((group) => ({
+        ...group,
+        playerIds: group.playerIds.filter((playerId) => playerId !== registration.id)
+      }))
+      .filter((group) => group.playerIds.length > 0)
+
+    const removedGroupIds = new Set(
+      (previous.groups ?? [])
+        .filter((group) => group.playerIds.includes(registration.id))
+        .map((group) => group.id)
+    )
+
+    const cleanedCompletedMatches = (previous.completedMatches ?? []).filter(
+      (match) => !match.playerIds.includes(registration.id)
+    )
+    const cleanedQueue = (previous.queue ?? []).filter((match) => !match.playerIds.includes(registration.id))
+    const cleanedTables = normalizeChampionshipTables(
+      (previous.activeTables ?? []).map((table) =>
+        table.match?.playerIds.includes(registration.id)
+          ? { id: table.id, ...(table.groupId ? { groupId: table.groupId } : {}) }
+          : table
+      ),
+      previous.tableCount ?? 1
+    )
+    const cleanedFinalStandings = (previous.finalStandings ?? []).filter((playerId) => playerId !== registration.id)
+
+    const canRedrawGroups =
+      removedGroupIds.size > 0 &&
+      [...removedGroupIds].every((groupId) => !getHasPlayedMatches(previous, groupId))
+
+    nextState[category] = canRedrawGroups
+      ? {
+          ...previous,
+          defined: false,
+          started: false,
+          knockoutStarted: false,
+          finished: false,
+          groups: [],
+          queue: [],
+          activeTables: normalizeChampionshipTables([], previous.tableCount ?? 1),
+          completedMatches: [],
+          finalStandings: []
+        }
+      : {
+          ...previous,
+          groups: cleanedGroups,
+          queue: cleanedQueue,
+          activeTables: cleanedTables,
+          completedMatches: cleanedCompletedMatches,
+          finalStandings: cleanedFinalStandings,
+          knockoutStarted: false,
+          finished: false
+        }
+  })
+
+  return nextState
+}
+
 function getPaymentMethodLabel(registration: TournamentRegistration) {
   return registration.paymentMethod === "pay_on_day" ? "Pagar no dia" : "Pix"
 }
@@ -78,9 +182,16 @@ function getPaymentStatusLabel(registration: TournamentRegistration) {
 
 function getFilteredRegistrations() {
   const input = document.getElementById("registrationSearch") as HTMLInputElement | null
+  const categoryFilter = document.getElementById("registrationCategoryFilter") as HTMLSelectElement | null
   const search = (input?.value ?? "").trim().toLowerCase()
+  const selectedCategory = (categoryFilter?.value ?? "all").trim()
+  const isChampionship = currentTournament ? getTournamentType(currentTournament) === "championship" : false
 
   return [...registrations]
+    .filter((entry) => {
+      if (!isChampionship || selectedCategory === "all") return true
+      return parseRegistrationCategories(entry).includes(selectedCategory as ChampionshipCategory)
+    })
     .filter((entry) => {
       if (!search) return true
       return [entry.name, entry.email, entry.club, entry.category].some((value) =>
@@ -96,12 +207,19 @@ function renderPage() {
   const totalEl = document.getElementById("registrationTotalCount") as HTMLElement | null
   const pendingEl = document.getElementById("registrationPendingCount") as HTMLElement | null
   const listEl = document.getElementById("registrationList") as HTMLElement | null
-  if (!titleEl || !subtitleEl || !totalEl || !pendingEl || !listEl) return
+  const categoryFilter = document.getElementById("registrationCategoryFilter") as HTMLSelectElement | null
+  if (!titleEl || !subtitleEl || !totalEl || !pendingEl || !listEl || !categoryFilter) return
 
   titleEl.textContent = currentTournament?.title || "Inscricoes"
   subtitleEl.textContent = currentTournament
     ? `${currentTournament.location || "Local a definir"} - acompanhe os pagamentos Pix e confirme as inscricoes.`
     : "Não foi possivel carregar o torneio."
+
+  const isChampionship = currentTournament ? getTournamentType(currentTournament) === "championship" : false
+  categoryFilter.style.display = isChampionship ? "block" : "none"
+  if (!isChampionship) {
+    categoryFilter.value = "all"
+  }
 
   totalEl.textContent = String(registrations.length)
   pendingEl.textContent = String(registrations.filter((entry) => entry.paymentStatus !== "approved").length)
@@ -217,6 +335,17 @@ async function loadPageData() {
     const batch = writeBatch(db)
     batch.delete(doc(db, "tournaments", currentTournament.id, "registrations", userId))
     batch.delete(doc(db, "users", userId, "registrations", currentTournament.id))
+    if (getTournamentType(currentTournament) === "championship") {
+      const nextChampionshipState = removePlayerFromChampionshipState(currentTournament, registration)
+      batch.update(doc(db, "tournaments", currentTournament.id), {
+        championshipState: nextChampionshipState,
+        updatedAt: Date.now()
+      })
+      currentTournament = {
+        ...currentTournament,
+        championshipState: nextChampionshipState
+      }
+    }
     batch.update(doc(db, "users", userId), {
       "playerProfile.active": false,
       "playerProfile.games": 0,

@@ -13,7 +13,7 @@ import {
   writeBatch
 } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
-import { buildQueueForGroup } from "./group-queue"
+import { buildQueueForGroup, registerFinishedMatchForGroup } from "./group-queue"
 import { clearQueueForGroup, getNextTableId, matches, officialQueues, players, resetTablesForGroup, tablesByGroup } from "./store"
 import {
   CompetitionGroup,
@@ -21,6 +21,7 @@ import {
   Player,
   PlayerProfile,
   RankingLiveGroupState,
+  RankingSchedulerState,
   TournamentFinalStanding,
   TournamentRegistration,
   UpcomingTournament,
@@ -53,6 +54,11 @@ let registrations: TournamentRegistration[] = []
 let registrationsRefreshInterval: number | null = null
 let selectedAthleteId: string | null = null
 let pendingAthleteCandidate: AthleteSearchCandidate | null = null
+let rankingSchedulerStateByGroup: Record<CompetitionGroup, RankingSchedulerState> = {
+  general: { winnerPoolIds: [], loserPoolIds: [] },
+  A: { winnerPoolIds: [], loserPoolIds: [] },
+  B: { winnerPoolIds: [], loserPoolIds: [] }
+}
 
 type AthleteSearchCandidate = {
   user: User
@@ -456,6 +462,10 @@ function restoreRankingLiveState() {
     resetTablesForGroup(group, getGroupTableCount(group))
 
     const liveState = getRankingLiveGroupState(group)
+    rankingSchedulerStateByGroup[group] = {
+      winnerPoolIds: [...(liveState.scheduler?.winnerPoolIds ?? [])],
+      loserPoolIds: [...(liveState.scheduler?.loserPoolIds ?? [])]
+    }
 
     ;(liveState.queue ?? []).forEach((entry) => {
       const [p1Id, p2Id] = entry.playerIds
@@ -485,28 +495,31 @@ async function persistRankingLiveState() {
   if (!tournament) return
 
   tournament.rankingLiveState = {
-    general: {
-      queue: officialQueues.general.map(([p1, p2]) => ({ playerIds: [p1.id, p2.id] })),
-      activeTables: tablesByGroup.general.map((table) => ({
-        id: table.id,
-        ...(table.p1 && table.p2 ? { playerIds: [table.p1.id, table.p2.id] as [string, string] } : {})
-      }))
-    },
-    A: {
-      queue: officialQueues.A.map(([p1, p2]) => ({ playerIds: [p1.id, p2.id] })),
-      activeTables: tablesByGroup.A.map((table) => ({
-        id: table.id,
-        ...(table.p1 && table.p2 ? { playerIds: [table.p1.id, table.p2.id] as [string, string] } : {})
-      }))
-    },
-    B: {
-      queue: officialQueues.B.map(([p1, p2]) => ({ playerIds: [p1.id, p2.id] })),
-      activeTables: tablesByGroup.B.map((table) => ({
-        id: table.id,
-        ...(table.p1 && table.p2 ? { playerIds: [table.p1.id, table.p2.id] as [string, string] } : {})
-      }))
+      general: {
+        queue: officialQueues.general.map(([p1, p2]) => ({ playerIds: [p1.id, p2.id] })),
+        activeTables: tablesByGroup.general.map((table) => ({
+          id: table.id,
+          ...(table.p1 && table.p2 ? { playerIds: [table.p1.id, table.p2.id] as [string, string] } : {})
+        })),
+        scheduler: rankingSchedulerStateByGroup.general
+      },
+      A: {
+        queue: officialQueues.A.map(([p1, p2]) => ({ playerIds: [p1.id, p2.id] })),
+        activeTables: tablesByGroup.A.map((table) => ({
+          id: table.id,
+          ...(table.p1 && table.p2 ? { playerIds: [table.p1.id, table.p2.id] as [string, string] } : {})
+        })),
+        scheduler: rankingSchedulerStateByGroup.A
+      },
+      B: {
+        queue: officialQueues.B.map(([p1, p2]) => ({ playerIds: [p1.id, p2.id] })),
+        activeTables: tablesByGroup.B.map((table) => ({
+          id: table.id,
+          ...(table.p1 && table.p2 ? { playerIds: [table.p1.id, table.p2.id] as [string, string] } : {})
+        })),
+        scheduler: rankingSchedulerStateByGroup.B
+      }
     }
-  }
 
   currentTournament = tournament
 
@@ -892,6 +905,11 @@ function resetLocalChampionshipState() {
   matches.length = 0
   clearQueue()
   resetTables()
+  rankingSchedulerStateByGroup = {
+    general: { winnerPoolIds: [], loserPoolIds: [] },
+    A: { winnerPoolIds: [], loserPoolIds: [] },
+    B: { winnerPoolIds: [], loserPoolIds: [] }
+  }
 }
 
 async function ensureTournamentActive() {
@@ -1351,14 +1369,19 @@ window.addEventListener("beforeunload", () => {
     clearQueueForGroup(group)
   }
 
-  buildQueueForGroup(group, getEligiblePlayersForGroup(group))
+  rankingSchedulerStateByGroup[group] = buildQueueForGroup(
+    group,
+    getEligiblePlayersForGroup(group),
+    rankingSchedulerStateByGroup[group]
+  )
   fillOpenTables(group)
   await persistRankingLiveState()
   render()
 }
 
 ;(window as any).resetMatches = async () => {
-  if (!currentTournament) return
+  const tournament = currentTournament
+  if (!tournament) return
 
   try {
     const batch = writeBatch(db)
@@ -1376,13 +1399,43 @@ window.addEventListener("beforeunload", () => {
         "playerProfile.games": 0,
         "playerProfile.lastPlayed": null
       })
-      batch.delete(doc(db, "users", player.id, "tournaments", currentTournament!.id))
+      batch.delete(doc(db, "users", player.id, "tournaments", tournament.id))
+    })
+
+    const resetGroupStates = {
+      general: { started: false, tableCount: getGroupTableCount("general") },
+      A: { started: false, tableCount: getGroupTableCount("A") },
+      B: { started: false, tableCount: getGroupTableCount("B") }
+    }
+
+    batch.update(doc(db, "tournaments", tournament.id), {
+      groupStates: resetGroupStates,
+      rankingLiveState: {
+        general: { queue: [], activeTables: tablesByGroup.general.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
+        A: { queue: [], activeTables: tablesByGroup.A.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
+        B: { queue: [], activeTables: tablesByGroup.B.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } }
+      },
+      updatedAt: Date.now()
     })
 
     await batch.commit()
     matches.length = 0
+    currentTournament = {
+      ...tournament,
+      groupStates: resetGroupStates,
+      rankingLiveState: {
+        general: { queue: [], activeTables: tablesByGroup.general.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
+        A: { queue: [], activeTables: tablesByGroup.A.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
+        B: { queue: [], activeTables: tablesByGroup.B.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } }
+      }
+    }
     clearQueue()
     resetTables()
+    rankingSchedulerStateByGroup = {
+      general: { winnerPoolIds: [], loserPoolIds: [] },
+      A: { winnerPoolIds: [], loserPoolIds: [] },
+      B: { winnerPoolIds: [], loserPoolIds: [] }
+    }
     await persistRankingLiveState()
     render()
   } catch (error: any) {
@@ -1498,10 +1551,15 @@ window.addEventListener("beforeunload", () => {
       table.p1?.id === userId || table.p2?.id === userId ? { id: table.id, group } : table
     )
 
-    if (isGroupStarted(group) && !hasBusyTables(group)) {
-        buildQueueForGroup(group, getEligiblePlayersForGroup(group))
+      if (isGroupStarted(group) && !hasBusyTables(group)) {
+        rankingSchedulerStateByGroup[group] = { winnerPoolIds: [], loserPoolIds: [] }
+        rankingSchedulerStateByGroup[group] = buildQueueForGroup(
+          group,
+          getEligiblePlayersForGroup(group),
+          rankingSchedulerStateByGroup[group]
+        )
         fillOpenTables(group)
-    }
+      }
 
     await persistRankingLiveState()
     render()
@@ -1846,7 +1904,18 @@ export function getPlayerStats(playerId: string) {
     matches.push(savedMatch)
     tablesByGroup[group][index] = { id: tablesByGroup[group][index].id, group }
     clearQueueForGroup(group)
-    buildQueueForGroup(group, getEligiblePlayersForGroup(group))
+    rankingSchedulerStateByGroup[group] = registerFinishedMatchForGroup(
+      group,
+      winner,
+      loser,
+      getEligiblePlayersForGroup(group),
+      rankingSchedulerStateByGroup[group]
+    )
+    rankingSchedulerStateByGroup[group] = buildQueueForGroup(
+      group,
+      getEligiblePlayersForGroup(group),
+      rankingSchedulerStateByGroup[group]
+    )
     fillOpenTables(group)
     await persistRankingLiveState()
     render()
