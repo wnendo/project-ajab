@@ -1,5 +1,5 @@
 import { onAuthStateChanged, signOut } from "firebase/auth"
-import { doc, getDoc, getDocs, collection, updateDoc } from "firebase/firestore"
+import { doc, getDoc, getDocs, collection, setDoc, updateDoc, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import {
   ChampionshipCategory,
@@ -7,13 +7,15 @@ import {
   ChampionshipGroup,
   TournamentRegistration,
   UpcomingTournament,
-  User
+  User,
+  UserTournamentRegistration
 } from "./types"
 import {
   CHAMPIONSHIP_CATEGORIES,
   formatRegistrationCategories,
   getCategoryLimit,
   getCategoryRegistrationCount,
+  getRegistrationFeeForSelection,
   getTournamentType
 } from "./tournament-rules"
 import { showToast } from "./toast"
@@ -23,6 +25,8 @@ const tournamentId = new URLSearchParams(window.location.search).get("id")
 let checked = false
 let currentTournament: UpcomingTournament | null = null
 let registrations: TournamentRegistration[] = []
+let allUsers: User[] = []
+let selectedChampionshipAthleteId: string | null = null
 
 function setUserHeader(userData: User) {
   const header = document.getElementById("userSummary")
@@ -87,6 +91,132 @@ function getTournamentCategories() {
 
 function getApprovedRegistrations() {
   return registrations.filter((registration) => registration.paymentStatus === "approved")
+}
+
+function normalizeText(value?: string) {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase()
+}
+
+function escapeHtml(value?: string) {
+  return (value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+}
+
+function getTournamentRegistrationByUserId(userId: string) {
+  return registrations.find((entry) => entry.id === userId || entry.uid === userId) ?? null
+}
+
+function getChampionshipAdminCategories() {
+  return getTournamentCategories()
+}
+
+function isChampionshipCategoryFull(category: ChampionshipCategory) {
+  if (!currentTournament) return false
+  const limit = getCategoryLimit(currentTournament, category)
+  if (!limit) return false
+  return getCategoryRegistrationCount(registrations, category) >= limit
+}
+
+function getChampionshipAthleteCandidates(search = "") {
+  const normalized = normalizeText(search)
+
+  return allUsers
+    .filter((user) => user.profileComplete && (user.role === "user" || user.role === "admin"))
+    .filter((user) => {
+      if (!normalized) return true
+      return [user.name, user.email, user.club, user.category].some((value) => normalizeText(value).includes(normalized))
+    })
+    .map((user) => ({
+      user,
+      registration: getTournamentRegistrationByUserId(user.id)
+    }))
+    .sort((a, b) => a.user.name.localeCompare(b.user.name))
+}
+
+function renderChampionshipAthleteCategoryOptions(selectedCategory?: string) {
+  const select = document.getElementById("championshipManualCategory") as HTMLSelectElement | null
+  if (!select || !currentTournament) return
+
+  select.innerHTML = getChampionshipAdminCategories()
+    .map((category) => {
+      const count = getCategoryRegistrationCount(registrations, category)
+      const limit = getCategoryLimit(currentTournament, category)
+      const full = Boolean(limit && count >= limit)
+      const isSelected = (selectedCategory || "") === category
+      return `<option value="${category}" ${isSelected ? "selected" : ""} ${full && !isSelected ? "disabled" : ""}>${escapeHtml(category)}${limit ? ` (${count}/${limit})` : ""}${full && !isSelected ? " - lotada" : ""}</option>`
+    })
+    .join("")
+}
+
+function renderSelectedChampionshipAthleteSummary() {
+  const summary = document.getElementById("selectedChampionshipAthleteSummary")
+  if (!summary) return
+
+  const selected = selectedChampionshipAthleteId
+    ? getChampionshipAthleteCandidates().find((entry) => entry.user.id === selectedChampionshipAthleteId)
+    : null
+
+  if (!selected) {
+    summary.className = "add-athlete-summary empty"
+    summary.textContent = "Nenhum atleta selecionado ainda."
+    renderChampionshipAthleteCategoryOptions()
+    return
+  }
+
+  summary.className = "add-athlete-summary"
+  summary.innerHTML = `
+    <strong>${escapeHtml(selected.user.name)}</strong>
+    <span>${escapeHtml(selected.user.club || "Sem clube")} - ${escapeHtml(selected.user.category || "Sem categoria")}</span>
+    <small>${selected.registration ? `Status atual: ${selected.registration.paymentStatus === "approved" ? "inscricao aprovada" : "pagamento pendente"}` : "Sem inscricao neste campeonato"}</small>
+  `
+  renderChampionshipAthleteCategoryOptions(selected.registration?.category)
+}
+
+function renderChampionshipAthleteSearchResults(search = "") {
+  const results = document.getElementById("championshipAthleteSearchResults")
+  const message = document.getElementById("championshipAthleteSearchMessage")
+  if (!results || !message) return
+
+  const trimmed = search.trim()
+  const candidates = getChampionshipAthleteCandidates(trimmed)
+
+  if (!trimmed) {
+    message.textContent = "Digite para localizar um atleta ja cadastrado."
+  } else if (!candidates.length) {
+    message.textContent = "Nenhum atleta encontrado com esse filtro."
+  } else {
+    message.textContent = `${candidates.length} atleta(s) encontrado(s).`
+  }
+
+  results.innerHTML = candidates.length
+    ? candidates
+        .map((candidate) => {
+          const status = candidate.registration
+            ? candidate.registration.paymentStatus === "approved"
+              ? "Inscrito"
+              : "Pendente"
+            : "Disponivel"
+
+          return `
+            <button type="button" class="athlete-search-item ${selectedChampionshipAthleteId === candidate.user.id ? "active" : ""}" onclick="selectChampionshipAthleteCandidate('${candidate.user.id}')">
+              <div class="athlete-search-copy">
+                <strong>${escapeHtml(candidate.user.name)}</strong>
+                <span>${escapeHtml(candidate.user.club || "Sem clube")} - ${escapeHtml(candidate.user.category || "Sem categoria")}</span>
+              </div>
+              <span class="result-pill ${candidate.registration?.paymentStatus === "approved" ? "win" : "neutral"}">${status}</span>
+            </button>
+          `
+        })
+        .join("")
+    : '<div class="empty-state">Nenhum atleta encontrado.</div>'
 }
 
 function getRegistrationsForCategory(category: ChampionshipCategory) {
@@ -252,6 +382,13 @@ async function loadRegistrations() {
   registrations = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }) as TournamentRegistration)
 }
 
+async function loadUsers() {
+  const snapshot = await getDocs(collection(db, "users"))
+  allUsers = snapshot.docs
+    .map((entry) => ({ id: entry.id, ...entry.data() }) as User)
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
 function renderSummary() {
   ;(document.getElementById("championshipTitle") as HTMLElement).textContent = currentTournament?.title || "Campeonato"
   ;(document.getElementById("championshipSubtitle") as HTMLElement).textContent =
@@ -396,6 +533,150 @@ function renderPage() {
   categoriesGrid.innerHTML = getTournamentCategories().map((category) => renderCategoryCard(category)).join("")
 }
 
+function openAddChampionshipAthleteModal() {
+  const modal = document.getElementById("addChampionshipAthleteModal") as HTMLElement | null
+  const searchInput = document.getElementById("championshipAthleteSearch") as HTMLInputElement | null
+  if (!modal) return
+
+  selectedChampionshipAthleteId = null
+  if (searchInput) {
+    searchInput.value = ""
+  }
+  ;(["newChampionshipAthleteName", "newChampionshipAthleteEmail", "newChampionshipAthletePhone", "newChampionshipAthleteClub"] as const).forEach((id) => {
+    const field = document.getElementById(id) as HTMLInputElement | null
+    if (field) field.value = ""
+  })
+  const paymentSelect = document.getElementById("championshipManualPayment") as HTMLSelectElement | null
+  const baseCategorySelect = document.getElementById("newChampionshipAthleteBaseCategory") as HTMLSelectElement | null
+  if (paymentSelect) paymentSelect.value = "approved"
+  if (baseCategorySelect) baseCategorySelect.value = "A"
+  renderChampionshipAthleteCategoryOptions()
+  renderSelectedChampionshipAthleteSummary()
+  renderChampionshipAthleteSearchResults()
+  modal.style.display = "flex"
+}
+
+function closeAddChampionshipAthleteModal() {
+  const modal = document.getElementById("addChampionshipAthleteModal") as HTMLElement | null
+  if (!modal) return
+
+  selectedChampionshipAthleteId = null
+  modal.style.display = "none"
+}
+
+function getChampionshipAddPaymentStatus() {
+  const value = (document.getElementById("championshipManualPayment") as HTMLSelectElement | null)?.value
+  return value === "pending_payment" ? "pending_payment" : "approved"
+}
+
+function getChampionshipAddCategory() {
+  return (document.getElementById("championshipManualCategory") as HTMLSelectElement | null)?.value as ChampionshipCategory | ""
+}
+
+function buildChampionshipRegistrationPayload(
+  user: User,
+  category: ChampionshipCategory,
+  paymentStatus: TournamentRegistration["paymentStatus"]
+) {
+  const tournament = currentTournament
+  if (!tournament) {
+    throw new Error("Campeonato nao carregado.")
+  }
+
+  const now = Date.now()
+  const registrationFee = getRegistrationFeeForSelection(tournament, [category])
+  const paymentMethod = paymentStatus === "approved" ? "pix" : "pay_on_day"
+
+  const registrationPayload: TournamentRegistration = {
+    id: user.id,
+    uid: user.id,
+    name: user.name,
+    email: user.email,
+    club: user.club,
+    category,
+    categories: [category],
+    registrationFee,
+    paymentStatus,
+    paymentMethod,
+    registeredAt: now,
+    status: "registered"
+  }
+
+  const userRegistrationPayload: UserTournamentRegistration = {
+    id: tournament.id,
+    tournamentId: tournament.id,
+    title: tournament.title,
+    location: tournament.location ?? "",
+    category,
+    categories: [category],
+    registrationFee,
+    paymentStatus,
+    paymentMethod,
+    startDate: tournament.startDate,
+    endDate: tournament.endDate,
+    registrationDeadline: tournament.registrationDeadline,
+    registeredAt: now,
+    status: "registered"
+  }
+
+  return { registrationPayload, userRegistrationPayload }
+}
+
+async function saveChampionshipRegistration(
+  user: User,
+  category: ChampionshipCategory,
+  paymentStatus: TournamentRegistration["paymentStatus"]
+) {
+  if (!currentTournament) return
+
+  const batch = writeBatch(db)
+  const { registrationPayload, userRegistrationPayload } = buildChampionshipRegistrationPayload(user, category, paymentStatus)
+
+  batch.set(doc(db, "tournaments", currentTournament.id, "registrations", user.id), registrationPayload)
+  batch.set(doc(db, "users", user.id, "registrations", currentTournament.id), userRegistrationPayload)
+
+  await batch.commit()
+}
+
+async function createLooseChampionshipUser() {
+  const name = (document.getElementById("newChampionshipAthleteName") as HTMLInputElement | null)?.value.trim() || ""
+  const email = (document.getElementById("newChampionshipAthleteEmail") as HTMLInputElement | null)?.value.trim() || ""
+  const phone = (document.getElementById("newChampionshipAthletePhone") as HTMLInputElement | null)?.value.trim() || ""
+  const club = (document.getElementById("newChampionshipAthleteClub") as HTMLInputElement | null)?.value.trim() || ""
+  const baseCategory =
+    ((document.getElementById("newChampionshipAthleteBaseCategory") as HTMLSelectElement | null)?.value as ChampionshipCategory | "") || ""
+
+  if (!name || !baseCategory) {
+    throw new Error("Informe pelo menos nome e categoria base para cadastrar o atleta.")
+  }
+
+  const userRef = doc(collection(db, "users"))
+  const now = Date.now()
+  const newUser: User = {
+    id: userRef.id,
+    name,
+    email,
+    phone,
+    club,
+    category: baseCategory,
+    role: "user",
+    createdAt: now,
+    updatedAt: now,
+    profileComplete: true,
+    playerProfile: {
+      wins: 0,
+      losses: 0,
+      games: 0,
+      active: false,
+      createdAt: now
+    }
+  }
+
+  await setDoc(userRef, newUser)
+  allUsers = [...allUsers, newUser].sort((a, b) => a.name.localeCompare(b.name))
+  return newUser
+}
+
 ;(window as any).drawCategoryGroups = async (category: ChampionshipCategory) => {
   const state = getCategoryState(category)
   if (state.defined) {
@@ -463,6 +744,101 @@ function renderPage() {
   }
 }
 
+;(window as any).openAddChampionshipAthleteModal = () => {
+  openAddChampionshipAthleteModal()
+}
+
+;(window as any).closeAddChampionshipAthleteModal = () => {
+  closeAddChampionshipAthleteModal()
+}
+
+;(window as any).filterChampionshipAthletes = () => {
+  const search = (document.getElementById("championshipAthleteSearch") as HTMLInputElement | null)?.value ?? ""
+  renderChampionshipAthleteSearchResults(search)
+}
+
+;(window as any).selectChampionshipAthleteCandidate = (userId: string) => {
+  selectedChampionshipAthleteId = userId
+  renderSelectedChampionshipAthleteSummary()
+  const search = (document.getElementById("championshipAthleteSearch") as HTMLInputElement | null)?.value ?? ""
+  renderChampionshipAthleteSearchResults(search)
+}
+
+;(window as any).submitExistingChampionshipAthlete = async () => {
+  if (!selectedChampionshipAthleteId) {
+    showToast("Selecione um atleta existente antes de adicionar.", "warning")
+    return
+  }
+
+  const selected = allUsers.find((entry) => entry.id === selectedChampionshipAthleteId)
+  const category = getChampionshipAddCategory()
+  const paymentStatus = getChampionshipAddPaymentStatus()
+
+  if (!selected || !category) {
+    showToast("Selecione o atleta e a categoria do campeonato.", "warning")
+    return
+  }
+
+  if (getTournamentRegistrationByUserId(selected.id)) {
+    showToast("Esse atleta ja possui inscricao neste campeonato.", "warning")
+    return
+  }
+
+  if (isChampionshipCategoryFull(category)) {
+    showToast("Essa categoria ja atingiu o limite de inscritos.", "warning")
+    return
+  }
+
+  try {
+    await saveChampionshipRegistration(selected, category, paymentStatus)
+    await loadRegistrations()
+    renderPage()
+    closeAddChampionshipAthleteModal()
+    const redrawNote = getCategoryState(category).groups?.length
+      ? " Refaça a distribuicao da categoria se os grupos ja estavam sorteados."
+      : ""
+    showToast(
+      `${paymentStatus === "approved" ? "Atleta inscrito com sucesso." : "Atleta adicionado com pagamento pendente."}${redrawNote}`,
+      "success"
+    )
+  } catch (error: any) {
+    showToast("Erro ao adicionar atleta: " + error.message, "error")
+  }
+}
+
+;(window as any).createAndAddChampionshipAthlete = async () => {
+  const category = getChampionshipAddCategory()
+  const paymentStatus = getChampionshipAddPaymentStatus()
+
+  if (!category) {
+    showToast("Selecione a categoria do campeonato antes de cadastrar.", "warning")
+    return
+  }
+
+  if (isChampionshipCategoryFull(category)) {
+    showToast("Essa categoria ja atingiu o limite de inscritos.", "warning")
+    return
+  }
+
+  try {
+    const user = await createLooseChampionshipUser()
+    await saveChampionshipRegistration(user, category, paymentStatus)
+    await loadUsers()
+    await loadRegistrations()
+    renderPage()
+    closeAddChampionshipAthleteModal()
+    const redrawNote = getCategoryState(category).groups?.length
+      ? " Refaça a distribuicao da categoria se os grupos ja estavam sorteados."
+      : ""
+    showToast(
+      `${paymentStatus === "approved" ? "Novo atleta cadastrado e inscrito." : "Novo atleta cadastrado com pagamento pendente."}${redrawNote}`,
+      "success"
+    )
+  } catch (error: any) {
+    showToast("Erro ao cadastrar atleta: " + error.message, "error")
+  }
+}
+
 ;(window as any).openTournamentRegistrations = () => {
   if (!currentTournament) return
   window.location.href = `/pages/tournament-registrations.html?id=${currentTournament.id}`
@@ -501,8 +877,7 @@ onAuthStateChanged(auth, async (user) => {
 
   setUserHeader(userData)
   await loadTournament()
+  await loadUsers()
   await loadRegistrations()
   renderPage()
 })
-
-

@@ -1,5 +1,5 @@
 ﻿import { onAuthStateChanged, signOut } from "firebase/auth"
-import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, where, writeBatch } from "firebase/firestore"
+import { collection, doc, getDoc, getDocs, orderBy, query, updateDoc, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import { UpcomingTournament, User } from "./types"
 import { getTournamentType } from "./tournament-rules"
@@ -150,8 +150,13 @@ function renderAthletes(filter = "") {
         .map(
           (athlete) => `
             <div class="admin-athlete-card">
-              <strong>${athlete.name}</strong>
-              <span>${athlete.email}</span>
+              <div class="user-admin-head">
+                <div>
+                  <strong>${athlete.name}</strong>
+                  <span>${athlete.email}</span>
+                </div>
+                <span class="result-pill ${athlete.role === "admin" ? "neutral" : "win"}">${athlete.role === "admin" ? "Admin" : "Usuario"}</span>
+              </div>
               <span>${athlete.club || "Sem clube"} - ${athlete.category || "Sem categoria"}</span>
               <div class="admin-athlete-actions">
                 <button class="btn secondary" onclick="openUserManager('${athlete.id}')">Gerenciar</button>
@@ -166,7 +171,7 @@ function renderAthletes(filter = "") {
 async function loadHubData() {
   const [tournamentSnapshot, athleteSnapshot] = await Promise.all([
     getDocs(query(collection(db, "tournaments"), orderBy("startDate", "asc"))),
-    getDocs(query(collection(db, "users"), where("role", "==", "user")))
+    getDocs(collection(db, "users"))
   ])
 
   tournaments = tournamentSnapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }) as UpcomingTournament)

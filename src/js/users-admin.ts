@@ -18,6 +18,16 @@ let checked = false
 let users: User[] = []
 let selectedUserId: string | null = null
 
+function getPlayerProfileSummary(user?: User | null) {
+  const profile = user?.playerProfile
+  return {
+    games: profile?.games ?? 0,
+    wins: profile?.wins ?? 0,
+    losses: profile?.losses ?? 0,
+    active: profile?.active ?? false
+  }
+}
+
 function setUserHeader(userData: User) {
   const header = document.getElementById("userSummary")
   if (!header) return
@@ -50,6 +60,15 @@ function redirectByRole(userData?: User | null) {
 
 function getField<T extends HTMLInputElement | HTMLSelectElement>(id: string) {
   return document.getElementById(id) as T
+}
+
+function getTextField(id: string) {
+  return document.getElementById(id) as HTMLElement
+}
+
+async function getUserTournamentCount(userId: string) {
+  const snapshot = await getDocs(collection(db, "users", userId, "tournaments"))
+  return snapshot.size
 }
 
 function renderUsers(filter = "") {
@@ -97,23 +116,33 @@ async function loadUsers() {
     .sort((a, b) => (a.name || "").localeCompare(b.name || ""))
 }
 
-function fillEditForm(user: User) {
+async function fillEditForm(user: User) {
   getField<HTMLInputElement>("editUserName").value = user.name ?? ""
   getField<HTMLInputElement>("editUserEmail").value = user.email ?? ""
   getField<HTMLInputElement>("editUserPhone").value = user.phone ?? ""
   getField<HTMLInputElement>("editUserClub").value = user.club ?? ""
   getField<HTMLSelectElement>("editUserCategory").value = user.category ?? ""
   getField<HTMLSelectElement>("editUserRole").value = user.role ?? "user"
+  const stats = getPlayerProfileSummary(user)
+  getTextField("editUserGames").textContent = String(stats.games)
+  getTextField("editUserWins").textContent = String(stats.wins)
+  getTextField("editUserLosses").textContent = String(stats.losses)
+  getTextField("editUserTournaments").textContent = "..."
+
+  const tournamentCount = await getUserTournamentCount(user.id)
+  if (selectedUserId === user.id) {
+    getTextField("editUserTournaments").textContent = String(tournamentCount)
+  }
 }
 
-function openUserEditModalById(userId: string) {
+async function openUserEditModalById(userId: string) {
   const user = users.find((entry) => entry.id === userId)
   const modal = document.getElementById("userEditModal") as HTMLElement | null
 
   if (!user || !modal) return
 
   selectedUserId = userId
-  fillEditForm(user)
+  await fillEditForm(user)
   modal.style.display = "flex"
 }
 
@@ -188,7 +217,7 @@ async function deleteUserData(userId: string) {
 }
 
 ;(window as any).openUserEditModal = (userId: string) => {
-  openUserEditModalById(userId)
+  void openUserEditModalById(userId)
 }
 
 ;(window as any).closeUserEditModal = () => {
@@ -229,6 +258,52 @@ async function deleteUserData(userId: string) {
     showToast("Usuario atualizado com sucesso.", "success")
   } catch (error: any) {
     showToast("Erro ao salvar usuario: " + error.message, "error")
+  }
+}
+
+;(window as any).resetUserStats = async () => {
+  if (!selectedUserId) return
+
+  const user = users.find((entry) => entry.id === selectedUserId)
+  if (!user) return
+
+  const confirmed = await confirmAction({
+    title: "Resetar estatisticas",
+    message: `Resetar jogos, vitorias e derrotas de ${user.name}?`,
+    confirmLabel: "Resetar",
+    tone: "danger"
+  })
+  if (!confirmed) return
+
+  try {
+    await updateDoc(doc(db, "users", selectedUserId), {
+      "playerProfile.games": 0,
+      "playerProfile.wins": 0,
+      "playerProfile.losses": 0,
+      "playerProfile.lastPlayed": null,
+      updatedAt: Date.now()
+    })
+
+    const index = users.findIndex((entry) => entry.id === selectedUserId)
+    if (index >= 0) {
+      users[index] = {
+        ...users[index],
+        updatedAt: Date.now(),
+        playerProfile: {
+          ...(users[index].playerProfile ?? { active: false, createdAt: Date.now() }),
+          games: 0,
+          wins: 0,
+          losses: 0,
+          lastPlayed: undefined
+        }
+      }
+      fillEditForm(users[index])
+    }
+
+    renderUsers((document.getElementById("userSearch") as HTMLInputElement)?.value ?? "")
+    showToast("Estatisticas do atleta resetadas com sucesso.", "success")
+  } catch (error: any) {
+    showToast("Erro ao resetar estatisticas: " + error.message, "error")
   }
 }
 
@@ -278,6 +353,6 @@ onAuthStateChanged(auth, async (user) => {
 
   const initialUserId = new URLSearchParams(window.location.search).get("id")
   if (initialUserId) {
-    openUserEditModalById(initialUserId)
+    void openUserEditModalById(initialUserId)
   }
 })

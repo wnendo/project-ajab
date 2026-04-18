@@ -17,8 +17,8 @@
     <section class="admin-hub-hero card">
       <div>
         <span class="panel-tag">Usuarios</span>
-        <h1>Gestão de usuarios</h1>
-        <p>Edite dados cadastrais e remova usuarios do sistema de dados da AJAB.</p>
+        <h1>Gestao de usuarios</h1>
+        <p>Edite dados cadastrais, acompanhe estatisticas esportivas e remova usuarios do sistema de dados da AJAB.</p>
       </div>
       <div class="admin-hub-actions">
         <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
@@ -75,8 +75,15 @@
             <option value="admin">Admin</option>
           </select>
         </div>
+        <div class="profile-info-grid user-edit-stats-grid">
+          <div class="info-card"><span>Jogos</span><strong id="editUserGames">0</strong></div>
+          <div class="info-card"><span>Vitorias</span><strong id="editUserWins">0</strong></div>
+          <div class="info-card"><span>Derrotas</span><strong id="editUserLosses">0</strong></div>
+          <div class="info-card"><span>Torneios</span><strong id="editUserTournaments">0</strong></div>
+        </div>
         <div class="actions">
-          <button class="btn primary" onclick="saveUserEdits()">Salvar alterações</button>
+          <button class="btn danger" onclick="resetUserStats()">Resetar estatisticas</button>
+          <button class="btn primary" onclick="saveUserEdits()">Salvar alteracoes</button>
           <button class="btn secondary" onclick="closeUserEditModal()">Cancelar</button>
         </div>
       </div>

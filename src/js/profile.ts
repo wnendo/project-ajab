@@ -469,8 +469,8 @@ function renderMyTournamentsCard(entries: UpcomingTournament[], registrations: U
     <div class="stack-item">
       <div class="stack-item-header">
         <div>
-          <strong>${approvedTournaments.length} torneio${approvedTournaments.length === 1 ? "" : "s"} em acompanhamento</strong>
-          <span>${rankingCount} ranking${rankingCount === 1 ? "" : "s"} e ${championshipCount} campeonato${championshipCount === 1 ? "" : "s"}</span>
+          <strong>${approvedTournaments.length} Torneio${approvedTournaments.length === 1 ? "" : "s"} em andamento</strong>
+          <span>${rankingCount} Ranking${rankingCount === 1 ? "" : "s"} e ${championshipCount} Campeonato${championshipCount === 1 ? "" : "s"}</span>
         </div>
         <span class="result-pill neutral">Ao vivo</span>
       </div>

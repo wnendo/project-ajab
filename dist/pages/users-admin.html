@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AJAB - Usuarios</title>
   <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
-  <script type="module" crossorigin src="/assets/usersAdmin-BnAOq16Q.js"></script>
+  <script type="module" crossorigin src="/assets/usersAdmin-DfN6ZpVW.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Btlm8H0F.js">
   <link rel="modulepreload" crossorigin href="/assets/firebase-VBRKn9At.js">
   <link rel="modulepreload" crossorigin href="/assets/confirm-modal-Dnnch5Ng.js">
   <link rel="modulepreload" crossorigin href="/assets/toast-kV3jSCF7.js">
-  <link rel="stylesheet" crossorigin href="/assets/global-Ba-C_4GS.css">
+  <link rel="stylesheet" crossorigin href="/assets/global-tN3axVWq.css">
 </head>
 <body class="dashboard-page admin-hub-page">
   <div class="header">
@@ -22,8 +22,8 @@
     <section class="admin-hub-hero card">
       <div>
         <span class="panel-tag">Usuarios</span>
-        <h1>Gestão de usuarios</h1>
-        <p>Edite dados cadastrais e remova usuarios do sistema de dados da AJAB.</p>
+        <h1>Gestao de usuarios</h1>
+        <p>Edite dados cadastrais, acompanhe estatisticas esportivas e remova usuarios do sistema de dados da AJAB.</p>
       </div>
       <div class="admin-hub-actions">
         <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
@@ -80,8 +80,15 @@
             <option value="admin">Admin</option>
           </select>
         </div>
+        <div class="profile-info-grid user-edit-stats-grid">
+          <div class="info-card"><span>Jogos</span><strong id="editUserGames">0</strong></div>
+          <div class="info-card"><span>Vitorias</span><strong id="editUserWins">0</strong></div>
+          <div class="info-card"><span>Derrotas</span><strong id="editUserLosses">0</strong></div>
+          <div class="info-card"><span>Torneios</span><strong id="editUserTournaments">0</strong></div>
+        </div>
         <div class="actions">
-          <button class="btn primary" onclick="saveUserEdits()">Salvar alterações</button>
+          <button class="btn danger" onclick="resetUserStats()">Resetar estatisticas</button>
+          <button class="btn primary" onclick="saveUserEdits()">Salvar alteracoes</button>
           <button class="btn secondary" onclick="closeUserEditModal()">Cancelar</button>
         </div>
       </div>

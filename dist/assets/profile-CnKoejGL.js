@@ -95,8 +95,8 @@ import"./modulepreload-polyfill-Btlm8H0F.js";import{_ as e,a as t,f as n,i as r,
     <div class="stack-item">
       <div class="stack-item-header">
         <div>
-          <strong>${r.length} torneio${r.length===1?``:`s`} em acompanhamento</strong>
-          <span>${i} ranking${i===1?``:`s`} e ${a} campeonato${a===1?``:`s`}</span>
+          <strong>${r.length} Torneio${r.length===1?``:`s`} em andamento</strong>
+          <span>${i} Ranking${i===1?``:`s`} e ${a} Campeonato${a===1?``:`s`}</span>
         </div>
         <span class="result-pill neutral">Ao vivo</span>
       </div>

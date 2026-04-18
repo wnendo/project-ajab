@@ -41,6 +41,7 @@ import {
 import { render } from "./tournament-manage-ui"
 import { confirmAction } from "./confirm-modal"
 import { showToast } from "./toast"
+import { buildRankingStats, sortRankingRows } from "./ranking-standings"
 
 const tournamentId = new URLSearchParams(window.location.search).get("id")
 
@@ -57,6 +58,12 @@ type AthleteSearchCandidate = {
   user: User
   registration?: TournamentRegistration
   player?: Player
+}
+
+type AthleteCandidateStatus = {
+  label: string
+  helper: string
+  tone: "neutral" | "win" | "loss"
 }
 
 function escapeHtml(value?: string) {
@@ -112,6 +119,35 @@ function normalizeText(value?: string) {
     .toLowerCase()
 }
 
+function abbreviateAthleteName(name: string, maxLength = 13) {
+  const trimmed = name.trim()
+  if (trimmed.length <= maxLength) return trimmed
+
+  const parts = trimmed.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    const first = parts[0]
+    const last = parts[parts.length - 1]
+    const middleParts = parts
+      .slice(1, -1)
+      .filter((part) => !["de", "da", "do", "dos", "das", "e"].includes(part.toLowerCase()))
+
+    if (middleParts.length) {
+      const withMiddleInitial = `${first} ${middleParts[0][0]}. ${last}`
+      if (withMiddleInitial.length <= maxLength + 6) return withMiddleInitial
+
+      const withInitials = `${first} ${middleParts.map((part) => `${part[0]}.`).join(" ")} ${last}`
+        .replace(/\s+/g, " ")
+        .trim()
+      if (withInitials.length <= maxLength + 8) return withInitials
+    }
+
+    const shortLast = `${first} ${last}`
+    if (shortLast.length <= maxLength + 4) return shortLast
+  }
+
+  return `${trimmed.slice(0, Math.max(1, maxLength - 3)).trimEnd()}...`
+}
+
 function formatDate(value?: number) {
   if (!value) return "Nao informado"
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(value)
@@ -150,30 +186,34 @@ function getAthleteSearchCandidates(search = "") {
     .sort((a, b) => a.user.name.localeCompare(b.user.name))
 }
 
-function getCandidateStatus(candidate: AthleteSearchCandidate) {
+function getCandidateStatus(candidate: AthleteSearchCandidate): AthleteCandidateStatus {
   if (candidate.player?.active) {
     return {
-      label: "Inscrito e ativo",
+      label: "Ativo",
+      helper: "Participando",
       tone: "neutral"
     }
   }
 
   if (candidate.registration?.paymentStatus === "approved") {
     return {
-      label: "Pronto para ativar",
+      label: "Pronto",
+      helper: "Inativo",
       tone: "win"
     }
   }
 
   if (candidate.registration?.paymentStatus === "pending_payment") {
     return {
-      label: "Pagamento pendente",
+      label: "Pendente",
+      helper: "Pagamento não aprovado",
       tone: "loss"
     }
   }
 
   return {
-    label: "Sem inscrição",
+    label: "Novo",
+    helper: "Sem inscrição",
     tone: "neutral"
   }
 }
@@ -195,13 +235,13 @@ function renderAthleteSearchResults(search = "") {
   }
 
   resultsEl.innerHTML = candidates.length
-    ? candidates
-        .map((candidate) => {
-          const status = getCandidateStatus(candidate)
-          const displayName = candidate.user.name.trim()
-          const meta = [candidate.user.club || "Sem clube", candidate.user.category || "Sem categoria"].join(" - ")
+      ? candidates
+          .map((candidate) => {
+            const status = getCandidateStatus(candidate)
+            const displayName = abbreviateAthleteName(candidate.user.name.trim(), 16)
+            const meta = [candidate.user.club || "Sem clube", candidate.user.category || "Sem categoria"].join(" - ")
 
-          return `
+            return `
             <button
               type="button"
               class="athlete-search-item"
@@ -211,8 +251,9 @@ function renderAthleteSearchResults(search = "") {
               <div class="athlete-search-copy">
                 <strong>${displayName}</strong>
                 <span>${meta}</span>
+                <small class="athlete-search-status ${status.tone}">${status.helper}</small>
               </div>
-              <span class="result-pill ${status.tone}">${status.label}</span>
+              <span class="result-pill athlete-search-pill ${status.tone}">${status.label}</span>
             </button>
           `
         })
@@ -266,7 +307,7 @@ function buildRegistrationPayload(user: User, paymentStatus: TournamentRegistrat
     title: tournament.title,
     location: tournament.location ?? "",
     category,
-    categories: tournament.categories ?? [],
+    categories: [category],
     registrationFee,
     paymentStatus,
     paymentMethod: "pix",
@@ -376,6 +417,8 @@ function removeTournamentRegistration(batch: ReturnType<typeof writeBatch>, play
 
   batch.delete(doc(db, "tournaments", currentTournament.id, "registrations", playerId))
   batch.delete(doc(db, "users", playerId, "registrations", currentTournament.id))
+  registrations = registrations.filter((entry) => entry.id !== playerId && entry.uid !== playerId)
+  registeredAthleteIds.delete(playerId)
 }
 
 async function saveGroupState(group: CompetitionGroup, partial: { started?: boolean; tableCount?: number }) {
@@ -679,9 +722,23 @@ export function getVisibleGroups() {
   return getActiveGroups()
 }
 
-export function getPlayersForGroup(group: CompetitionGroup) {
+export function getEligiblePlayersForGroup(group: CompetitionGroup) {
+  const tournament = currentTournament
+  if (!tournament) return []
+
   return players.filter(
-    (player) => player.active && getPlayerCompetitionGroup(currentTournament, player.registrationCategory) === group
+    (player) => player.active && getPlayerCompetitionGroup(tournament, player.registrationCategory) === group
+  )
+}
+
+export function getPlayersForGroup(group: CompetitionGroup) {
+  const tournament = currentTournament
+  if (!tournament) return []
+
+  return players.filter(
+    (player) =>
+      getPlayerCompetitionGroup(tournament, player.registrationCategory) === group &&
+      getRegistrationByUserId(player.id)?.paymentStatus === "approved"
   )
 }
 
@@ -698,7 +755,7 @@ export function getGroupHeading(group: CompetitionGroup) {
 }
 
 export function groupCanStart(group: CompetitionGroup) {
-  return Boolean(currentTournament && currentTournament.status !== "finished") && getPlayersForGroup(group).length >= 2
+  return Boolean(currentTournament && currentTournament.status !== "finished") && getEligiblePlayersForGroup(group).length >= 2
 }
 
 export function isGroupAlreadyStarted(group: CompetitionGroup) {
@@ -749,20 +806,15 @@ export function getTournamentRegistrations() {
 }
 
 function getTournamentParticipants() {
-  return players.filter((player) => player.games > 0 || player.active)
+  return players.filter((player) => getRegistrationByUserId(player.id)?.paymentStatus === "approved")
 }
 
-function sortPlayersByRanking(list: Player[]) {
-  return [...list].sort((a, b) => {
-    if (b.wins !== a.wins) return b.wins - a.wins
-    if (a.losses !== b.losses) return a.losses - b.losses
-    if (b.games !== a.games) return b.games - a.games
-    return a.name.localeCompare(b.name)
-  })
+export function sortPlayersByRanking(list: Player[], group: CompetitionGroup = "general") {
+  return sortRankingRows(list, getPlayedMatchesForGroup(group))
 }
 
 function getTournamentRanking() {
-  return sortPlayersByRanking(getTournamentParticipants())
+  return sortPlayersByRanking(getTournamentParticipants(), getActiveGroups()[0] ?? "general")
 }
 
 function getPlayedMatchesForGroup(group: CompetitionGroup) {
@@ -770,7 +822,7 @@ function getPlayedMatchesForGroup(group: CompetitionGroup) {
 }
 
 function getPendingRoundRobinMatches(group: CompetitionGroup) {
-  const groupPlayers = getPlayersForGroup(group)
+  const groupPlayers = getEligiblePlayersForGroup(group)
   const pending: Array<[Player, Player]> = []
 
   for (let index = 0; index < groupPlayers.length; index++) {
@@ -792,25 +844,32 @@ function getPendingRoundRobinMatches(group: CompetitionGroup) {
 }
 
 function getFinalStandings() {
+  const tournament = currentTournament
+  if (!tournament) return []
+
   return getActiveGroups().flatMap((group) =>
-    sortPlayersByRanking(
-      getTournamentParticipants().filter(
-        (player) => getPlayerCompetitionGroup(currentTournament, player.registrationCategory) === group
+    (() => {
+      const groupedPlayers = getTournamentParticipants().filter(
+        (player) => getPlayerCompetitionGroup(tournament, player.registrationCategory) === group
       )
-    ).map((player, index) => {
-      const position = index + 1
-      return {
-        playerId: player.id,
-        name: player.name,
-        category: player.registrationCategory || getGroupLabel(group),
-        group,
-        placement: `${position}o lugar`,
-        result: getPlacementLabel(position),
-        wins: player.wins,
-        losses: player.losses,
-        games: player.games
-      } satisfies TournamentFinalStanding
-    })
+      const { stats } = buildRankingStats(groupedPlayers.map((player) => player.id), getPlayedMatchesForGroup(group))
+
+      return sortPlayersByRanking(groupedPlayers, group).map((player, index) => {
+        const position = index + 1
+        const computedStats = stats.get(player.id) ?? { wins: 0, losses: 0, games: 0 }
+        return {
+          playerId: player.id,
+          name: player.name,
+          category: player.registrationCategory || getGroupLabel(group),
+          group,
+          placement: `${position}o lugar`,
+          result: getPlacementLabel(position),
+          wins: computedStats.wins,
+          losses: computedStats.losses,
+          games: computedStats.games
+        } satisfies TournamentFinalStanding
+      })
+    })()
   )
 }
 
@@ -1077,6 +1136,12 @@ window.addEventListener("beforeunload", () => {
         return
       }
 
+      const tournament = currentTournament
+      if (!tournament) {
+        showToast("Torneio nao encontrado.", "error")
+        return
+      }
+
       await updateDoc(doc(db, "users", inactiveUser.id), {
         "playerProfile.active": true,
         updatedAt: Date.now()
@@ -1084,12 +1149,10 @@ window.addEventListener("beforeunload", () => {
 
       inactiveUser.active = true
       selectedAthleteId = null
-      const group = getPlayerCompetitionGroup(currentTournament, inactiveUser.registrationCategory)
-      if (isGroupStarted(group) && !hasBusyTables(group)) {
-        clearQueueForGroup(group)
-        buildQueueForGroup(group, getPlayersForGroup(group))
-        fillOpenTables(group)
+      const group = getPlayerCompetitionGroup(tournament, inactiveUser.registrationCategory)
+      if (isGroupStarted(group)) {
         await persistRankingLiveState()
+        showToast("Atleta reativado. Clique em 'Atualizar jogos' para incluir esse atleta na categoria.", "info")
       }
 
       players.sort((a, b) => a.name.localeCompare(b.name))
@@ -1137,12 +1200,16 @@ window.addEventListener("beforeunload", () => {
     await loadPlayers()
 
     if (status === "approved") {
-      const group = getPlayerCompetitionGroup(currentTournament, candidate.user.category)
-      if (isGroupStarted(group) && !hasBusyTables(group)) {
-        clearQueueForGroup(group)
-        buildQueueForGroup(group, getPlayersForGroup(group))
-        fillOpenTables(group)
+      const tournament = currentTournament
+      if (!tournament) {
+        showToast("Torneio nao encontrado.", "error")
+        return
+      }
+
+      const group = getPlayerCompetitionGroup(tournament, candidate.user.category)
+      if (isGroupStarted(group)) {
         await persistRankingLiveState()
+        showToast("Atleta adicionado. Clique em 'Atualizar jogos' para incluir esse atleta na categoria.", "info")
       }
     }
 
@@ -1284,7 +1351,7 @@ window.addEventListener("beforeunload", () => {
     clearQueueForGroup(group)
   }
 
-  buildQueueForGroup(group, getPlayersForGroup(group))
+  buildQueueForGroup(group, getEligiblePlayersForGroup(group))
   fillOpenTables(group)
   await persistRankingLiveState()
   render()
@@ -1351,6 +1418,12 @@ window.addEventListener("beforeunload", () => {
   if (!confirmed) return
 
   try {
+    const tournament = currentTournament
+    if (!tournament) {
+      showToast("Torneio nao encontrado.", "error")
+      return
+    }
+
     const affectedIds = new Set<string>([userId])
     athleteMatches.forEach((match) => {
       affectedIds.add(match.p1)
@@ -1383,11 +1456,11 @@ window.addEventListener("beforeunload", () => {
 
       if (playerMatches.length) {
         batch.set(
-          doc(db, "users", affectedId, "tournaments", currentTournament.id),
+          doc(db, "users", affectedId, "tournaments", tournament.id),
           {
-            tournamentId: currentTournament.id,
-            title: currentTournament.title,
-            category: getRegistrationByUserId(affectedId)?.category || currentTournament.category || "Livre",
+            tournamentId: tournament.id,
+            title: tournament.title,
+            category: getRegistrationByUserId(affectedId)?.category || tournament.category || "Livre",
             result: "Em andamento",
             matchCount: playerMatches.length,
             wins,
@@ -1397,7 +1470,7 @@ window.addEventListener("beforeunload", () => {
           { merge: true }
         )
       } else {
-        batch.delete(doc(db, "users", affectedId, "tournaments", currentTournament.id))
+        batch.delete(doc(db, "users", affectedId, "tournaments", tournament.id))
       }
     })
 
@@ -1419,15 +1492,15 @@ window.addEventListener("beforeunload", () => {
       playerEntry.lastPlayed = playerMatches.length ? Math.max(...playerMatches.map((match) => match.createdAt)) : undefined
     })
 
-    const group = getPlayerCompetitionGroup(currentTournament, player.registrationCategory)
+    const group = getPlayerCompetitionGroup(tournament, player.registrationCategory)
     clearQueueForGroup(group)
     tablesByGroup[group] = tablesByGroup[group].map((table) =>
       table.p1?.id === userId || table.p2?.id === userId ? { id: table.id, group } : table
     )
 
     if (isGroupStarted(group) && !hasBusyTables(group)) {
-      buildQueueForGroup(group, getPlayersForGroup(group))
-      fillOpenTables(group)
+        buildQueueForGroup(group, getEligiblePlayersForGroup(group))
+        fillOpenTables(group)
     }
 
     await persistRankingLiveState()
@@ -1773,7 +1846,7 @@ export function getPlayerStats(playerId: string) {
     matches.push(savedMatch)
     tablesByGroup[group][index] = { id: tablesByGroup[group][index].id, group }
     clearQueueForGroup(group)
-    buildQueueForGroup(group, getPlayersForGroup(group))
+    buildQueueForGroup(group, getEligiblePlayersForGroup(group))
     fillOpenTables(group)
     await persistRankingLiveState()
     render()
@@ -1804,3 +1877,7 @@ export function getPlayerStats(playerId: string) {
   await persistRankingLiveState()
   render()
 }
+
+
+
+

@@ -31,6 +31,10 @@ function getSelectedRegistrationCategories() {
     .filter(Boolean)
 }
 
+function getPublicAllowedCategories(tournament: UpcomingTournament, playerCategory?: string) {
+  return getAllowedRegistrationCategories(tournament, playerCategory).filter((category) => category !== "Iniciante")
+}
+
 function formatDate(value?: number) {
   if (!value) return "Não informado"
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(value)
@@ -156,9 +160,9 @@ function openRegistrationModal() {
 
   if (!modal || !text || !options || !tournament) return
 
-  const categories = getAllowedRegistrationCategories(tournament, currentUserProfile?.category)
+  const categories = getPublicAllowedCategories(tournament, currentUserProfile?.category)
   if (!categories.length) {
-    showToast("Sua categoria atual não permite inscrição neste torneio.", "warning")
+    showToast("Sua categoria atual nao possui inscricao publica disponivel neste campeonato.", "warning")
     return
   }
 
@@ -334,7 +338,7 @@ function renderTournamentInfo() {
     rankingCard.style.display = "none"
   }
 
-  const allowedCategories = getAllowedRegistrationCategories(tournament, currentUserProfile?.category)
+  const allowedCategories = getPublicAllowedCategories(tournament, currentUserProfile?.category)
   const hasAvailableCategory = allowedCategories.some((category) => !isCategoryFull(tournament, registrations, category))
 
   const buttonLabel =

@@ -1,9 +1,11 @@
 import {
   getGroupHeading,
   getPlayerStats,
+  getEligiblePlayersForGroup,
   getPlayersForGroup,
   getQueueForGroup,
   getStartedGroupsCount,
+  sortPlayersByRanking,
   getTablesForGroup,
   getTournamentTypeLabel,
   getVisibleGroups,
@@ -46,14 +48,6 @@ function abbreviatePlayerName(name: string) {
   return `${first} ${middle.charAt(0)}. ${last}`
 }
 
-function sortRankingPlayers(list: Player[]) {
-  return [...list].sort((a, b) => {
-    if (b.wins !== a.wins) return b.wins - a.wins
-    if (a.losses !== b.losses) return a.losses - b.losses
-    return a.name.localeCompare(b.name)
-  })
-}
-
 function renderRankingRow(player: Player, index: number, faded = false) {
   let medalClass = ""
   if (!faded) {
@@ -78,7 +72,7 @@ function renderRankingRow(player: Player, index: number, faded = false) {
       </div>
       <div class="player-actions">
         <button onclick="editPlayer('${player.id}')">✏️</button>
-        <button onclick="togglePlayer('${player.id}')">${player.active ? "✅" : "⛔"}</button>
+        <button onclick="togglePlayer('${player.id}')">${player.active ? "&#9989;" : "&#9940;"}</button>
         <button onclick="deletePlayer('${player.id}')">❌</button>
       </div>
     </div>
@@ -91,7 +85,7 @@ function renderRankingSection(title: string, tournamentPlayers: Player[], group?
     return player.name.toLowerCase().includes(rankingSearch)
   })
 
-  const sortedPlayers = sortRankingPlayers(filteredPlayers)
+  const sortedPlayers = sortPlayersByRanking(filteredPlayers, group ?? "general")
   const visiblePlayers = sortedPlayers.slice(0, 5)
   const hiddenPlayers = sortedPlayers.slice(5)
   const toggleId = group ? `ranking-hidden-${group}` : "ranking-hidden-general"
@@ -228,7 +222,7 @@ export function render() {
               <div class="group-section-header compact">
                 <div>
                   <span class="section-label">${getGroupHeading(group)}</span>
-                  <h3>${getPlayersForGroup(group).length} atletas ativos</h3>
+                  <h3>${getEligiblePlayersForGroup(group).length} atletas aptos a jogar</h3>
                 </div>
                 <div class="admin-tournament-actions compact">
                   <button class="btn primary" ${canStart ? "" : "disabled"} onclick="startGroup('${group}')">${isGroupAlreadyStarted(group) ? "Atualizar jogos" : `Iniciar ${getGroupHeading(group)}`}</button>

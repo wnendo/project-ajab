@@ -56,8 +56,8 @@ type KnockoutRound = {
   matches: KnockoutRoundMatch[]
 }
 
-const BRACKET_MATCH_HEIGHT = 106
-const BRACKET_BASE_GAP = 14
+const BRACKET_MATCH_HEIGHT = 82
+const BRACKET_BASE_GAP = 10
 const BRACKET_CELL = BRACKET_MATCH_HEIGHT + BRACKET_BASE_GAP
 
 function normalizeChampionshipCategory(value?: string): ChampionshipCategory | null {

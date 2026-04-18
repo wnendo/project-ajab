@@ -14,6 +14,7 @@ import {
   UserTournamentRegistration
 } from "./types"
 import { getGroupLabel, getPlayerCompetitionGroup, isRankingTournament } from "./tournament-rules"
+import { sortRankingRows } from "./ranking-standings"
 
 let currentUser: User | null = null
 let approvedRegistrations: UserTournamentRegistration[] = []
@@ -25,7 +26,6 @@ let openViewerTournamentId: string | null = null
 let openViewerCategory: ChampionshipCategory | null = null
 let championshipCompletedGroupFilter = "all"
 let rankingCompletedSearch = ""
-
 function escapeHtml(value?: string) {
   return (value ?? "")
     .replace(/&/g, "&amp;")
@@ -71,14 +71,114 @@ function getRegisteredCategories(registration: UserTournamentRegistration) {
   return registration.category ? registration.category.split(",").map((entry) => entry.trim()).filter(Boolean) : []
 }
 
+function getRankingRegistrationCategory(
+  registration: Pick<UserTournamentRegistration, "category" | "categories">
+) {
+  const directCategory = registration.category?.trim()
+
+  if (directCategory) {
+    return directCategory
+  }
+
+  if (Array.isArray(registration.categories)) {
+    const selectedCategory = registration.categories.map((entry) => entry.trim()).find(Boolean)
+    if (selectedCategory) {
+      return selectedCategory
+    }
+  }
+
+  return "A"
+}
+
+function getRankingLiveParticipantIds(liveState?: RankingLiveGroupState) {
+  const ids = new Set<string>()
+
+  ;(liveState?.queue ?? []).forEach((entry) => {
+    entry.playerIds?.forEach((playerId) => {
+      if (playerId) ids.add(playerId)
+    })
+  })
+
+  ;(liveState?.activeTables ?? []).forEach((table) => {
+    table.playerIds?.forEach((playerId) => {
+      if (playerId) ids.add(playerId)
+    })
+  })
+
+  return ids
+}
+
+function getTournamentRegisteredCategories(tournament: UpcomingTournament, registration: UserTournamentRegistration) {
+  const registrationCategories = getRegisteredCategories(registration)
+  const tournamentCategories = Array.isArray(tournament.categories) && tournament.categories.length
+    ? tournament.categories
+    : registrationCategories
+
+  return registrationCategories.filter((category) => tournamentCategories.includes(category))
+}
+
 function getTournamentPlayerMap(tournamentId: string) {
-  return new Map((tournamentRegistrations.get(tournamentId) ?? []).map((entry) => [entry.id, entry.name]))
+  return new Map(getApprovedTournamentRegistrations(tournamentId).map((entry) => [entry.id, entry.name]))
+}
+
+function getApprovedTournamentRegistrations(tournamentId: string) {
+  return (tournamentRegistrations.get(tournamentId) ?? []).filter((entry) => entry.paymentStatus === "approved")
 }
 
 function matchesPlayerSearch(left: string, right: string, search: string) {
   if (!search) return true
   const normalized = search.toLowerCase()
   return left.toLowerCase().includes(normalized) || right.toLowerCase().includes(normalized)
+}
+
+function abbreviateName(name: string, maxLength = 13) {
+  const trimmed = name.trim()
+  if (trimmed.length <= maxLength) return trimmed
+
+  const parts = trimmed.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    const first = parts[0]
+    const last = parts[parts.length - 1]
+    const middleParts = parts.slice(1, -1).filter((part) => !["de", "da", "do", "dos", "das", "e"].includes(part.toLowerCase()))
+
+    if (middleParts.length) {
+      const withMiddleInitial = `${first} ${middleParts[0][0]}. ${last}`
+      if (withMiddleInitial.length <= maxLength + 6) return withMiddleInitial
+
+      const withInitials = `${first} ${middleParts.map((part) => `${part[0]}.`).join(" ")} ${last}`.replace(/\s+/g, " ").trim()
+      if (withInitials.length <= maxLength + 8) return withInitials
+    }
+
+    const shortLast = `${first} ${last}`
+    if (shortLast.length <= maxLength + 4) return shortLast
+  }
+
+  return `${trimmed.slice(0, Math.max(1, maxLength - 3)).trimEnd()}...`
+}
+
+function applyRankingCompletedMatchesFilter() {
+  const modal = document.getElementById("tournamentViewerModal")
+  if (!modal) return
+
+  const cards = Array.from(modal.querySelectorAll<HTMLElement>(".ranking-completed-card"))
+  const emptyState = modal.querySelector<HTMLElement>(".ranking-filter-empty")
+  const title = modal.querySelector<HTMLElement>(".ranking-history-count")
+  let visibleCount = 0
+
+  cards.forEach((card) => {
+    const searchValue = (card.dataset.search || "").toLowerCase()
+    const visible = !rankingCompletedSearch || searchValue.includes(rankingCompletedSearch.toLowerCase())
+    card.style.display = visible ? "" : "none"
+    if (visible) visibleCount += 1
+  })
+
+  if (title) {
+    title.textContent = visibleCount ? `${visibleCount} confronto(s)` : "Sem jogos exibidos"
+  }
+
+  if (emptyState) {
+    emptyState.style.display = visibleCount ? "none" : "block"
+  }
 }
 
 function getRankingStats(tournamentId: string, group: string) {
@@ -236,26 +336,36 @@ function renderRankingViewer(tournament: UpcomingTournament, registration: UserT
   const player = currentUser
   if (!viewerTitle || !viewerContent || !modal || !player) return
 
-  const categoryLabel = getRegisteredCategories(registration)[0] || registration.category || "A"
+  const categoryLabel = getRankingRegistrationCategory(registration)
   const group = getPlayerCompetitionGroup(tournament, categoryLabel)
   const liveState = tournament.rankingLiveState?.[group] as RankingLiveGroupState | undefined
   const nameMap = getTournamentPlayerMap(tournament.id)
   const stats = getRankingStats(tournament.id, group)
-  const rankingRows = (tournamentRegistrations.get(tournament.id) ?? [])
-    .filter((entry) => entry.paymentStatus === "approved")
-    .filter((entry) => getPlayerCompetitionGroup(tournament, entry.category || entry.categories?.[0]) === group)
-    .map((entry) => ({
-      id: entry.id,
-      name: entry.name,
-      category: entry.category || "Categoria",
-      ...(stats.get(entry.id) ?? { wins: 0, losses: 0, games: 0 })
-    }))
-    .sort((a, b) => {
-      if (b.wins !== a.wins) return b.wins - a.wins
-      if (a.losses !== b.losses) return a.losses - b.losses
-      if (b.games !== a.games) return b.games - a.games
-      return a.name.localeCompare(b.name)
-    })
+  const liveParticipantIds = getRankingLiveParticipantIds(liveState)
+  const groupMatches = (tournamentMatches.get(tournament.id) ?? []).filter((entry) => (entry.group ?? "general") === group)
+  const hasRankingProgress = liveParticipantIds.size > 0 || groupMatches.length > 0
+  const approvedRegistrations = getApprovedTournamentRegistrations(tournament.id)
+  const approvedRegistrationMap = new Map(approvedRegistrations.map((entry) => [entry.id, entry]))
+  const rankingRows = hasRankingProgress
+    ? [...new Set([...liveParticipantIds, ...groupMatches.flatMap((entry) => [entry.p1, entry.p2])])]
+        .map((playerId) => {
+          const registrationEntry = approvedRegistrationMap.get(playerId)
+          return {
+            id: playerId,
+            name: registrationEntry?.name || nameMap.get(playerId) || "Atleta",
+            category: registrationEntry ? getRankingRegistrationCategory(registrationEntry) : getGroupLabel(group),
+            ...(stats.get(playerId) ?? { wins: 0, losses: 0, games: 0 })
+          }
+        })
+    : approvedRegistrations
+        .filter((entry) => getPlayerCompetitionGroup(tournament, getRankingRegistrationCategory(entry)) === group)
+        .map((entry) => ({
+          id: entry.id,
+          name: entry.name,
+          category: getRankingRegistrationCategory(entry),
+          ...(stats.get(entry.id) ?? { wins: 0, losses: 0, games: 0 })
+        }))
+  const sortedRankingRows = sortRankingRows(rankingRows, groupMatches)
   const activeMatches = (liveState?.activeTables ?? [])
     .filter((table) => table.playerIds?.length === 2)
     .map((table) => ({
@@ -272,8 +382,7 @@ function renderRankingViewer(tournament: UpcomingTournament, registration: UserT
     detail: "Na fila"
   }))
 
-  const completedMatches = (tournamentMatches.get(tournament.id) ?? [])
-    .filter((entry) => (entry.group ?? "general") === group)
+  const completedMatches = groupMatches
     .sort((a, b) => b.createdAt - a.createdAt)
     .map((entry) => ({
       left: nameMap.get(entry.p1) || "Atleta",
@@ -281,14 +390,13 @@ function renderRankingViewer(tournament: UpcomingTournament, registration: UserT
       meta: `${entry.score1} x ${entry.score2}`,
       detail: formatDateTime(entry.createdAt)
     }))
-    .filter((entry) => matchesPlayerSearch(entry.left, entry.right, rankingCompletedSearch))
     .slice(0, 12)
   const rankingHistorySection = `
     <section class="group-section queue-section tournament-feed-card ranking-history-card">
       <div class="group-section-header queue-section-header compact">
         <div>
           <span class="section-label">Jogos realizados</span>
-          <h3>${completedMatches.length ? `${completedMatches.length} confronto(s)` : "Sem jogos exibidos"}</h3>
+          <h3 class="ranking-history-count">${completedMatches.length ? `${completedMatches.length} confronto(s)` : "Sem jogos exibidos"}</h3>
         </div>
         <div class="championship-history-filter ranking-history-filter">
           <label for="rankingCompletedSearch">Buscar atleta</label>
@@ -308,14 +416,15 @@ function renderRankingViewer(tournament: UpcomingTournament, registration: UserT
               ${completedMatches
                 .map(
                   (entry) => `
-                    <article class="ranking-completed-card">
-                      <strong>${escapeHtml(entry.left)} ${escapeHtml(entry.meta)} ${escapeHtml(entry.right)}</strong>
+                    <article class="ranking-completed-card" data-search="${escapeHtml(`${entry.left} ${entry.right}`.toLowerCase())}">
+                      <strong>${escapeHtml(abbreviateName(entry.left))} ${escapeHtml(entry.meta)} ${escapeHtml(abbreviateName(entry.right))}</strong>
                       <span>${escapeHtml(entry.detail)}</span>
                     </article>
                   `
                 )
                 .join("")}
             </div>
+            <div class="queue-empty rich ranking-filter-empty" style="display:none">Nenhum jogo encontrado para essa busca.</div>
           `
           : '<div class="empty-state">Ainda nao houve partidas registradas.</div>'
       }
@@ -333,10 +442,10 @@ function renderRankingViewer(tournament: UpcomingTournament, registration: UserT
           </div>
         </div>
         <div class="ranking-athlete-grid">
-          ${rankingRows
-            .map(
-              (entry, index) => `
-                <article class="ranking-athlete-card ${entry.id === player.id ? "highlight" : ""} ${index === 0 ? "podium-gold" : index === 1 ? "podium-silver" : index === 2 ? "podium-bronze" : ""}">
+            ${sortedRankingRows
+              .map(
+                (entry, index) => `
+                  <article class="ranking-athlete-card ${entry.id === player.id ? "highlight" : ""} ${index === 0 ? "podium-gold" : index === 1 ? "podium-silver" : index === 2 ? "podium-bronze" : ""}">
                   <span>${index + 1}°</span>
                   <strong>${escapeHtml(entry.name)}</strong>
                   <small>${escapeHtml(entry.category)}</small>
@@ -352,6 +461,7 @@ function renderRankingViewer(tournament: UpcomingTournament, registration: UserT
       ${rankingHistorySection}
     </div>
   `.replace(/Â°/g, "o")
+  applyRankingCompletedMatchesFilter()
   modal.style.display = "flex"
 }
 
@@ -369,13 +479,30 @@ function renderChampionshipViewer(tournament: UpcomingTournament, category: Cham
   const selectedCompletedMatches = (championshipCompletedGroupFilter === "all"
     ? [...completedByGroup.values()].flat()
     : completedByGroup.get(championshipCompletedGroupFilter) ?? [])
-    .sort((a, b) => (b.playedAt ?? 0) - (a.playedAt ?? 0))
-    .slice(0, 3)
     .map((match) => ({
+      match,
       left: nameMap.get(match.playerIds[0]) || "Atleta",
-      right: nameMap.get(match.playerIds[1]) || "Atleta",
-      meta: `${match.score1 ?? 0} x ${match.score2 ?? 0}`,
-      detail: match.groupId || match.roundTitle || "Jogo"
+      right: nameMap.get(match.playerIds[1]) || "Atleta"
+    }))
+    .sort((a, b) => {
+      const playerA =
+        a.left === player.name || a.right === player.name
+          ? 1
+          : 0
+      const playerB =
+        b.left === player.name || b.right === player.name
+          ? 1
+          : 0
+      if (playerB !== playerA) return playerB - playerA
+      return (b.match.playedAt ?? 0) - (a.match.playedAt ?? 0)
+    })
+    .slice(0, 9)
+    .map((match) => ({
+      left: match.left,
+      right: match.right,
+      meta: `${match.match.score1 ?? 0} x ${match.match.score2 ?? 0}`,
+      detail: match.match.groupId || match.match.roundTitle || "Jogo",
+      playedAt: match.match.playedAt
     }))
 
   const activeMatches = (state?.activeTables ?? [])
@@ -446,7 +573,7 @@ function renderChampionshipViewer(tournament: UpcomingTournament, category: Cham
             <span class="section-label">Jogos disputados</span>
             <h3>${selectedCompletedMatches.length ? `${selectedCompletedMatches.length} jogo(s)` : "Sem jogos exibidos"}</h3>
           </div>
-          <div class="championship-history-filter">
+          <div class="championship-history-filter championship-history-toolbar">
             <label for="championshipCompletedFilter">Grupo</label>
             <select id="championshipCompletedFilter" onchange="setChampionshipCompletedFilter(this.value)">
               <option value="all" ${championshipCompletedGroupFilter === "all" ? "selected" : ""}>Todos</option>
@@ -456,7 +583,24 @@ function renderChampionshipViewer(tournament: UpcomingTournament, category: Cham
             </select>
           </div>
         </div>
-        ${renderMatchCards("", "Finalizado", selectedCompletedMatches, "Nenhuma partida concluida ainda.", "championship-history-inner")}
+        ${
+          selectedCompletedMatches.length
+            ? `
+              <div class="championship-history-compact-grid">
+                ${selectedCompletedMatches
+                  .map(
+                    (match) => `
+                      <article class="championship-history-compact-card ${match.left === player.name || match.right === player.name ? "highlight" : ""}">
+                        <strong>${escapeHtml(abbreviateName(match.left))} ${escapeHtml(match.meta)} ${escapeHtml(abbreviateName(match.right))}</strong>
+                        <span>${escapeHtml(match.detail || "Jogo")} • ${escapeHtml(formatDateTime(match.playedAt))}</span>
+                      </article>
+                    `
+                  )
+                  .join("")}
+              </div>
+            `
+            : '<div class="queue-empty rich">Nenhuma partida concluida ainda.</div>'
+        }
       </section>
       <section class="group-section">
         <div class="section-header compact-section-header">
@@ -505,7 +649,7 @@ function renderTournamentCards() {
       const tournament = getTournamentById(tournamentId)
       if (!tournament) return ""
 
-      const categories = getRegisteredCategories(registration)
+      const categories = getTournamentRegisteredCategories(tournament, registration)
       const typeLabel = isRankingTournament(tournament) ? "Ranking" : "Campeonato"
       const statusLabel =
         tournament.status === "finished"
@@ -640,11 +784,7 @@ async function loadPage(uid: string) {
 
 ;(window as any).setRankingCompletedSearch = (value: string) => {
   rankingCompletedSearch = value || ""
-  if (!openViewerTournamentId) return
-  const tournament = getTournamentById(openViewerTournamentId)
-  const registration = getUserRegistration(openViewerTournamentId)
-  if (!tournament || !registration || !isRankingTournament(tournament)) return
-  renderRankingViewer(tournament, registration)
+  applyRankingCompletedMatchesFilter()
 }
 
 ;(window as any).openTournamentViewer = (tournamentId: string) => {
@@ -659,7 +799,7 @@ async function loadPage(uid: string) {
     return
   }
 
-  const categories = getRegisteredCategories(registration)
+  const categories = getTournamentRegisteredCategories(tournament, registration)
     .map((entry) => normalizeChampionshipCategory(entry))
     .filter(Boolean) as ChampionshipCategory[]
 
