@@ -69,8 +69,8 @@ export function getChampionshipRegistrationOptions(playerCategory?: string): Cha
 
   if (normalized === "A") return ["A"]
   if (normalized === "B") return ["A", "B"]
-  if (normalized === "C") return ["A", "C"]
-  if (normalized === "D") return ["B", "D"]
+  if (normalized === "C") return ["B", "C"]
+  if (normalized === "D") return ["C", "D"]
   if (normalized === "Iniciante") return ["Iniciante"]
   return []
 }

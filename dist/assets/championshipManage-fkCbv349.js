@@ -1,4 +1,4 @@
-import"./modulepreload-polyfill-Btlm8H0F.js";import{_ as e,a as t,c as n,d as r,f as i,i as a,l as o,n as s,p as c,t as l,x as u}from"./firebase-VBRKn9At.js";import{n as d}from"./toast-kV3jSCF7.js";/* empty css               */import{a as f,i as p,l as ee,n as te,t as m,u as ne}from"./tournament-rules-D9Tq3W95.js";var h=new URLSearchParams(window.location.search).get(`id`),g=!1,_=null,v=[],y=[],b=null,x=null,S=null,C=[`A`,`B`,`C`,`D`,`Iniciante`];function re(e){let t=document.getElementById(`userSummary`);t&&(t.innerHTML=`
+import"./modulepreload-polyfill-Btlm8H0F.js";import{_ as e,a as t,c as n,d as r,f as i,i as a,l as o,n as s,p as c,t as l,x as u}from"./firebase-VBRKn9At.js";import{n as d}from"./toast-kV3jSCF7.js";/* empty css               */import{a as f,i as p,l as ee,n as te,t as m,u as ne}from"./tournament-rules-Dalw4FyS.js";var h=new URLSearchParams(window.location.search).get(`id`),g=!1,_=null,v=[],y=[],b=null,x=null,S=null,C=[`A`,`B`,`C`,`D`,`Iniciante`];function re(e){let t=document.getElementById(`userSummary`);t&&(t.innerHTML=`
     <strong>${e.name}</strong>
     <span>${e.club||`Sem clube`}</span>
     <span>${e.category||`Sem categoria`}</span>

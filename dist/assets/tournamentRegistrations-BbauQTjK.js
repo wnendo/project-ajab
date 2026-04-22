@@ -1,4 +1,4 @@
-import"./modulepreload-polyfill-Btlm8H0F.js";import{_ as e,a as t,d as n,f as r,i,n as a,p as o,t as s,x as c}from"./firebase-VBRKn9At.js";import{n as l}from"./toast-kV3jSCF7.js";/* empty css               */import{u}from"./tournament-rules-D9Tq3W95.js";import{t as d}from"./confirm-modal-Dnnch5Ng.js";var f=new URLSearchParams(window.location.search).get(`id`),p=!1,m=null,h=[],g=null;function _(e){let t=document.getElementById(`userSummary`);t&&(t.innerHTML=`
+import"./modulepreload-polyfill-Btlm8H0F.js";import{_ as e,a as t,d as n,f as r,i,n as a,p as o,t as s,x as c}from"./firebase-VBRKn9At.js";import{n as l}from"./toast-kV3jSCF7.js";/* empty css               */import{u}from"./tournament-rules-Dalw4FyS.js";import{t as d}from"./confirm-modal-Dnnch5Ng.js";var f=new URLSearchParams(window.location.search).get(`id`),p=!1,m=null,h=[],g=null;function _(e){let t=document.getElementById(`userSummary`);t&&(t.innerHTML=`
     <strong>${e.name}</strong>
     <span>${e.club||`Sem clube`}</span>
     <span>${e.category||`Sem categoria`}</span>
