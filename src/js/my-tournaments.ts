@@ -72,6 +72,28 @@ function getRegisteredCategories(registration: UserTournamentRegistration) {
   return registration.category ? registration.category.split(",").map((entry) => entry.trim()).filter(Boolean) : []
 }
 
+function getResolvedChampionshipRegistrationCategories(
+  tournament: UpcomingTournament,
+  registration: UserTournamentRegistration
+) {
+  const configuredCategories = (Array.isArray(tournament.categories) ? tournament.categories : [])
+    .map((category) => normalizeChampionshipCategory(category))
+    .filter(Boolean) as ChampionshipCategory[]
+  const rawCategories = getRegisteredCategories(registration)
+    .map((category) => normalizeChampionshipCategory(category))
+    .filter(Boolean) as ChampionshipCategory[]
+
+  const filteredByTournament = configuredCategories.length
+    ? rawCategories.filter((category) => configuredCategories.includes(category))
+    : rawCategories
+
+  if (filteredByTournament.length) {
+    return [...new Set(filteredByTournament)]
+  }
+
+  return [...new Set(configuredCategories)]
+}
+
 function getRankingRegistrationCategory(
   registration: Pick<UserTournamentRegistration, "category" | "categories">
 ) {
@@ -110,7 +132,7 @@ function getRankingLiveParticipantIds(liveState?: RankingLiveGroupState) {
 }
 
 function getTournamentRegisteredCategories(tournament: UpcomingTournament, registration: UserTournamentRegistration) {
-  const registrationCategories = getRegisteredCategories(registration)
+  const registrationCategories = getResolvedChampionshipRegistrationCategories(tournament, registration)
   const tournamentCategories = Array.isArray(tournament.categories) && tournament.categories.length
     ? tournament.categories
     : registrationCategories

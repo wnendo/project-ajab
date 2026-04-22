@@ -69,8 +69,8 @@ export function getChampionshipRegistrationOptions(playerCategory?: string): Cha
 
   if (normalized === "A") return ["A"]
   if (normalized === "B") return ["A", "B"]
-  if (normalized === "C") return ["B", "C"]
-  if (normalized === "D") return ["C", "D"]
+  if (normalized === "C") return ["A", "B", "C"]
+  if (normalized === "D") return ["A", "B", "C", "D"]
   if (normalized === "Iniciante") return ["Iniciante"]
   return []
 }
@@ -129,7 +129,7 @@ export function getRegistrationFeeForSelection(
 
 export function isValidChampionshipSelection(playerCategory: string | undefined, selectedCategories: string[]) {
   const allowed = getChampionshipRegistrationOptions(playerCategory)
-  if (!selectedCategories.length || selectedCategories.length > 2) {
+  if (!selectedCategories.length) {
     return false
   }
 

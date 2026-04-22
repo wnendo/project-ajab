@@ -510,6 +510,28 @@ function getRegisteredChampionshipCategories(registration: UserTournamentRegistr
   return registration.category ? registration.category.split(",").map((entry) => entry.trim()).filter(Boolean) : []
 }
 
+function getResolvedChampionshipRegistrationCategories(
+  tournament: UpcomingTournament,
+  registration: UserTournamentRegistration
+) {
+  const configuredCategories = (Array.isArray(tournament.categories) ? tournament.categories : [])
+    .map((category) => normalizeChampionshipCategory(category))
+    .filter(Boolean) as ChampionshipCategory[]
+  const rawCategories = getRegisteredChampionshipCategories(registration)
+    .map((category) => normalizeChampionshipCategory(category))
+    .filter(Boolean) as ChampionshipCategory[]
+
+  const filteredByTournament = configuredCategories.length
+    ? rawCategories.filter((category) => configuredCategories.includes(category))
+    : rawCategories
+
+  if (filteredByTournament.length) {
+    return [...new Set(filteredByTournament)]
+  }
+
+  return [...new Set(configuredCategories)]
+}
+
 function isProfileTournamentStillTrackable(
   tournament: UpcomingTournament,
   registration: UserTournamentRegistration
@@ -518,9 +540,7 @@ function isProfileTournamentStillTrackable(
     return tournament.status !== "finished"
   }
 
-  const categories = getRegisteredChampionshipCategories(registration)
-    .map((category) => normalizeChampionshipCategory(category))
-    .filter(Boolean) as ChampionshipCategory[]
+  const categories = getResolvedChampionshipRegistrationCategories(tournament, registration)
 
   if (!categories.length) {
     return tournament.status !== "finished"
@@ -563,11 +583,14 @@ function renderMyTournamentsCard(entries: UpcomingTournament[], registrations: U
         id: tournament.id,
         title: tournament.title,
         type: getTournamentType(tournament),
-        categories: Array.isArray(entry.categories) && entry.categories.length
-          ? entry.categories
-          : entry.category
-            ? entry.category.split(",").map((item) => item.trim()).filter(Boolean)
-            : []
+        categories:
+          getTournamentType(tournament) === "championship"
+            ? getResolvedChampionshipRegistrationCategories(tournament, entry)
+            : Array.isArray(entry.categories) && entry.categories.length
+              ? entry.categories
+              : entry.category
+                ? entry.category.split(",").map((item) => item.trim()).filter(Boolean)
+                : []
       }
     })
     .filter(Boolean) as Array<{ id: string; title: string; type: string; categories: string[] }>
@@ -618,7 +641,7 @@ function renderMyChampionshipsCard(entries: UpcomingTournament[], registrations:
       return {
         id: tournament.id,
         title: tournament.title,
-        categories: getRegisteredChampionshipCategories(entry)
+        categories: getResolvedChampionshipRegistrationCategories(tournament, entry)
       }
     })
     .filter(Boolean) as Array<{ id: string; title: string; categories: string[] }>

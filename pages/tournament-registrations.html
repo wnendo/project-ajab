@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -42,7 +42,7 @@
         </div>
       </div>
 
-      <input id="registrationSearch" placeholder="Pesquisar inscrição por nome, email, clube ou categoria" oninput="filterRegistrations()">
+      <input id="registrationSearch" placeholder="Pesquisar inscrições por nome, email, clube ou categoria" oninput="filterRegistrations()">
 
       <div class="registration-filters">
         <select id="registrationCategoryFilter" oninput="filterRegistrations()" style="display: none;">
@@ -59,6 +59,25 @@
     </section>
   </div>
 
+  <div id="approveRegistrationModal" class="modal">
+    <div class="modal-card registration-modal-card">
+      <div class="modal-header">
+        <span>Aprovar pagamento</span>
+        <button class="close-btn" onclick="closeApproveRegistrationModal()">Fechar</button>
+      </div>
+      <div class="modal-body registration-modal-body">
+        <p id="approveRegistrationText" class="registration-modal-text"></p>
+        <div id="approveRegistrationCategoryOptions" class="registration-category-list"></div>
+        <p class="field-help">Você pode ajustar as categorias antes de aprovar o pagamento.</p>
+        <div class="actions">
+          <button class="btn primary" onclick="confirmApproveRegistration()">Confirmar aprovação</button>
+          <button class="btn secondary" onclick="closeApproveRegistrationModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script type="module" src="/src/js/tournament-registrations.ts"></script>
 </body>
 </html>
+

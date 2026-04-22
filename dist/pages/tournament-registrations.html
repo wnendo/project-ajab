@@ -1,16 +1,16 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AJAB - Gerenciar Inscricoes</title>
   <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
-  <script type="module" crossorigin src="/assets/tournamentRegistrations-BbauQTjK.js"></script>
+  <script type="module" crossorigin src="/assets/tournamentRegistrations-Bjay_IS_.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Btlm8H0F.js">
   <link rel="modulepreload" crossorigin href="/assets/firebase-VBRKn9At.js">
   <link rel="modulepreload" crossorigin href="/assets/confirm-modal-Dnnch5Ng.js">
   <link rel="modulepreload" crossorigin href="/assets/toast-kV3jSCF7.js">
-  <link rel="modulepreload" crossorigin href="/assets/tournament-rules-Dalw4FyS.js">
+  <link rel="modulepreload" crossorigin href="/assets/tournament-rules-CmdOaKKb.js">
   <link rel="stylesheet" crossorigin href="/assets/global-b_BAlAJ-.css">
 </head>
 <body class="profile-page">
@@ -48,7 +48,7 @@
         </div>
       </div>
 
-      <input id="registrationSearch" placeholder="Pesquisar inscrição por nome, email, clube ou categoria" oninput="filterRegistrations()">
+      <input id="registrationSearch" placeholder="Pesquisar inscrições por nome, email, clube ou categoria" oninput="filterRegistrations()">
 
       <div class="registration-filters">
         <select id="registrationCategoryFilter" oninput="filterRegistrations()" style="display: none;">
@@ -65,5 +65,24 @@
     </section>
   </div>
 
+  <div id="approveRegistrationModal" class="modal">
+    <div class="modal-card registration-modal-card">
+      <div class="modal-header">
+        <span>Aprovar pagamento</span>
+        <button class="close-btn" onclick="closeApproveRegistrationModal()">Fechar</button>
+      </div>
+      <div class="modal-body registration-modal-body">
+        <p id="approveRegistrationText" class="registration-modal-text"></p>
+        <div id="approveRegistrationCategoryOptions" class="registration-category-list"></div>
+        <p class="field-help">Você pode ajustar as categorias antes de aprovar o pagamento.</p>
+        <div class="actions">
+          <button class="btn primary" onclick="confirmApproveRegistration()">Confirmar aprovação</button>
+          <button class="btn secondary" onclick="closeApproveRegistrationModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
+

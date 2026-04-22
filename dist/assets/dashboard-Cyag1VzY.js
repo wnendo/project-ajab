@@ -1,4 +1,4 @@
-import"./modulepreload-polyfill-Btlm8H0F.js";import{_ as e,a as t,d as n,f as r,i,l as a,n as o,o as s,p as c,s as l,t as u,x as d}from"./firebase-VBRKn9At.js";import{n as f}from"./toast-kV3jSCF7.js";/* empty css               */import{u as p}from"./tournament-rules-Dalw4FyS.js";var m=!1,h=[],g=[];function _(e){let t=document.getElementById(`userSummary`);t&&(t.innerHTML=`
+import"./modulepreload-polyfill-Btlm8H0F.js";import{_ as e,a as t,d as n,f as r,i,l as a,n as o,o as s,p as c,s as l,t as u,x as d}from"./firebase-VBRKn9At.js";import{n as f}from"./toast-kV3jSCF7.js";/* empty css               */import{u as p}from"./tournament-rules-CmdOaKKb.js";var m=!1,h=[],g=[];function _(e){let t=document.getElementById(`userSummary`);t&&(t.innerHTML=`
     <strong>${e.name}</strong>
     <span>${e.club||`Sem clube`}</span>
     <span>${e.category}</span>

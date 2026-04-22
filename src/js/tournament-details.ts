@@ -34,7 +34,7 @@ function getSelectedRegistrationCategories() {
 }
 
 function getPublicAllowedCategories(tournament: UpcomingTournament, playerCategory?: string) {
-  return getAllowedRegistrationCategories(tournament, playerCategory).filter((category) => category !== "Iniciante")
+  return getAllowedRegistrationCategories(tournament, playerCategory)
 }
 
 function formatDate(value?: number) {

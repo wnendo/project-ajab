@@ -1,8 +1,8 @@
-import { onAuthStateChanged, signOut } from "firebase/auth"
+﻿import { onAuthStateChanged, signOut } from "firebase/auth"
 import { doc, getDoc, getDocs, collection, updateDoc, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import { ChampionshipCategory, ChampionshipCategoryState, ChampionshipTable, TournamentRegistration, UpcomingTournament, User } from "./types"
-import { getTournamentType } from "./tournament-rules"
+import { CHAMPIONSHIP_CATEGORIES, getTournamentType } from "./tournament-rules"
 import { confirmAction } from "./confirm-modal"
 import { showToast } from "./toast"
 
@@ -12,6 +12,7 @@ let checked = false
 let currentTournament: UpcomingTournament | null = null
 let registrations: TournamentRegistration[] = []
 let refreshInterval: number | null = null
+let pendingApprovalUserId: string | null = null
 
 function setUserHeader(userData: User) {
   const header = document.getElementById("userSummary")
@@ -78,6 +79,18 @@ function parseRegistrationCategories(registration: TournamentRegistration) {
     : (registration.category ?? "").split(",")
 
   return [...new Set(source.map((entry) => normalizeChampionshipCategory(entry)).filter(Boolean))] as ChampionshipCategory[]
+}
+
+function getAdminAvailableChampionshipCategories() {
+  if (!currentTournament?.categories?.length) {
+    return CHAMPIONSHIP_CATEGORIES
+  }
+
+  const normalized = currentTournament.categories
+    .map((entry) => normalizeChampionshipCategory(entry))
+    .filter(Boolean) as ChampionshipCategory[]
+
+  return normalized.length ? normalized : CHAMPIONSHIP_CATEGORIES
 }
 
 function normalizeChampionshipTables(tables: ChampionshipTable[] | undefined, tableCount: number) {
@@ -167,7 +180,7 @@ function removePlayerFromChampionshipState(
 }
 
 function getPaymentMethodLabel(registration: TournamentRegistration) {
-  return registration.paymentMethod === "pay_on_day" ? "Pagar no dia" : "Pix"
+  return "Pix"
 }
 
 function getPaymentStatusLabel(registration: TournamentRegistration) {
@@ -175,9 +188,96 @@ function getPaymentStatusLabel(registration: TournamentRegistration) {
     return "Pagamento aprovado"
   }
 
-  return registration.paymentMethod === "pay_on_day"
-    ? "Pagar no dia - pendente de aprovação"
-    : "Aguardando análise"
+  return "Aguardando análise"
+}
+
+function getApprovalModalSelectedCategories() {
+  return Array.from(document.querySelectorAll<HTMLInputElement>('input[name="approveRegistrationCategory"]:checked'))
+    .map((input) => normalizeChampionshipCategory(input.value))
+    .filter(Boolean) as ChampionshipCategory[]
+}
+
+function openApproveRegistrationModal(userId: string) {
+  const registration = registrations.find((entry) => entry.id === userId)
+  const modal = document.getElementById("approveRegistrationModal") as HTMLElement | null
+  const text = document.getElementById("approveRegistrationText") as HTMLElement | null
+  const options = document.getElementById("approveRegistrationCategoryOptions") as HTMLElement | null
+  if (!registration || !modal || !text || !options) return
+
+  pendingApprovalUserId = userId
+  const selectedCategories = parseRegistrationCategories(registration)
+  const availableCategories = getAdminAvailableChampionshipCategories()
+  const selectedLabel = selectedCategories.length ? selectedCategories.join(", ") : "Nenhuma categoria selecionada"
+
+  text.textContent = `Confirme o pagamento de ${registration.name} e revise as categorias da inscrição.`
+  text.innerHTML = `
+    <strong>${registration.name}</strong><br>
+    Categorias escolhidas na inscrição: ${selectedLabel}
+  `
+  options.innerHTML = availableCategories
+    .map(
+      (category) => `
+        <label class="checkbox-option registration-option">
+          <input
+            type="checkbox"
+            name="approveRegistrationCategory"
+            value="${category}"
+            ${selectedCategories.includes(category) ? "checked" : ""}
+          >
+          <span>Categoria ${category === "Iniciante" ? "Iniciante" : category}</span>
+        </label>
+      `
+    )
+    .join("")
+
+  modal.style.display = "flex"
+}
+
+function closeApproveRegistrationModal() {
+  const modal = document.getElementById("approveRegistrationModal") as HTMLElement | null
+  if (!modal) return
+
+  pendingApprovalUserId = null
+  modal.style.display = "none"
+}
+
+async function approveRegistrationWithCategories(userId: string, selectedCategories?: ChampionshipCategory[]) {
+  if (!currentTournament) return
+
+  const registration = registrations.find((entry) => entry.id === userId)
+  if (!registration) return
+
+  const normalizedCategories =
+    getTournamentType(currentTournament) === "championship"
+      ? selectedCategories && selectedCategories.length
+        ? selectedCategories
+        : parseRegistrationCategories(registration)
+      : []
+
+  const categoryLabel = normalizedCategories.length ? normalizedCategories.join(", ") : registration.category || ""
+
+  const batch = writeBatch(db)
+  batch.update(doc(db, "tournaments", currentTournament.id, "registrations", userId), {
+    paymentStatus: "approved",
+    ...(normalizedCategories.length
+      ? {
+          category: categoryLabel,
+          categories: normalizedCategories,
+          paymentMethod: "pix"
+        }
+      : {})
+  })
+  batch.update(doc(db, "users", userId, "registrations", currentTournament.id), {
+    paymentStatus: "approved",
+    ...(normalizedCategories.length
+      ? {
+          category: categoryLabel,
+          categories: normalizedCategories,
+          paymentMethod: "pix"
+        }
+      : {})
+  })
+  await batch.commit()
 }
 
 function getFilteredRegistrations() {
@@ -213,7 +313,7 @@ function renderPage() {
   titleEl.textContent = currentTournament?.title || "Inscricoes"
   subtitleEl.textContent = currentTournament
     ? `${currentTournament.location || "Local a definir"} - acompanhe os pagamentos Pix e confirme as inscricoes.`
-    : "Não foi possivel carregar o torneio."
+    : "Não foi possível carregar o torneio."
 
   const isChampionship = currentTournament ? getTournamentType(currentTournament) === "championship" : false
   categoryFilter.style.display = isChampionship ? "block" : "none"
@@ -296,22 +396,48 @@ async function loadPageData() {
 }
 
 ;(window as any).approveRegistration = async (userId: string) => {
-  if (!currentTournament) return
+  if (getTournamentType(currentTournament) !== "championship") {
+    try {
+      await approveRegistrationWithCategories(userId)
+      await loadRegistrations()
+      renderPage()
+      showToast("Pagamento aprovado com sucesso.", "success")
+    } catch (error: any) {
+      showToast("Erro ao aprovar pagamento: " + error.message, "error")
+    }
+    return
+  }
 
-  const registration = registrations.find((entry) => entry.id === userId)
+  openApproveRegistrationModal(userId)
+}
+
+;(window as any).closeApproveRegistrationModal = () => {
+  closeApproveRegistrationModal()
+}
+
+;(window as any).confirmApproveRegistration = async () => {
+  if (!currentTournament || !pendingApprovalUserId) return
+
+  const registration = registrations.find((entry) => entry.id === pendingApprovalUserId)
   if (!registration) return
 
+  const selectedCategories = getApprovalModalSelectedCategories()
+  if (!selectedCategories.length) {
+    showToast("Selecione pelo menos uma categoria para aprovar a inscrição.", "warning")
+    return
+  }
+
+  if (!selectedCategories.every((category) => getAdminAvailableChampionshipCategories().includes(category))) {
+    showToast("Selecione apenas categorias disponíveis neste campeonato.", "warning")
+    return
+  }
+
   try {
-    const batch = writeBatch(db)
-    batch.update(doc(db, "tournaments", currentTournament.id, "registrations", userId), {
-      paymentStatus: "approved"
-    })
-    batch.update(doc(db, "users", userId, "registrations", currentTournament.id), {
-      paymentStatus: "approved"
-    })
-    await batch.commit()
+    await approveRegistrationWithCategories(pendingApprovalUserId, selectedCategories)
+    closeApproveRegistrationModal()
     await loadRegistrations()
     renderPage()
+    showToast("Pagamento aprovado e categorias atualizadas com sucesso.", "success")
   } catch (error: any) {
     showToast("Erro ao aprovar pagamento: " + error.message, "error")
   }

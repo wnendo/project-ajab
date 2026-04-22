@@ -154,12 +154,17 @@ function renderChampionshipAthleteCategoryOptions(selectedCategory?: string) {
   const select = document.getElementById("championshipManualCategory") as HTMLSelectElement | null
   if (!select || !currentTournament) return
 
-  select.innerHTML = getChampionshipAdminCategories()
+  const categories = getChampionshipAdminCategories()
+  const preferredSelection = categories.includes(selectedCategory as ChampionshipCategory)
+    ? (selectedCategory as ChampionshipCategory)
+    : categories[0]
+
+  select.innerHTML = categories
     .map((category) => {
       const count = getCategoryRegistrationCount(registrations, category)
       const limit = getCategoryLimit(currentTournament, category)
       const full = Boolean(limit && count >= limit)
-      const isSelected = (selectedCategory || "") === category
+      const isSelected = preferredSelection === category
       return `<option value="${category}" ${isSelected ? "selected" : ""} ${full && !isSelected ? "disabled" : ""}>${escapeHtml(category)}${limit ? ` (${count}/${limit})` : ""}${full && !isSelected ? " - lotada" : ""}</option>`
     })
     .join("")
@@ -186,7 +191,7 @@ function renderSelectedChampionshipAthleteSummary() {
     <span>${escapeHtml(selected.user.club || "Sem clube")} - ${escapeHtml(selected.user.category || "Sem categoria")}</span>
     <small>${selected.registration ? `Status atual: ${selected.registration.paymentStatus === "approved" ? "inscricao aprovada" : "pagamento pendente"}` : "Sem inscricao neste campeonato"}</small>
   `
-  renderChampionshipAthleteCategoryOptions(selected.registration?.category)
+  renderChampionshipAthleteCategoryOptions()
 }
 
 function renderChampionshipAthleteSearchResults(search = "") {
@@ -831,7 +836,7 @@ function buildChampionshipRegistrationPayload(
 
   const now = Date.now()
   const registrationFee = getRegistrationFeeForSelection(tournament, [category])
-  const paymentMethod = paymentStatus === "approved" ? "pix" : "pay_on_day"
+  const paymentMethod = "pix"
 
   const registrationPayload: TournamentRegistration = {
     id: user.id,
@@ -1101,7 +1106,7 @@ async function createLooseChampionshipUser() {
       ? " Refaça a distribuicao da categoria se os grupos ja estavam sorteados."
       : ""
     showToast(
-      `${paymentStatus === "approved" ? "Atleta inscrito com sucesso." : "Atleta adicionado com pagamento pendente."}${redrawNote}`,
+      `${paymentStatus === "approved" ? "Atleta inscrito com Pix aprovado." : "Atleta adicionado com Pix pendente."}${redrawNote}`,
       "success"
     )
   } catch (error: any) {
@@ -1134,7 +1139,7 @@ async function createLooseChampionshipUser() {
       ? " Refaça a distribuicao da categoria se os grupos ja estavam sorteados."
       : ""
     showToast(
-      `${paymentStatus === "approved" ? "Novo atleta cadastrado e inscrito." : "Novo atleta cadastrado com pagamento pendente."}${redrawNote}`,
+      `${paymentStatus === "approved" ? "Novo atleta cadastrado com Pix aprovado." : "Novo atleta cadastrado com Pix pendente."}${redrawNote}`,
       "success"
     )
   } catch (error: any) {
