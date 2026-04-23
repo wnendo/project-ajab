@@ -25,6 +25,7 @@ let pendingCategoryTournamentId: string | null = null
 let openViewerTournamentId: string | null = null
 let openViewerCategory: ChampionshipCategory | null = null
 let openViewerGroupId: string | null = null
+let championshipCompletedGroupFilter = "all"
 let rankingCompletedSearch = ""
 const CHAMPIONSHIP_CATEGORY_ORDER: ChampionshipCategory[] = ["A", "B", "C", "D", "Iniciante"]
 function escapeHtml(value?: string) {
@@ -1006,6 +1007,7 @@ async function loadPage(uid: string) {
   openViewerCategory = null
   rankingCompletedSearch = ""
   openViewerGroupId = null
+  championshipCompletedGroupFilter = "all"
 }
 
 ;(window as any).closeTournamentCategoryChoiceModal = () => {
@@ -1049,6 +1051,16 @@ async function loadPage(uid: string) {
   renderChampionshipViewerV2(tournament, openViewerCategory)
 }
 
+;(window as any).setChampionshipCompletedFilter = (value: string) => {
+  championshipCompletedGroupFilter = value || "all"
+
+  if (!openViewerTournamentId || !openViewerCategory) return
+  const tournament = getTournamentById(openViewerTournamentId)
+  if (!tournament) return
+
+  renderChampionshipViewer(openViewerTournamentId && openViewerCategory ? tournament : tournament, openViewerCategory)
+}
+
 ;(window as any).setRankingCompletedSearch = (value: string) => {
   rankingCompletedSearch = value || ""
   applyRankingCompletedMatchesFilter()
@@ -1060,10 +1072,11 @@ async function loadPage(uid: string) {
   if (!tournament || !registration) return
 
   if (isRankingTournament(tournament)) {
-    openViewerTournamentId = tournamentId
-    openViewerCategory = null
-    renderRankingViewer(tournament, registration)
-    return
+  openViewerTournamentId = tournamentId
+  openViewerCategory = null
+  championshipCompletedGroupFilter = "all"
+  renderRankingViewer(tournament, registration)
+  return
   }
 
   const categories = getAvailableChampionshipCategories(tournament)
@@ -1072,6 +1085,7 @@ async function loadPage(uid: string) {
     openViewerTournamentId = tournamentId
     openViewerCategory = "A"
     openViewerGroupId = null
+    championshipCompletedGroupFilter = "all"
     renderChampionshipViewerV2(tournament, "A")
     return
   }
@@ -1080,6 +1094,7 @@ async function loadPage(uid: string) {
     openViewerTournamentId = tournamentId
     openViewerCategory = categories[0]
     openViewerGroupId = null
+    championshipCompletedGroupFilter = "all"
     renderChampionshipViewerV2(tournament, categories[0])
     return
   }
@@ -1087,6 +1102,7 @@ async function loadPage(uid: string) {
   openViewerTournamentId = tournamentId
   openViewerCategory = categories[0]
   openViewerGroupId = null
+  championshipCompletedGroupFilter = "all"
   renderChampionshipViewerV2(tournament, categories[0])
 }
 
