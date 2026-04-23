@@ -1,4 +1,4 @@
-import { onAuthStateChanged, sendPasswordResetEmail, signOut } from "firebase/auth"
+﻿import { onAuthStateChanged, sendPasswordResetEmail, signOut } from "firebase/auth"
 import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import {
@@ -304,10 +304,10 @@ function renderChampionshipResultCategoryShowcase(
         <div class="section-header compact-section-header">
           <div>
             <span class="section-label">Categoria ${escapeHtml(category)}</span>
-            <h3>Categoria nao iniciada</h3>
+            <h3>Categoria não iniciada</h3>
           </div>
         </div>
-        <div class="empty-state">Categoria nao iniciada.</div>
+        <div class="empty-state">Categoria não iniciada.</div>
       </section>
     `
   }
@@ -360,7 +360,7 @@ function renderChampionshipResultCategoryShowcase(
       <section class="group-section championship-history-inner">
         <div class="group-section-header queue-section-header compact">
           <div>
-            <span class="section-label">Historico do grupo</span>
+            <span class="section-label">Histórico do grupo</span>
             <h3>${selectedGroupId ? escapeHtml(groups.find((group) => group.id === selectedGroupId)?.name || "Grupo") : "Grupo"}</h3>
           </div>
         </div>
@@ -398,7 +398,7 @@ async function getChampionshipResultShowcase(tournament: UpcomingTournament, sel
   const categoryStates = getChampionshipResultCategories(tournament)
 
   if (!categoryStates.length) {
-    return '<div class="empty-state">Este campeonato ainda nao possui grupos ou mata-mata definidos.</div>'
+    return '<div class="empty-state">Este campeonato ainda não possui grupos ou mata-mata definidos.</div>'
   }
 
   const activeCategory = categoryStates.includes(selectedCategory as ChampionshipCategory)
@@ -426,7 +426,7 @@ function renderTournamentHistory(entries: UserTournament[]) {
   if (!container) return
 
   if (!entries.length) {
-    container.innerHTML = `<div class="empty-state">Seu historico de torneios ainda não foi registrado.</div>`
+    container.innerHTML = `<div class="empty-state">Seu histórico de torneios ainda não foi registrado.</div>`
     return
   }
 
@@ -705,7 +705,7 @@ function renderUpcoming(entries: UpcomingTournament[]) {
               ? "Pagar no dia - pendente"
               : "Pagamento em análise"
             : entry.status === "open"
-              ? "Inscricoes abertas"
+              ? "Inscrições abertas"
               : "Em breve"
 
       return `
@@ -721,7 +721,7 @@ function renderUpcoming(entries: UpcomingTournament[]) {
             <span>Quando: ${formatDateRange(entry.startDate, entry.endDate)}</span>
             <span>Categoria: ${formatTournamentCategories(entry)}</span>
             <span>Valor: ${formatTournamentFee(entry)}</span>
-            <span>Inscricoes: ${formatDate(entry.registrationDeadline)}</span>
+            <span>Inscrições: ${formatDate(entry.registrationDeadline)}</span>
           </div>
           ${entry.description ? `<p class="item-description">${entry.description}</p>` : ""}
           <div class="admin-tournament-actions">
@@ -848,7 +848,7 @@ async function loadUserProfile(uid: string) {
   const modal = document.getElementById("profileTournamentResultModal") as HTMLElement | null
 
   if (!tournament || !title || !content || !modal) {
-    showToast("Nao foi possivel abrir o resultado deste torneio.", "warning")
+    showToast("Não foi possível abrir o resultado deste torneio.", "warning")
     return
   }
 
@@ -863,7 +863,7 @@ async function loadUserProfile(uid: string) {
       ? getRankingResultShowcase(tournament)
       : await getChampionshipResultShowcase(tournament)
   } catch (error: any) {
-    content.innerHTML = `<div class="empty-state">Nao foi possivel carregar o resultado agora.</div>`
+    content.innerHTML = `<div class="empty-state">Não foi possível carregar o resultado agora.</div>`
     showToast("Erro ao carregar resultado: " + error.message, "error")
   }
 }
@@ -883,7 +883,7 @@ async function loadUserProfile(uid: string) {
   try {
     content.innerHTML = await getChampionshipResultShowcase(tournament, normalizedCategory)
   } catch (error: any) {
-    content.innerHTML = `<div class="empty-state">Nao foi possivel carregar o resultado agora.</div>`
+    content.innerHTML = `<div class="empty-state">Não foi possível carregar o resultado agora.</div>`
     showToast("Erro ao carregar categoria: " + error.message, "error")
   }
 }
@@ -906,7 +906,7 @@ async function loadUserProfile(uid: string) {
   try {
     content.innerHTML = await getChampionshipResultShowcase(tournament, normalizedCategory)
   } catch (error: any) {
-    content.innerHTML = `<div class="empty-state">Nao foi possivel carregar o resultado agora.</div>`
+    content.innerHTML = `<div class="empty-state">Não foi possível carregar o resultado agora.</div>`
     showToast("Erro ao carregar grupo: " + error.message, "error")
   }
 }
@@ -914,7 +914,7 @@ async function loadUserProfile(uid: string) {
 ;(window as any).requestPasswordReset = async () => {
   const email = currentUserProfile?.email || auth.currentUser?.email
   if (!email) {
-    showToast("Seu perfil nao possui email cadastrado para redefinição de senha.", "warning")
+    showToast("Seu perfil não possui email cadastrado para redefinição de senha.", "warning")
     return
   }
 
@@ -968,7 +968,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     if (upcomingList) {
-      upcomingList.innerHTML = `<div class="empty-state">Os proximos torneios não puderam ser consultados.</div>`
+      upcomingList.innerHTML = `<div class="empty-state">Os próximos torneios não puderam ser consultados.</div>`
     }
 
     if (championshipsCard) {
@@ -976,3 +976,4 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 })
+

@@ -1,4 +1,4 @@
-import { onAuthStateChanged, signOut } from "firebase/auth"
+﻿import { onAuthStateChanged, signOut } from "firebase/auth"
 import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import {
@@ -183,7 +183,7 @@ function getChampionshipRegistrationStatusLabel(
   return {
     label:
       tournament.status === "closed"
-        ? "Inscricoes encerradas"
+        ? "Inscrições encerradas"
         : tournament.status === "open"
           ? "Em andamento"
           : "Aguardando",
@@ -536,7 +536,7 @@ function renderRankingViewer(tournament: UpcomingTournament, registration: UserT
               .map(
                 (entry, index) => `
                   <article class="ranking-athlete-card ${entry.id === player.id ? "highlight" : ""} ${index === 0 ? "podium-gold" : index === 1 ? "podium-silver" : index === 2 ? "podium-bronze" : ""}">
-                  <span>${index + 1}°</span>
+                  <span>${index + 1}º</span>
                   <strong>${escapeHtml(entry.name)}</strong>
                   <small>${escapeHtml(entry.category)}</small>
                   <span>${entry.wins}V / ${entry.losses}D / ${entry.games}J</span>
@@ -547,10 +547,10 @@ function renderRankingViewer(tournament: UpcomingTournament, registration: UserT
         </div>
       </section>
       ${renderMatchCards("Jogos em andamento", "Ao vivo", activeMatches, "Nenhum jogo em andamento agora.", "tournament-feed-card")}
-      ${renderMatchCards("Proximos jogos", "Fila", nextMatches, "Nenhum jogo aguardando nesta categoria.", "tournament-feed-card")}
+      ${renderMatchCards("Próximos jogos", "Fila", nextMatches, "Nenhum jogo aguardando nesta categoria.", "tournament-feed-card")}
       ${rankingHistorySection}
     </div>
-  `.replace(/Â°/g, "o")
+  `.replace(/Ã‚º/g, "º")
   applyRankingCompletedMatchesFilter()
   modal.style.display = "flex"
 }
@@ -643,7 +643,7 @@ function renderChampionshipViewer(tournament: UpcomingTournament, category: Cham
                         ${standings
                           .map(
                             (entry, index) => `
-                              <small>${index + 1}° ${escapeHtml(nameMap.get(entry.playerId) || "Atleta")} - ${entry.wins}V</small>
+                              <small>${index + 1}º ${escapeHtml(nameMap.get(entry.playerId) || "Atleta")} - ${entry.wins}V</small>
                             `
                           )
                           .join("")}
@@ -652,11 +652,11 @@ function renderChampionshipViewer(tournament: UpcomingTournament, category: Cham
                   `
                 })
                 .join("")
-            : '<div class="empty-state">Os grupos ainda nao foram definidos.</div>'}
+            : '<div class="empty-state">Os grupos ainda não foram definidos.</div>'}
         </div>
       </section>
       ${renderMatchCards("Jogos em andamento", "Ao vivo", activeMatches, "Nenhum jogo em andamento nesta categoria.", "tournament-feed-card championship-live-card")}
-      ${renderMatchCards("Proximos jogos", "Fila", nextMatches, "Nenhum proximo jogo liberado ainda.", "tournament-feed-card championship-live-card")}
+      ${renderMatchCards("Próximos jogos", "Fila", nextMatches, "Nenhum próximo jogo liberado ainda.", "tournament-feed-card championship-live-card")}
       <section class="group-section queue-section tournament-feed-card championship-history-card">
         <div class="group-section-header queue-section-header compact">
           <div>
@@ -764,7 +764,7 @@ function renderChampionshipViewerV2(tournament: UpcomingTournament, category: Ch
               .join("")}
           </select>
         </div>
-        <div class="empty-state">Categoria nao iniciada.</div>
+        <div class="empty-state">Categoria não iniciada.</div>
       </div>
     `
     modal.style.display = "flex"
@@ -808,7 +808,7 @@ function renderChampionshipViewerV2(tournament: UpcomingTournament, category: Ch
                         ${standings
                           .map(
                             (entry, index) => `
-                              <small>${index + 1}° ${escapeHtml(nameMap.get(entry.playerId) || "Atleta")} - ${entry.wins}V</small>
+                              <small>${index + 1}º ${escapeHtml(nameMap.get(entry.playerId) || "Atleta")} - ${entry.wins}V</small>
                             `
                           )
                           .join("")}
@@ -817,15 +817,15 @@ function renderChampionshipViewerV2(tournament: UpcomingTournament, category: Ch
                   `
                 })
                 .join("")
-            : '<div class="empty-state">Os grupos ainda nao foram definidos.</div>'}
+            : '<div class="empty-state">Os grupos ainda não foram definidos.</div>'}
         </div>
       </section>
       ${!isCategoryFinished ? renderMatchCards("Jogos em andamento", "Ao vivo", activeMatches, "Nenhum jogo em andamento nesta categoria.", "tournament-feed-card championship-live-card") : ""}
-      ${!isCategoryFinished ? renderMatchCards("Proximos jogos", "Fila", nextMatches, "Nenhum proximo jogo liberado ainda.", "tournament-feed-card championship-live-card") : ""}
+      ${!isCategoryFinished ? renderMatchCards("Próximos jogos", "Fila", nextMatches, "Nenhum próximo jogo liberado ainda.", "tournament-feed-card championship-live-card") : ""}
       <section class="group-section queue-section tournament-feed-card championship-history-card">
         <div class="group-section-header queue-section-header compact">
           <div>
-            <span class="section-label">Historico do grupo</span>
+            <span class="section-label">Histórico do grupo</span>
             <h3>${selectedGroupId ? escapeHtml(groups.find((group) => group.id === selectedGroupId)?.name || "Grupo") : "Grupo"}</h3>
           </div>
         </div>
@@ -877,7 +877,7 @@ function openCategoryChoiceModal(tournamentId: string, categories: ChampionshipC
   if (!text || !options || !modal || !tournament) return
 
   pendingCategoryTournamentId = tournamentId
-  text.textContent = `Selecione qual categoria você deseja ver em ${tournament.title}.`
+  text.textContent = `Selecione qual categoria você desejá ver em ${tournament.title}.`
   options.innerHTML = categories
     .map((category) => `<button class="btn primary" onclick="confirmTournamentCategoryChoice('${category}')">Categoria ${category}</button>`)
     .join("")
@@ -910,7 +910,7 @@ function renderTournamentCards() {
                 : tournament.status === "open"
                   ? "Em andamento"
                   : tournament.status === "closed"
-                    ? "Inscricoes encerradas"
+                    ? "Inscrições encerradas"
                     : "Aguardando",
             tone: tournament.status === "finished" ? "neutral" : "win"
           }
@@ -941,7 +941,7 @@ function renderTournamentCards() {
 
   container.innerHTML = cards.length
     ? cards.join("")
-    : '<div class="empty-state">Voce ainda nao possui torneios aprovados para acompanhar aqui.</div>'
+    : '<div class="empty-state">Você ainda não possui torneios aprovados para acompanhar aqui.</div>'
 }
 
 async function loadPage(uid: string) {
@@ -1102,7 +1102,8 @@ onAuthStateChanged(auth, async (user) => {
     console.error("Erro ao carregar meus torneios:", error)
     const container = document.getElementById("myChampionshipsList")
     if (container) {
-      container.innerHTML = '<div class="empty-state">Nao foi possivel carregar seus torneios agora.</div>'
+      container.innerHTML = '<div class="empty-state">Não foi possível carregar seus torneios agora.</div>'
     }
   }
 })
+

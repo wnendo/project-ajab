@@ -1,4 +1,4 @@
-import { onAuthStateChanged, signOut } from "firebase/auth"
+﻿import { onAuthStateChanged, signOut } from "firebase/auth"
 import { collection, doc, getDoc, getDocs, updateDoc, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import {
@@ -127,10 +127,10 @@ function getPlayerMeta(playerId: string) {
 }
 
 function getFinalPlacementLabel(position: number) {
-  if (position === 1) return "1° lugar"
-  if (position === 2) return "2° lugar"
-  if (position === 3) return "3° lugar"
-  return "4° lugar"
+  if (position === 1) return "1º lugar"
+  if (position === 2) return "2º lugar"
+  if (position === 3) return "3º lugar"
+  return "4º lugar"
 }
 
 function getFinalPlacementClass(position: number) {
@@ -167,8 +167,8 @@ function getKnockoutFinalStandings(state: ChampionshipCategoryState) {
 }
 
 function getPlacementLabel(position: number) {
-  if (position === 1) return "Campeao"
-  if (position === 2) return "Vice-campeao"
+  if (position === 1) return "Campeão"
+  if (position === 2) return "Vice-campeão"
   if (position === 3) return "3o lugar"
   if (position === 4) return "4o lugar"
   return `${position}o lugar`
@@ -409,7 +409,7 @@ function getFinalStandingsMarkup(state: ChampionshipCategoryState) {
     <section class="championship-block">
       <div class="championship-block-head">
         <h3>Classificação final</h3>
-        <p>Encerramento oficial da categoria com definição do 1° ao 4° lugar.</p>
+        <p>Encerramento oficial da categoria com definição do 1º ao 4º lugar.</p>
       </div>
       <div class="championship-final-standings">
         ${finalStandings.slice(0, 4).map((playerId, index) => `
@@ -1192,7 +1192,7 @@ function renderPage() {
   ;(document.getElementById("categoryTitle") as HTMLElement).textContent = `Categoria ${category}`
   ;(document.getElementById("categoryTitle") as HTMLElement).style.textAlign = "left"
   ;(document.getElementById("categoryPageSubtitle") as HTMLElement).textContent =
-    `${tournament.location || "Local a definir"} - esta categoria ja esta definida. Os grupos jogam em mesas dedicadas e so trocam quando um grupo termina seus confrontos.`
+    `${tournament.location || "Local a definir"} - esta categoria já esta definida. Os grupos jogam em mesas dedicadas e so trocam quando um grupo termina seus confrontos.`
 
   ;(document.getElementById("categoryPageContent") as HTMLElement).innerHTML = `
     <article class="card championship-category-card">
@@ -1213,7 +1213,7 @@ function renderPage() {
         <section class="championship-block">
           <div class="championship-block-head">
             <h3>Fase de grupos</h3>
-            <p>Cada grupo permanece na sua mesa ate concluir todos os jogos. Depois disso, a mesa pode receber o proximo grupo da fila.</p>
+            <p>Cada grupo permanece na sua mesa ate concluir todos os jogos. Depois disso, a mesa pode receber o próximo grupo da fila.</p>
           </div>
           ${
             groups.length
@@ -1261,7 +1261,7 @@ function renderPage() {
           <div class="championship-management-head">
             <div class="championship-block-head">
               <h3>Gestao dos jogos</h3>
-              <p>As mesas ficam dedicadas ao grupo ativo. Se um grupo terminar, a vaga passa para o proximo grupo que ainda tiver jogos pendentes.</p>
+              <p>As mesas ficam dedicadas ao grupo ativo. Se um grupo terminar, a vaga passa para o próximo grupo que ainda tiver jogos pendentes.</p>
             </div>
             <div class="championship-management-toolbar">
               <button class="btn secondary" onclick="changeTables(-1)">- Mesa</button>
@@ -1276,7 +1276,7 @@ function renderPage() {
               <div class="group-section queue-section">
                 <div class="group-section-header queue-section-header compact">
                   <div>
-                    <span class="section-label">Proximos jogos</span>
+                    <span class="section-label">Próximos jogos</span>
                     <h3>${groupQueue.length ? `${groupQueue.length} confronto(s) aguardando` : "Fila vazia"}</h3>
                   </div>
                 </div>
@@ -1330,7 +1330,7 @@ function renderPage() {
                           `).join("")}
                         </div>`
                       : '<div class="queue-empty rich">Todos os atletas aprovados desta categoria já estao distribuidos nos grupos.</div>'
-                    : '<div class="queue-empty rich">Não é mais possivel adicionar atletas: todos os jogos da fase de grupos já foram concluídos.</div>'
+                    : '<div class="queue-empty rich">Não é mais possível adicionar atletas: todos os jogos da fase de grupos já foram concluídos.</div>'
                 }
               </div>
             </div>
@@ -1349,7 +1349,7 @@ function renderPage() {
                     if (!match) {
                       return `<div class="table-card free enhanced-table-card compact-card">
                         <div class="table-header">Mesa ${table.id}<span class="status free">${table.groupId || "Livre"}</span></div>
-                        <div class="table-idle-state compact"><strong>Pronta</strong><span>${table.groupId ? `Reservada para ${table.groupId}` : "Aguardando o proximo grupo."}</span></div>
+                        <div class="table-idle-state compact"><strong>Pronta</strong><span>${table.groupId ? `Reservada para ${table.groupId}` : "Aguardando o próximo grupo."}</span></div>
                       </div>`
                     }
                     return `<div class="table-card busy enhanced-table-card compact-card">
@@ -1376,7 +1376,7 @@ function renderPage() {
         <section class="championship-block">
           <div class="championship-block-head">
             <h3>Mata-mata</h3>
-            <p>O mata-mata pode ser iniciado assim que algum confronto ja estiver definido, mesmo com outros grupos ainda em andamento.</p>
+            <p>O mata-mata pode ser iniciado assim que algum confronto já estiver definido, mesmo com outros grupos ainda em andamento.</p>
           </div>
           <div class="championship-knockout-head">
             <div class="info-card compact"><span>Status</span><strong>${state.knockoutStarted ? "Em andamento" : "Aguardando inicio"}</strong></div>
@@ -1400,7 +1400,7 @@ function renderPage() {
             <div class="group-section queue-section">
               <div class="group-section-header queue-section-header compact">
                 <div>
-                  <span class="section-label">Proximos jogos do mata-mata</span>
+                  <span class="section-label">Próximos jogos do mata-mata</span>
                   <h3>${knockoutQueue.length ? `${knockoutQueue.length} confronto(s) liberados` : "Nenhum confronto liberado ainda"}</h3>
                 </div>
               </div>
@@ -1543,7 +1543,7 @@ async function finalizeCurrentCategory() {
 
     const finalists = [semifinal1Winner, semifinal2Winner]
     if (!finalists.includes(finalWinner)) {
-      showToast("O campeao da final precisa ser um dos vencedores das semifinais.", "warning")
+      showToast("O campeão da final precisa ser um dos vencedores das semifinais.", "warning")
       return
     }
 
@@ -1580,7 +1580,7 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (state.finished) {
-    showToast("Esta categoria ja foi encerrada.", "warning")
+    showToast("Esta categoria já foi encerrada.", "warning")
     return
   }
 
@@ -1589,7 +1589,7 @@ async function finalizeCurrentCategory() {
   const nextTableCount = Math.max(1, (state.tableCount ?? 1) + delta)
 
   if (nextTableCount < occupiedTables) {
-    showToast("Nao e possivel remover mesas enquanto existem partidas em andamento nelas.", "warning")
+    showToast("Não é possível remover mesas enquanto existem partidas em andamento nelas.", "warning")
     return
   }
 
@@ -1614,7 +1614,7 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (state.finished) {
-    showToast("Esta categoria ja foi encerrada.", "warning")
+    showToast("Esta categoria já foi encerrada.", "warning")
     return
   }
 
@@ -1644,14 +1644,14 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (state.finished) {
-    showToast("Esta categoria ja foi encerrada.", "warning")
+    showToast("Esta categoria já foi encerrada.", "warning")
     return
   }
 
   const bracketRounds = buildBracketRounds(state.groups ?? [], state)
   const hasDefinedKnockoutMatch = bracketRounds.some((round) => round.matches.some((match) => match.playerIds))
   if (!hasDefinedKnockoutMatch) {
-    showToast("Ainda nao ha confrontos definidos para iniciar o mata-mata.", "warning")
+    showToast("Ainda não ha confrontos definidos para iniciar o mata-mata.", "warning")
     return
   }
 
@@ -1674,12 +1674,12 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (state.finished) {
-    showToast("Esta categoria ja foi encerrada.", "warning")
+    showToast("Esta categoria já foi encerrada.", "warning")
     return
   }
 
   if (!canAddPlayersToGroups(state)) {
-    showToast("Nao e mais possivel adicionar atletas a esta categoria.", "warning")
+    showToast("Não é mais possível adicionar atletas a esta categoria.", "warning")
     return
   }
 
@@ -1715,7 +1715,7 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (state.finished) {
-    showToast("Esta categoria ja foi encerrada.", "warning")
+    showToast("Esta categoria já foi encerrada.", "warning")
     return
   }
   const activeTables = normalizeTables(state.activeTables, state.tableCount ?? 1)
@@ -1826,3 +1826,4 @@ onAuthStateChanged(auth, async (user) => {
   }
   renderPage()
 })
+

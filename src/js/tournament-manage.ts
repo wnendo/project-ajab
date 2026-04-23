@@ -1,4 +1,4 @@
-import { onAuthStateChanged, signOut } from "firebase/auth"
+﻿import { onAuthStateChanged, signOut } from "firebase/auth"
 import {
   addDoc,
   collection,
@@ -542,14 +542,14 @@ function setUserHeader(userData: User) {
 
 function updateTournamentSummary() {
   ;(document.getElementById("activeTournamentName") as HTMLElement).textContent =
-    currentTournament?.title || "Torneio nao encontrado"
+    currentTournament?.title || "Torneio não éncontrado"
   ;(document.getElementById("tournamentStatusLabel") as HTMLElement).textContent =
     currentTournament?.status === "finished"
       ? "Finalizado"
       : currentTournament?.isActive
         ? "Em andamento"
         : currentTournament?.status === "open"
-          ? "Inscricoes abertas"
+          ? "Inscrições abertas"
           : "Aguardando inicio"
 }
 
@@ -558,7 +558,7 @@ function renderFinalResultsModal(standings = currentTournament?.finalStandings ?
   if (!container) return
 
   if (!standings.length) {
-    container.innerHTML = '<div class="empty-state">O resultado final ainda nao foi gerado.</div>'
+    container.innerHTML = '<div class="empty-state">O resultado final ainda não foi gerado.</div>'
     return
   }
 
@@ -651,13 +651,13 @@ function renderAthleteProfileModal(userId: string) {
           <p>${escapeHtml(user.club || "Sem clube")} - ${escapeHtml(user.category || "Sem categoria")}</p>
           <div class="athlete-profile-badges">
             <span class="result-pill neutral">${player?.active ? "Ativo no ranking" : "Sem jogos ativos"}</span>
-            <span class="result-pill ${getRegistrationByUserId(userId)?.paymentStatus === "approved" ? "win" : "loss"}">${getRegistrationByUserId(userId)?.paymentStatus === "approved" ? "Inscricao aprovada" : "Inscricao pendente"}</span>
+            <span class="result-pill ${getRegistrationByUserId(userId)?.paymentStatus === "approved" ? "win" : "loss"}">${getRegistrationByUserId(userId)?.paymentStatus === "approved" ? "Inscrição aprovada" : "Inscrição pendente"}</span>
           </div>
         </div>
       </div>
       <div class="profile-info-grid athlete-profile-grid">
-        <div class="info-card"><span>Email</span><strong>${escapeHtml(user.email || "Nao informado")}</strong></div>
-        <div class="info-card"><span>Telefone</span><strong>${escapeHtml(user.phone || "Nao informado")}</strong></div>
+        <div class="info-card"><span>Email</span><strong>${escapeHtml(user.email || "Não informado")}</strong></div>
+        <div class="info-card"><span>Telefone</span><strong>${escapeHtml(user.phone || "Não informado")}</strong></div>
         <div class="info-card"><span>Partidas</span><strong>${stats.games}</strong></div>
         <div class="info-card"><span>Vitorias</span><strong>${stats.wins}</strong></div>
         <div class="info-card"><span>Derrotas</span><strong>${stats.losses}</strong></div>
@@ -810,7 +810,7 @@ async function refreshRegistrations() {
     await loadPlayers()
     render()
   } catch (error) {
-    console.error("Erro ao atualizar inscricoes do torneio:", error)
+    console.error("Erro ao atualizar inscrições do torneio:", error)
   }
 }
 
@@ -887,8 +887,8 @@ function getFinalStandings() {
 }
 
 function getPlacementLabel(position: number) {
-  if (position === 1) return "Campeao"
-  if (position === 2) return "Vice-campeao"
+  if (position === 1) return "Campeão"
+  if (position === 2) return "Vice-campeão"
   if (position === 3) return "3o lugar"
   return `${position}o lugar`
 }
@@ -1143,7 +1143,7 @@ window.addEventListener("beforeunload", () => {
     }
 
     if (selectedCandidate.player?.active) {
-      showToast("Esse jogador ja esta inscrito e ativo neste torneio.", "warning")
+      showToast("Esse jogador já esta inscrito e ativo neste torneio.", "warning")
       return
     }
 
@@ -1156,7 +1156,7 @@ window.addEventListener("beforeunload", () => {
 
       const tournament = currentTournament
       if (!tournament) {
-        showToast("Torneio nao encontrado.", "error")
+        showToast("Torneio não éncontrado.", "error")
         return
       }
 
@@ -1308,7 +1308,7 @@ window.addEventListener("beforeunload", () => {
   if (!currentTournament || !isRankingTournament(currentTournament)) return
 
   if (matches.length > 0) {
-    showToast("Nao e possivel juntar ou separar categorias apos iniciar partidas.", "warning")
+    showToast("Não é possível juntar ou separar categorias apos iniciar partidas.", "warning")
     return
   }
 
@@ -1351,7 +1351,7 @@ window.addEventListener("beforeunload", () => {
 
 ;(window as any).startGroup = async (group: CompetitionGroup) => {
   if (!currentTournament) {
-    showToast("Torneio nao encontrado.", "error")
+    showToast("Torneio não éncontrado.", "error")
     return
   }
 
@@ -1482,7 +1482,7 @@ window.addEventListener("beforeunload", () => {
   try {
     const tournament = currentTournament
     if (!tournament) {
-      showToast("Torneio nao encontrado.", "error")
+      showToast("Torneio não éncontrado.", "error")
       return
     }
 
@@ -1758,7 +1758,7 @@ window.addEventListener("beforeunload", () => {
     })
     .join("")
 
-  ;(document.getElementById("historyTitle") as HTMLElement).innerText = `Historico - ${player.name}`
+  ;(document.getElementById("historyTitle") as HTMLElement).innerText = `Histórico - ${player.name}`
 
   const stats = getPlayerStats(playerId)
   const statsHtml = `
@@ -1806,7 +1806,7 @@ export function getPlayerStats(playerId: string) {
 
   const confirmed = await confirmAction({
     title: "Limpar torneio atual",
-    message: "Tem certeza que deseja limpar o campeonato atual e desativar os atletas deste torneio?",
+    message: "Tem certeza que desejá limpar o campeonato atual e desativar os atletas deste torneio?",
     confirmLabel: "Limpar",
     tone: "danger"
   })
@@ -1955,6 +1955,7 @@ export function getPlayerStats(playerId: string) {
   await persistRankingLiveState()
   render()
 }
+
 
 
 

@@ -1,4 +1,4 @@
-import { onAuthStateChanged, signOut } from "firebase/auth"
+﻿import { onAuthStateChanged, signOut } from "firebase/auth"
 import { doc, getDoc, getDocs, collection, setDoc, updateDoc, writeBatch } from "firebase/firestore"
 import { auth, db } from "../services/firebase"
 import {
@@ -378,10 +378,10 @@ function renderManageResultCategory(category: ChampionshipCategory, state: Champ
         <div class="section-header compact-section-header">
           <div>
             <span class="section-label">Categoria ${escapeHtml(category)}</span>
-            <h3>Categoria nao iniciada</h3>
+            <h3>Categoria não iniciada</h3>
           </div>
         </div>
-        <div class="empty-state">Categoria nao iniciada.</div>
+        <div class="empty-state">Categoria não iniciada.</div>
       </section>
     `
   }
@@ -423,7 +423,7 @@ function renderManageResultCategory(category: ChampionshipCategory, state: Champ
       <section class="group-section championship-history-inner">
         <div class="group-section-header queue-section-header compact">
           <div>
-            <span class="section-label">Historico do grupo</span>
+            <span class="section-label">Histórico do grupo</span>
             <h3>${selectedGroupId ? escapeHtml(groups.find((group) => group.id === selectedGroupId)?.name || "Grupo") : "Grupo"}</h3>
           </div>
         </div>
@@ -468,7 +468,7 @@ function renderChampionshipResultsModalContent(category?: ChampionshipCategory) 
   const categories = getManageResultCategories(tournament)
   if (!categories.length) {
     title.textContent = `Resultado - ${tournament.title}`
-    content.innerHTML = '<div class="empty-state">Este campeonato ainda nao possui categorias configuradas.</div>'
+    content.innerHTML = '<div class="empty-state">Este campeonato ainda não possui categorias configuradas.</div>'
     if (finalizeButton) {
       finalizeButton.disabled = false
       finalizeButton.textContent = tournament.status === "finished" ? "Torneio finalizado" : "Finalizar torneio"
@@ -536,10 +536,10 @@ async function finalizeChampionshipTournament() {
 }
 
 function getPlacementLabel(index: number) {
-  if (index === 0) return "1° lugar"
-  if (index === 1) return "2° lugar"
-  if (index === 2) return "3° lugar"
-  return "4° lugar"
+  if (index === 0) return "1º lugar"
+  if (index === 1) return "2º lugar"
+  if (index === 2) return "3º lugar"
+  return "4º lugar"
 }
 
 function getPlacementClass(index: number) {
@@ -703,7 +703,7 @@ function renderCategoryCard(category: ChampionshipCategory) {
         <summary class="championship-collapse-summary">
           <div class="championship-block-head">
             <h3>Grupos sorteados</h3>
-            <p>${groups.length ? state.defined ? "A categoria ja foi iniciada. A configuração desta pagina ficou travada e a operação segue dentro da pagina da categoria." : "Ao abrir a pagina da categoria, esta configuração fica travada e a operação segue por la." : "Defina o tamanho dos grupos e sorteie a categoria para montar os confrontos."}</p>
+            <p>${groups.length ? state.defined ? "A categoria já foi iniciada. A configuração desta pagina ficou travada e a operação segue dentro da pagina da categoria." : "Ao abrir a pagina da categoria, esta configuração fica travada e a operação segue por la." : "Defina o tamanho dos grupos e sorteie a categoria para montar os confrontos."}</p>
           </div>
         </summary>
         <div class="championship-collapse-content">
@@ -942,7 +942,7 @@ async function createLooseChampionshipUser() {
 ;(window as any).drawCategoryGroups = async (category: ChampionshipCategory) => {
   const state = getCategoryState(category)
   if (state.defined) {
-    showToast("Esta categoria ja foi iniciada e nao pode mais sortear grupos nesta pagina.", "warning")
+    showToast("Esta categoria já foi iniciada e não pode mais sortear grupos nesta página.", "warning")
     return
   }
 
@@ -950,7 +950,7 @@ async function createLooseChampionshipUser() {
   const groupSize = Math.max(2, Number((document.getElementById(`groupSize_${category}`) as HTMLInputElement | null)?.value || getGroupSize(category)))
 
   if (!registrationsForCategory.length) {
-    showToast("Nao ha atletas aprovados nesta categoria para montar grupos.", "warning")
+    showToast("Não há atletas aprovados nesta categoria para montar grupos.", "warning")
     return
   }
 
@@ -1046,7 +1046,7 @@ async function createLooseChampionshipUser() {
 ;(window as any).confirmFinalizeChampionshipTournament = async () => {
   if (!currentTournament) return
   if (currentTournament.status === "finished") {
-    showToast("Este campeonato ja esta finalizado.", "warning")
+    showToast("Este campeonato já esta finalizado.", "warning")
     return
   }
 
@@ -1104,7 +1104,7 @@ async function createLooseChampionshipUser() {
   }
 
   if (isChampionshipCategoryFull(category)) {
-    showToast("Essa categoria ja atingiu o limite de inscritos.", "warning")
+    showToast("Essa categoria já atingiu o limite de inscritos.", "warning")
     return
   }
 
@@ -1114,7 +1114,7 @@ async function createLooseChampionshipUser() {
     renderPage()
     closeAddChampionshipAthleteModal()
     const redrawNote = getCategoryState(category).groups?.length
-      ? " Refaça a distribuicao da categoria se os grupos ja estavam sorteados."
+      ? " Refaça a distribuição da categoria se os grupos já estavam sorteados."
       : ""
     showToast(
       `${paymentStatus === "approved" ? "Atleta inscrito com Pix aprovado." : "Atleta adicionado com Pix pendente."}${redrawNote}`,
@@ -1135,7 +1135,7 @@ async function createLooseChampionshipUser() {
   }
 
   if (isChampionshipCategoryFull(category)) {
-    showToast("Essa categoria ja atingiu o limite de inscritos.", "warning")
+    showToast("Essa categoria já atingiu o limite de inscritos.", "warning")
     return
   }
 
@@ -1147,7 +1147,7 @@ async function createLooseChampionshipUser() {
     renderPage()
     closeAddChampionshipAthleteModal()
     const redrawNote = getCategoryState(category).groups?.length
-      ? " Refaça a distribuicao da categoria se os grupos ja estavam sorteados."
+      ? " Refaça a distribuição da categoria se os grupos já estavam sorteados."
       : ""
     showToast(
       `${paymentStatus === "approved" ? "Novo atleta cadastrado com Pix aprovado." : "Novo atleta cadastrado com Pix pendente."}${redrawNote}`,
@@ -1200,3 +1200,4 @@ onAuthStateChanged(auth, async (user) => {
   await loadRegistrations()
   renderPage()
 })
+
