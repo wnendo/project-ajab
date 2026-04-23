@@ -177,7 +177,7 @@ function openRegistrationModal() {
 
   const categories = getPublicAllowedCategories(tournament, currentUserProfile?.category)
   if (!categories.length) {
-    showToast("Sua categoria atual nao possui inscricao publica disponivel neste campeonato.", "warning")
+    showToast("Sua categoria atual não possui inscrição pública disponível neste campeonato.", "warning")
     return
   }
 
@@ -264,7 +264,7 @@ function renderFinalStandingsModal(group?: TournamentFinalStanding["group"]) {
   const modalList = document.getElementById("tournamentResultsModalList")
   if (!modalList) return
   if (!currentTournament?.finalStandings?.length) {
-    modalList.innerHTML = '<div class="empty-state">O resultado final ainda nao foi gerado.</div>'
+    modalList.innerHTML = '<div class="empty-state">O resultado final ainda não foi gerado.</div>'
     return
   }
 
@@ -303,7 +303,7 @@ function renderAthleteProfileModal(userId: string) {
   const athlete = athleteProfiles.get(userId)
   const registration = registrations.find((entry) => entry.id === userId || entry.uid === userId)
   if (!modal || !content || !athlete) {
-    showToast("Nao foi possivel carregar o perfil deste atleta.", "warning")
+    showToast("Não foi possível carregar o perfil deste atleta.", "warning")
     return
   }
 

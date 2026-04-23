@@ -310,9 +310,9 @@ function renderPage() {
   const categoryFilter = document.getElementById("registrationCategoryFilter") as HTMLSelectElement | null
   if (!titleEl || !subtitleEl || !totalEl || !pendingEl || !listEl || !categoryFilter) return
 
-  titleEl.textContent = currentTournament?.title || "Inscricoes"
+  titleEl.textContent = currentTournament?.title || "Inscrições"
   subtitleEl.textContent = currentTournament
-    ? `${currentTournament.location || "Local a definir"} - acompanhe os pagamentos Pix e confirme as inscricoes.`
+    ? `${currentTournament.location || "Local a definir"} - acompanhe os pagamentos Pix e confirme as inscrições.`
     : "Não foi possível carregar o torneio."
 
   const isChampionship = currentTournament ? getTournamentType(currentTournament) === "championship" : false
@@ -343,7 +343,7 @@ function renderPage() {
                 <span>Clube: ${registration.club || "Não informado"}</span>
                 <span>Categoria: ${formatRegistrationCategories(registration)}</span>
                 <span>Valor: ${formatCurrency(registration.registrationFee)}</span>
-                <span>Metodo: ${getPaymentMethodLabel(registration)}</span>
+                <span>Método: ${getPaymentMethodLabel(registration)}</span>
               </div>
               <div class="admin-tournament-actions">
                 ${
@@ -472,13 +472,6 @@ async function loadPageData() {
         championshipState: nextChampionshipState
       }
     }
-    batch.update(doc(db, "users", userId), {
-      "playerProfile.active": false,
-      "playerProfile.games": 0,
-      "playerProfile.wins": 0,
-      "playerProfile.losses": 0,
-      "playerProfile.lastPlayed": null
-    })
     await batch.commit()
     await loadRegistrations()
     renderPage()

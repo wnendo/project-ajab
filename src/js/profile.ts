@@ -38,11 +38,11 @@ function formatDateRange(startDate: number, endDate?: number) {
     return formatDate(startDate)
   }
 
-  return `${formatDate(startDate)} ate ${formatDate(endDate)}`
+  return `${formatDate(startDate)} até ${formatDate(endDate)}`
 }
 
 function formatDateTime(value?: number) {
-  if (!value) return "Nao informado"
+  if (!value) return "Não informado"
 
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "medium",
@@ -222,7 +222,7 @@ function getChampionshipGroupStandings(
 function getRankingResultShowcase(tournament: UpcomingTournament) {
   const standings = tournament.finalStandings ?? []
   if (!standings.length) {
-    return '<div class="empty-state">O resultado final deste ranking ainda nao foi publicado.</div>'
+    return '<div class="empty-state">O resultado final deste ranking ainda não foi publicado.</div>'
   }
 
   const podium = standings.slice(0, 3)
@@ -597,7 +597,7 @@ function renderMyTournamentsCard(entries: UpcomingTournament[], registrations: U
 
   if (!approvedTournaments.length) {
     container.innerHTML = `
-      <div class="empty-state">Voce ainda nao possui torneios aprovados para acompanhar.</div>
+      <div class="empty-state">Você ainda não possui torneios aprovados para acompanhar.</div>
       <button class="btn secondary" onclick="openMyTournaments()">Abrir meus torneios</button>
     `
     return
@@ -703,7 +703,7 @@ function renderUpcoming(entries: UpcomingTournament[]) {
           : registrationStatus === "pending_payment"
             ? registrationMethod === "pay_on_day"
               ? "Pagar no dia - pendente"
-              : "Pagamento em analise"
+              : "Pagamento em análise"
             : entry.status === "open"
               ? "Inscricoes abertas"
               : "Em breve"
@@ -936,7 +936,7 @@ async function loadUserProfile(uid: string) {
 
   const tournament = upcomingTournaments.find((entry) => entry.id === tournamentId)
   if (!tournament) {
-    showToast("Torneio nao encontrado.", "error")
+    showToast("Torneio não encontrado.", "error")
     return
   }
 

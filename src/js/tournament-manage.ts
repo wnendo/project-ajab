@@ -155,7 +155,7 @@ function abbreviateAthleteName(name: string, maxLength = 13) {
 }
 
 function formatDate(value?: number) {
-  if (!value) return "Nao informado"
+  if (!value) return "Não informado"
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(value)
 }
 
@@ -287,7 +287,7 @@ function buildRegistrationPayload(user: User, paymentStatus: TournamentRegistrat
   const tournament = currentTournament
 
   if (!tournament) {
-    throw new Error("Torneio nao carregado.")
+    throw new Error("Torneio não carregado.")
   }
   const now = Date.now()
   const category = getRegistrationCategory(user)
@@ -632,7 +632,7 @@ function renderAthleteProfileModal(userId: string) {
   const user = getUserById(userId)
   const player = players.find((entry) => entry.id === userId)
   if (!user) {
-    showToast("Nao foi possivel carregar o perfil do atleta.", "warning")
+    showToast("Não foi possível carregar o perfil do atleta.", "warning")
     return
   }
 
@@ -1150,7 +1150,7 @@ window.addEventListener("beforeunload", () => {
     if (selectedCandidate.registration?.paymentStatus === "approved") {
       const inactiveUser = players.find((entry) => entry.id === selectedCandidate.user.id && !entry.active)
       if (!inactiveUser) {
-        showToast("Nao foi possivel ativar esse atleta agora.", "error")
+        showToast("Não foi possível ativar esse atleta agora.", "error")
         return
       }
 
@@ -1220,7 +1220,7 @@ window.addEventListener("beforeunload", () => {
     if (status === "approved") {
       const tournament = currentTournament
       if (!tournament) {
-        showToast("Torneio nao encontrado.", "error")
+        showToast("Torneio não encontrado.", "error")
         return
       }
 
@@ -1458,7 +1458,7 @@ window.addEventListener("beforeunload", () => {
   const user = getUserById(userId)
   const player = players.find((entry) => entry.id === userId)
   if (!user || !player) {
-    showToast("Atleta nao encontrado no torneio atual.", "warning")
+    showToast("Atleta não encontrado no torneio atual.", "warning")
     return
   }
 
@@ -1467,7 +1467,7 @@ window.addEventListener("beforeunload", () => {
   )
 
   if (!athleteMatches.length) {
-    showToast("Esse atleta ainda nao possui partidas registradas neste ranking.", "info")
+    showToast("Esse atleta ainda não possui partidas registradas neste ranking.", "info")
     return
   }
 
@@ -1856,7 +1856,7 @@ export function getPlayerStats(playerId: string) {
   }
 
   if (s1 < 0 || s2 < 0) {
-    showToast("O placar nao pode ser negativo.", "warning")
+    showToast("O placar não pode ser negativo.", "warning")
     return
   }
 

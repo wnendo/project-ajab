@@ -37,12 +37,12 @@ function escapeHtml(value?: string) {
 }
 
 function formatDate(value?: number) {
-  if (!value) return "Nao informado"
+  if (!value) return "Não informado"
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(value)
 }
 
 function formatDateTime(value?: number) {
-  if (!value) return "Nao informado"
+  if (!value) return "Não informado"
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(value)
 }
 
@@ -516,7 +516,7 @@ function renderRankingViewer(tournament: UpcomingTournament, registration: UserT
             </div>
             <div class="queue-empty rich ranking-filter-empty" style="display:none">Nenhum jogo encontrado para essa busca.</div>
           `
-          : '<div class="empty-state">Ainda nao houve partidas registradas.</div>'
+          : '<div class="empty-state">Ainda não houve partidas registradas.</div>'
       }
     </section>
   `
@@ -877,7 +877,7 @@ function openCategoryChoiceModal(tournamentId: string, categories: ChampionshipC
   if (!text || !options || !modal || !tournament) return
 
   pendingCategoryTournamentId = tournamentId
-  text.textContent = `Selecione qual categoria voce deseja ver em ${tournament.title}.`
+  text.textContent = `Selecione qual categoria você deseja ver em ${tournament.title}.`
   options.innerHTML = categories
     .map((category) => `<button class="btn primary" onclick="confirmTournamentCategoryChoice('${category}')">Categoria ${category}</button>`)
     .join("")

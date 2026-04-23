@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AJAB - Gerenciar Campeonato</title>
   <link rel="icon" type="image/png" href="/assets/favicon-D-HaqcHe.png">
-  <script type="module" crossorigin src="/assets/championshipManage-DG9kufZ9.js"></script>
+  <script type="module" crossorigin src="/assets/championshipManage-fPqOiNj5.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-Btlm8H0F.js">
   <link rel="modulepreload" crossorigin href="/assets/firebase-VBRKn9At.js">
   <link rel="modulepreload" crossorigin href="/assets/toast-kV3jSCF7.js">
@@ -28,7 +28,7 @@
       <div class="championship-hero-actions">
         <button class="btn primary" onclick="openAddChampionshipAthleteModal()">Adicionar atleta</button>
         <button class="btn secondary" onclick="openChampionshipResultsModal()">Finalizar torneio</button>
-        <button class="btn secondary" onclick="openTournamentRegistrations()">Gerenciar inscricoes</button>
+        <button class="btn secondary" onclick="openTournamentRegistrations()">Gerenciar inscrições</button>
         <button class="btn secondary" onclick="editCurrentTournament()">Editar torneio</button>
         <button class="btn secondary" onclick="goToDashboard()">Voltar ao hub</button>
       </div>
@@ -36,7 +36,7 @@
 
     <section class="championship-summary-grid">
       <article class="card championship-summary-card">
-        <span class="section-label">Visao geral</span>
+        <span class="section-label">Visão geral</span>
         <div class="championship-summary-list">
           <div class="info-row"><span>Status</span><strong id="championshipStatus">-</strong></div>
           <div class="info-row"><span>Categorias</span><strong id="championshipCategories">-</strong></div>
@@ -74,14 +74,14 @@
               </div>
             </div>
             <input id="championshipAthleteSearch" type="search" placeholder="Nome, email, clube ou categoria" oninput="filterChampionshipAthletes()">
-            <div id="championshipAthleteSearchMessage" class="field-help">Digite para localizar um atleta ja cadastrado.</div>
+            <div id="championshipAthleteSearchMessage" class="field-help">Digite para localizar um atleta já cadastrado.</div>
             <div id="championshipAthleteSearchResults" class="athlete-search-results championship-athlete-results"></div>
           </section>
 
           <section class="add-athlete-panel">
             <div class="section-header compact-section-header">
               <div>
-                <span class="section-label">Inscricao</span>
+                <span class="section-label">Inscrição</span>
                 <h3>Configurar entrada no campeonato</h3>
               </div>
             </div>
@@ -98,7 +98,7 @@
             </select>
 
             <button class="btn primary" onclick="submitExistingChampionshipAthlete()">Adicionar atleta selecionado</button>
-            <p class="field-help">Se a categoria ja tiver grupos sorteados, o atleta entra na inscricao, mas a distribuicao dos grupos deve ser refeita manualmente.</p>
+            <p class="field-help">Se a categoria já tiver grupos sorteados, o atleta entra na inscrição, mas a distribuição dos grupos deve ser refeita manualmente.</p>
           </section>
         </div>
 
@@ -106,7 +106,7 @@
           <div class="section-header compact-section-header">
             <div>
               <span class="section-label">Novo cadastro</span>
-              <h3>Nao encontrou no sistema?</h3>
+              <h3>Não encontrou no sistema?</h3>
             </div>
           </div>
           <div class="add-athlete-create-grid">

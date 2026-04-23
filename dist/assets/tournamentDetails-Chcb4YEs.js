@@ -16,7 +16,7 @@ import"./modulepreload-polyfill-Btlm8H0F.js";import{_ as e,a as t,f as n,i as r,
               ${t?`Mostrar menos`:`Mostrar mais (${e.length-i.length})`}
             </button>
           </div>`:``}
-  `}function R(e){return d(e)||e.doubleRegistrationFee===void 0?k(e.registrationFee):`${k(e.registrationFee)} (1 cat.) / ${k(e.doubleRegistrationFee)} (2 cats.)`}function z(e){return e.status===`finished`||e.status===`closed`?!0:e.status===`open`?!1:!!(e.registrationDeadline&&e.registrationDeadline<Date.now())}function B(){let e=document.getElementById(`registrationModal`),t=document.getElementById(`registrationModalText`),n=document.getElementById(`registrationCategoryOptions`),r=v;if(!e||!t||!n||!r)return;let i=E(r,_?.category);if(!i.length){c(`Sua categoria atual nao possui inscricao publica disponivel neste campeonato.`,`warning`);return}t.textContent=d(r)?`Escolha a categoria do ranking para se inscrever em ${r.title}.`:`Escolha uma ou duas categorias para se inscrever em ${r.title}.`,n.innerHTML=i.map((e,t)=>{let n=u(r,y,e),i=l(y,e),a=f(r,e);return`
+  `}function R(e){return d(e)||e.doubleRegistrationFee===void 0?k(e.registrationFee):`${k(e.registrationFee)} (1 cat.) / ${k(e.doubleRegistrationFee)} (2 cats.)`}function z(e){return e.status===`finished`||e.status===`closed`?!0:e.status===`open`?!1:!!(e.registrationDeadline&&e.registrationDeadline<Date.now())}function B(){let e=document.getElementById(`registrationModal`),t=document.getElementById(`registrationModalText`),n=document.getElementById(`registrationCategoryOptions`),r=v;if(!e||!t||!n||!r)return;let i=E(r,_?.category);if(!i.length){c(`Sua categoria atual não possui inscrição pública disponível neste campeonato.`,`warning`);return}t.textContent=d(r)?`Escolha a categoria do ranking para se inscrever em ${r.title}.`:`Escolha uma ou duas categorias para se inscrever em ${r.title}.`,n.innerHTML=i.map((e,t)=>{let n=u(r,y,e),i=l(y,e),a=f(r,e);return`
         <label class="checkbox-option registration-option">
           <input type="${d(r)?`radio`:`checkbox`}" name="registrationCategory" value="${e}" ${t===0&&!n?`checked`:``} ${n?`disabled`:``}>
           <span>${e}${a?` (${i}/${a})`:``}${n?` - lotada`:``}</span>
@@ -45,7 +45,7 @@ import"./modulepreload-polyfill-Btlm8H0F.js";import{_ as e,a as t,f as n,i as r,
             `).join(``)}
       </div>
     </div>
-  `}function U(e){let t=document.getElementById(`tournamentResultsModalList`);if(!t)return;if(!v?.finalStandings?.length){t.innerHTML=`<div class="empty-state">O resultado final ainda nao foi gerado.</div>`;return}let n=F(v.finalStandings),r=n.includes(e)?e:n[0];C=r;let i=w===r,a=v.finalStandings.filter(e=>e.group===r);t.innerHTML=`
+  `}function U(e){let t=document.getElementById(`tournamentResultsModalList`);if(!t)return;if(!v?.finalStandings?.length){t.innerHTML=`<div class="empty-state">O resultado final ainda não foi gerado.</div>`;return}let n=F(v.finalStandings),r=n.includes(e)?e:n[0];C=r;let i=w===r,a=v.finalStandings.filter(e=>e.group===r);t.innerHTML=`
     <div class="form-group championship-result-selector">
       <span>Categoria</span>
       <select onchange="setTournamentResultsGroup(this.value)">
@@ -59,7 +59,7 @@ import"./modulepreload-polyfill-Btlm8H0F.js";import{_ as e,a as t,f as n,i as r,
       </div>
       ${L(a,i,r)}
     </section>
-  `}function W(e){let t=document.getElementById(`registeredAthleteProfileModal`),n=document.getElementById(`registeredAthleteProfileContent`),r=S.get(e),i=y.find(t=>t.id===e||t.uid===e);if(!t||!n||!r){c(`Nao foi possivel carregar o perfil deste atleta.`,`warning`);return}n.innerHTML=`
+  `}function W(e){let t=document.getElementById(`registeredAthleteProfileModal`),n=document.getElementById(`registeredAthleteProfileContent`),r=S.get(e),i=y.find(t=>t.id===e||t.uid===e);if(!t||!n||!r){c(`Não foi possível carregar o perfil deste atleta.`,`warning`);return}n.innerHTML=`
     <div class="athlete-profile-card">
       <div class="athlete-profile-head">
         <div class="athlete-profile-avatar-wrap">${r.photoURL?`<img class="profile-avatar" src="${A(r.photoURL)}" alt="Foto de ${A(r.name)}">`:`<div class="profile-avatar profile-avatar-fallback">${A(j(r.name))}</div>`}</div>

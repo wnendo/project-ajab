@@ -1036,7 +1036,7 @@ function openResetCategoryMatchesModalInternal() {
   const state = getCategoryState(category)
   const groups = getResettableGroups(state)
   if (!groups.length && !(state.completedMatches ?? []).length) {
-    showToast("Nao ha grupos ou jogos para resetar nesta categoria.", "warning")
+    showToast("Não há grupos ou jogos para resetar nesta categoria.", "warning")
     return
   }
 
@@ -1067,7 +1067,7 @@ async function resetCurrentCategoryMatches(target: string) {
 
   const state = getCategoryState(category)
   if (!state.groups?.length && target !== "all") {
-    showToast("Nao ha grupos definidos para resetar.", "warning")
+    showToast("Não há grupos definidos para resetar.", "warning")
     return
   }
 
@@ -1509,7 +1509,7 @@ async function finalizeCurrentCategory() {
 
   const state = getCategoryState(category)
   if (!canFinalizeCategory(state)) {
-    showToast("Esta categoria ainda nao pode ser encerrada.", "warning")
+    showToast("Esta categoria ainda não pode ser encerrada.", "warning")
     return
   }
 
@@ -1549,7 +1549,7 @@ async function finalizeCurrentCategory() {
 
     const runnerUp = finalists.find((playerId) => playerId !== finalWinner)
     if (!runnerUp) {
-      showToast("Nao foi possivel identificar o vice-campeao.", "error")
+      showToast("Não foi possível identificar o vice-campeão.", "error")
       return
     }
 

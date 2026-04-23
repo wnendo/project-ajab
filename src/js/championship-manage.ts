@@ -115,7 +115,7 @@ function escapeHtml(value?: string) {
 }
 
 function formatDateTime(value?: number) {
-  if (!value) return "Nao informado"
+  if (!value) return "Não informado"
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium", timeStyle: "short" }).format(value)
 }
 
@@ -189,7 +189,7 @@ function renderSelectedChampionshipAthleteSummary() {
   summary.innerHTML = `
     <strong>${escapeHtml(selected.user.name)}</strong>
     <span>${escapeHtml(selected.user.club || "Sem clube")} - ${escapeHtml(selected.user.category || "Sem categoria")}</span>
-    <small>${selected.registration ? `Status atual: ${selected.registration.paymentStatus === "approved" ? "inscricao aprovada" : "pagamento pendente"}` : "Sem inscricao neste campeonato"}</small>
+    <small>${selected.registration ? `Status atual: ${selected.registration.paymentStatus === "approved" ? "inscrição aprovada" : "pagamento pendente"}` : "Sem inscrição neste campeonato"}</small>
   `
   renderChampionshipAthleteCategoryOptions()
 }
@@ -203,7 +203,7 @@ function renderChampionshipAthleteSearchResults(search = "") {
   const candidates = getChampionshipAthleteCandidates(trimmed)
 
   if (!trimmed) {
-    message.textContent = "Digite para localizar um atleta ja cadastrado."
+    message.textContent = "Digite para localizar um atleta já cadastrado."
   } else if (!candidates.length) {
     message.textContent = "Nenhum atleta encontrado com esse filtro."
   } else {
@@ -217,7 +217,7 @@ function renderChampionshipAthleteSearchResults(search = "") {
             ? candidate.registration.paymentStatus === "approved"
               ? "Inscrito"
               : "Pendente"
-            : "Disponivel"
+            : "Disponível"
 
           return `
             <button type="button" class="athlete-search-item ${selectedChampionshipAthleteId === candidate.user.id ? "active" : ""}" onclick="selectChampionshipAthleteCandidate('${candidate.user.id}')">
@@ -827,16 +827,21 @@ function getChampionshipAddCategory() {
 function buildChampionshipRegistrationPayload(
   user: User,
   category: ChampionshipCategory,
-  paymentStatus: TournamentRegistration["paymentStatus"]
+  paymentStatus: TournamentRegistration["paymentStatus"],
+  existingRegistration?: TournamentRegistration | UserTournamentRegistration | null
 ) {
   const tournament = currentTournament
   if (!tournament) {
-    throw new Error("Campeonato nao carregado.")
+    throw new Error("Campeonato não carregado.")
   }
 
   const now = Date.now()
-  const registrationFee = getRegistrationFeeForSelection(tournament, [category])
+  const existingCategories = existingRegistration ? parseRegistrationCategories(existingRegistration as TournamentRegistration) : []
+  const mergedCategories = [...new Set([...existingCategories, category])] as ChampionshipCategory[]
+  const registrationFee = getRegistrationFeeForSelection(tournament, mergedCategories)
   const paymentMethod = "pix"
+  const categoryLabel = formatRegistrationCategories(mergedCategories)
+  const registeredAt = existingRegistration?.registeredAt ?? now
 
   const registrationPayload: TournamentRegistration = {
     id: user.id,
@@ -844,12 +849,12 @@ function buildChampionshipRegistrationPayload(
     name: user.name,
     email: user.email,
     club: user.club,
-    category,
-    categories: [category],
+    category: categoryLabel,
+    categories: mergedCategories,
     registrationFee,
     paymentStatus,
     paymentMethod,
-    registeredAt: now,
+    registeredAt,
     status: "registered"
   }
 
@@ -858,15 +863,15 @@ function buildChampionshipRegistrationPayload(
     tournamentId: tournament.id,
     title: tournament.title,
     location: tournament.location ?? "",
-    category,
-    categories: [category],
+    category: categoryLabel,
+    categories: mergedCategories,
     registrationFee,
     paymentStatus,
     paymentMethod,
     startDate: tournament.startDate,
     endDate: tournament.endDate,
     registrationDeadline: tournament.registrationDeadline,
-    registeredAt: now,
+    registeredAt,
     status: "registered"
   }
 
@@ -881,7 +886,13 @@ async function saveChampionshipRegistration(
   if (!currentTournament) return
 
   const batch = writeBatch(db)
-  const { registrationPayload, userRegistrationPayload } = buildChampionshipRegistrationPayload(user, category, paymentStatus)
+  const existingRegistration = getTournamentRegistrationByUserId(user.id)
+  const { registrationPayload, userRegistrationPayload } = buildChampionshipRegistrationPayload(
+    user,
+    category,
+    paymentStatus,
+    existingRegistration
+  )
 
   batch.set(doc(db, "tournaments", currentTournament.id, "registrations", user.id), registrationPayload)
   batch.set(doc(db, "users", user.id, "registrations", currentTournament.id), userRegistrationPayload)
@@ -1088,7 +1099,7 @@ async function createLooseChampionshipUser() {
   }
 
   if (getTournamentRegistrationByUserId(selected.id)) {
-    showToast("Esse atleta ja possui inscricao neste campeonato.", "warning")
+    showToast("Esse atleta já possui inscrição neste campeonato.", "warning")
     return
   }
 
