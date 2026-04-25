@@ -2,6 +2,7 @@ import {
   getGroupHeading,
   getPlayerStats,
   getEligiblePlayersForGroup,
+  getPendingMatchFinishKey,
   getPlayersForGroup,
   getQueueForGroup,
   getStartedGroupsCount,
@@ -220,6 +221,8 @@ export function render() {
                 ${tables
                   .map((table, index) => {
                     const isBusy = table.p1 && table.p2
+                    const finishKey = `${group}_${index}`
+                    const isSavingResult = getPendingMatchFinishKey() === finishKey
                     if (!isBusy) {
                       return `
                         <div class="table-card free enhanced-table-card compact-card">
@@ -251,11 +254,13 @@ export function render() {
                           </div>
                         </div>
                         <div class="score-box compact-score-box">
-                          <input id="s1_${group}_${index}" type="number" min="0" step="1" value="0" onkeydown="if(event.key==='Enter')finish('${group}', ${index})">
+                          <input id="s1_${group}_${index}" type="number" min="0" step="1" value="0" ${isSavingResult ? "disabled" : ""} onkeydown="if(!this.disabled&&event.key==='Enter')finish('${group}', ${index})">
                           <span>x</span>
-                          <input id="s2_${group}_${index}" type="number" min="0" step="1" value="0" onkeydown="if(event.key==='Enter')finish('${group}', ${index})">
+                          <input id="s2_${group}_${index}" type="number" min="0" step="1" value="0" ${isSavingResult ? "disabled" : ""} onkeydown="if(!this.disabled&&event.key==='Enter')finish('${group}', ${index})">
                         </div>
-                        <button class="finish-btn compact-finish-btn" onclick="finish('${group}', ${index})">Finalizar</button>
+                        <button class="finish-btn compact-finish-btn ${isSavingResult ? "loading" : ""}" ${isSavingResult ? "disabled" : ""} onclick="finish('${group}', ${index})">
+                          ${isSavingResult ? '<span class="btn-inline-spinner" aria-hidden="true"></span> Salvando...' : "Finalizar"}
+                        </button>
                       </div>
                     `
                   })
@@ -281,20 +286,21 @@ export function render() {
       ${visibleGroups
         .map((group) => {
           const nextMatches = getQueueForGroup(group).filter(([p1, p2]) => !busy.has(p1.id) && !busy.has(p2.id))
+          const visibleNextMatches = nextMatches.slice(0, 10)
 
           return `
             <div class="group-section queue-section group-column">
               <div class="group-section-header queue-section-header compact">
                 <div>
                   <span class="section-label">${getGroupHeading(group)}</span>
-                  <h3>${nextMatches.length ? `${nextMatches.length} confronto(s) na fila` : "Fila de partidas"}</h3>
+                  <h3>${visibleNextMatches.length ? `${visibleNextMatches.length} confronto(s) na fila` : "Fila de partidas"}</h3>
                 </div>
               </div>
               ${
-                nextMatches.length === 0
+                visibleNextMatches.length === 0
                   ? `<div class="queue-empty rich">Nenhum jogo aguardando agora. Assim que uma mesa liberar, a proxima disputa aparece aqui.</div>`
                   : `<div class="queue-grid compact-queue-grid">
-                      ${nextMatches
+                      ${visibleNextMatches
                         .map((match, index) => {
                           const p1Stats = getPlayerStats(match[0].id)
                           const p2Stats = getPlayerStats(match[1].id)

@@ -8,6 +8,7 @@ import {
   increment,
   PartialWithFieldValue,
   query,
+  setDoc,
   updateDoc,
   where,
   writeBatch
@@ -16,6 +17,7 @@ import { auth, db } from "../services/firebase"
 import { buildQueueForGroup, registerFinishedMatchForGroup } from "./group-queue"
 import { clearQueueForGroup, getNextTableId, matches, officialQueues, players, resetTablesForGroup, tablesByGroup } from "./store"
 import {
+  ChampionshipCategory,
   CompetitionGroup,
   Match,
   Player,
@@ -54,6 +56,9 @@ let registrations: TournamentRegistration[] = []
 let registrationsRefreshInterval: number | null = null
 let selectedAthleteId: string | null = null
 let pendingAthleteCandidate: AthleteSearchCandidate | null = null
+let pendingMatchFinishKey: string | null = null
+let finalResultsExpanded = false
+let openHistoryPlayerId: string | null = null
 let rankingSchedulerStateByGroup: Record<CompetitionGroup, RankingSchedulerState> = {
   general: { winnerPoolIds: [], loserPoolIds: [] },
   A: { winnerPoolIds: [], loserPoolIds: [] },
@@ -348,6 +353,71 @@ function closeAthleteActivationModal() {
   modal.style.display = "none"
 }
 
+function openCreateAthleteModal() {
+  const modal = document.getElementById("createRankingAthleteModal") as HTMLElement | null
+  if (!modal) return
+
+  const nameInput = document.getElementById("newRankingAthleteName") as HTMLInputElement | null
+  const categoryInput = document.getElementById("newRankingAthleteCategory") as HTMLSelectElement | null
+
+  if (nameInput) {
+    nameInput.value = ""
+    window.setTimeout(() => nameInput.focus(), 0)
+  }
+
+  if (categoryInput) {
+    categoryInput.value = "D"
+  }
+
+  modal.style.display = "flex"
+}
+
+function closeCreateAthleteModal() {
+  const modal = document.getElementById("createRankingAthleteModal") as HTMLElement | null
+  if (!modal) return
+
+  modal.style.display = "none"
+}
+
+async function createLooseRankingUser() {
+  const name = (document.getElementById("newRankingAthleteName") as HTMLInputElement | null)?.value.trim() || ""
+  const baseCategory =
+    ((document.getElementById("newRankingAthleteCategory") as HTMLSelectElement | null)?.value as ChampionshipCategory | "") || ""
+
+  if (!name || !baseCategory) {
+    throw new Error("Informe pelo menos nome e categoria para cadastrar o atleta.")
+  }
+
+  const userRef = doc(collection(db, "users"))
+  const now = Date.now()
+  const fakeSlug = normalizeText(name).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "atleta"
+  const fakeSuffix = userRef.id.slice(-6).toLowerCase()
+
+  const newUser: User = {
+    id: userRef.id,
+    name,
+    email: `${fakeSlug}-${fakeSuffix}@ajab.fake`,
+    phone: `000000${Math.floor(Math.random() * 9000 + 1000)}`,
+    club: "Atleta avulso",
+    category: baseCategory,
+    role: "user",
+    createdAt: now,
+    updatedAt: now,
+    profileComplete: true,
+    playerProfile: {
+      wins: 0,
+      losses: 0,
+      games: 0,
+      active: false,
+      createdAt: now
+    }
+  }
+
+  await setDoc(userRef, newUser)
+  allUsers = [...allUsers, newUser].sort((a, b) => a.name.localeCompare(b.name))
+  return newUser
+}
+
 async function saveAthleteRegistration(candidate: AthleteSearchCandidate, paymentStatus: TournamentRegistration["paymentStatus"]) {
   const tournament = currentTournament
   if (!tournament) return
@@ -377,6 +447,10 @@ async function saveAthleteRegistration(candidate: AthleteSearchCandidate, paymen
 
 export function hasActiveTournament() {
   return Boolean(currentTournament && currentTournament.status !== "finished")
+}
+
+export function getPendingMatchFinishKey() {
+  return pendingMatchFinishKey
 }
 
 function getActiveGroups() {
@@ -555,7 +629,17 @@ function updateTournamentSummary() {
 
 function renderFinalResultsModal(standings = currentTournament?.finalStandings ?? []) {
   const container = document.getElementById("finalResultsList")
+  const toggleButton = document.getElementById("finalResultsExpandButton") as HTMLButtonElement | null
+  const modalCard = document.querySelector("#finalResultsModal .tournament-results-modal-card") as HTMLElement | null
   if (!container) return
+
+  if (toggleButton) {
+    toggleButton.textContent = finalResultsExpanded ? "Recolher resultados" : "Expandir resultados"
+  }
+
+  if (modalCard) {
+    modalCard.classList.toggle("expanded", finalResultsExpanded)
+  }
 
   if (!standings.length) {
     container.innerHTML = '<div class="empty-state">O resultado final ainda não foi gerado.</div>'
@@ -572,36 +656,21 @@ function renderFinalResultsModal(standings = currentTournament?.finalStandings ?
             <span class="section-label">${getGroupLabel(group)}</span>
             <strong>${items.length} atleta${items.length === 1 ? "" : "s"}</strong>
           </div>
-          <div class="ranking-showcase">
-            <div class="ranking-showcase-podium">
-              ${items
-                .slice(0, 3)
-                .map(
-                  (entry, index) => `
-                    <article class="ranking-showcase-podium-card place-${index + 1}">
-                      <span class="ranking-showcase-place">${escapeHtml(entry.placement)}</span>
+          <div class="final-results-ranking-list">
+            ${items
+              .map((entry, index) => {
+                const podiumClass = index === 0 ? "podium-gold" : index === 1 ? "podium-silver" : index === 2 ? "podium-bronze" : ""
+                return `
+                  <article class="ranking-athlete-card final-results-ranking-card ${podiumClass}">
+                    <span>${escapeHtml(entry.placement)}</span>
+                    <div class="final-results-ranking-copy">
                       <strong>${escapeHtml(entry.name)}</strong>
-                      <small>${escapeHtml(entry.category)}</small>
-                      <div class="ranking-showcase-score">${entry.wins}V - ${entry.losses}D - ${entry.games} jogos</div>
-                    </article>
-                  `
-                )
-                .join("")}
-            </div>
-            <div class="ranking-showcase-table">
-              ${items
-                .map(
-                  (entry) => `
-                    <div class="ranking-showcase-row">
-                      <span>${escapeHtml(entry.placement)}</span>
-                      <strong>${escapeHtml(entry.name)}</strong>
-                      <small>${escapeHtml(entry.result)}</small>
-                      <span>${entry.wins}V / ${entry.losses}D</span>
                     </div>
-                  `
-                )
-                .join("")}
-            </div>
+                    <span class="ranking-athlete-stats">${entry.wins}V / ${entry.losses}D / ${entry.games}J</span>
+                  </article>
+                `
+              })
+              .join("")}
           </div>
         </section>
       `
@@ -622,6 +691,12 @@ function closeFinalResultsModal() {
   if (modal) {
     modal.style.display = "none"
   }
+  finalResultsExpanded = false
+}
+
+;(window as any).toggleFinalResultsExpand = () => {
+  finalResultsExpanded = !finalResultsExpanded
+  renderFinalResultsModal()
 }
 
 function renderAthleteProfileModal(userId: string) {
@@ -856,6 +931,26 @@ function getPendingRoundRobinMatches(group: CompetitionGroup) {
   return pending
 }
 
+function getActiveTablePlayerPairs(group: CompetitionGroup) {
+  return tablesByGroup[group]
+    .filter((table) => table.p1 && table.p2)
+    .map((table) => [table.p1!, table.p2!] as [Player, Player])
+}
+
+function isSamePlayerPair(left: [Player, Player], right: [Player, Player]) {
+  return (
+    (left[0].id === right[0].id && left[1].id === right[1].id) ||
+    (left[0].id === right[1].id && left[1].id === right[0].id)
+  )
+}
+
+function getPendingMatchesOutsideActiveTables(group: CompetitionGroup) {
+  const activePairs = getActiveTablePlayerPairs(group)
+  return getPendingRoundRobinMatches(group).filter(
+    (pendingMatch) => !activePairs.some((activePair) => isSamePlayerPair(pendingMatch, activePair))
+  )
+}
+
 function getFinalStandings() {
   const tournament = currentTournament
   if (!tournament) return []
@@ -875,7 +970,7 @@ function getFinalStandings() {
           name: player.name,
           category: player.registrationCategory || getGroupLabel(group),
           group,
-          placement: `${position}o lugar`,
+          placement: `${position}°`,
           result: getPlacementLabel(position),
           wins: computedStats.wins,
           losses: computedStats.losses,
@@ -889,8 +984,8 @@ function getFinalStandings() {
 function getPlacementLabel(position: number) {
   if (position === 1) return "Campeão"
   if (position === 2) return "Vice-campeão"
-  if (position === 3) return "3o lugar"
-  return `${position}o lugar`
+  if (position === 3) return "3° lugar"
+  return `${position}° lugar`
 }
 
 function resetLocalChampionshipState() {
@@ -1003,6 +1098,76 @@ async function writeMatchHistoryForUsers(match: Match, winnerId: string, loserId
   await batch.commit()
 }
 
+function getTournamentMatchesForPlayer(playerId: string) {
+  return matches.filter(
+    (match) => match.tournamentId === currentTournament?.id && (match.p1 === playerId || match.p2 === playerId)
+  )
+}
+
+function syncLocalPlayerStats(playerIds: Iterable<string>) {
+  Array.from(new Set(playerIds)).forEach((playerId) => {
+    const playerEntry = players.find((entry) => entry.id === playerId)
+    if (!playerEntry) return
+
+    const playerMatches = getTournamentMatchesForPlayer(playerId)
+    const wins = playerMatches.filter((match) => match.winner === playerId).length
+    const losses = playerMatches.length - wins
+
+    playerEntry.wins = wins
+    playerEntry.losses = losses
+    playerEntry.games = playerMatches.length
+    playerEntry.lastPlayed = playerMatches.length ? Math.max(...playerMatches.map((match) => match.createdAt)) : undefined
+  })
+}
+
+async function persistRankingSummariesForPlayers(playerIds: Iterable<string>) {
+  const tournament = currentTournament
+  if (!tournament) return
+
+  const batch = writeBatch(db)
+
+  Array.from(new Set(playerIds)).forEach((playerId) => {
+    const playerMatches = getTournamentMatchesForPlayer(playerId)
+    const wins = playerMatches.filter((match) => match.winner === playerId).length
+    const losses = playerMatches.length - wins
+    const lastPlayed = playerMatches.length ? Math.max(...playerMatches.map((match) => match.createdAt)) : null
+
+    batch.update(doc(db, "users", playerId), {
+      "playerProfile.wins": wins,
+      "playerProfile.losses": losses,
+      "playerProfile.games": playerMatches.length,
+      "playerProfile.lastPlayed": lastPlayed
+    })
+
+    if (playerMatches.length) {
+      batch.set(
+        doc(db, "users", playerId, "tournaments", tournament.id),
+        {
+          tournamentId: tournament.id,
+          title: tournament.title,
+          category: getRegistrationByUserId(playerId)?.category || tournament.category || "Livre",
+          result: "Em andamento",
+          matchCount: playerMatches.length,
+          wins,
+          losses,
+          playedAt: lastPlayed ?? Date.now()
+        },
+        { merge: true }
+      )
+    } else {
+      batch.delete(doc(db, "users", playerId, "tournaments", tournament.id))
+    }
+  })
+
+  await batch.commit()
+}
+
+async function rebuildRankingAfterMatchMutation(group: CompetitionGroup, prioritizedPlayerId?: string | null) {
+  rankingSchedulerStateByGroup[group] = { winnerPoolIds: [], loserPoolIds: [] }
+  refreshRankingGroupQueue(group, prioritizedPlayerId)
+  await persistRankingLiveState()
+}
+
 function fillOpenTables(group: CompetitionGroup) {
   const tables = tablesByGroup[group]
   const queue = officialQueues[group]
@@ -1017,6 +1182,96 @@ function fillOpenTables(group: CompetitionGroup) {
 
 function hasBusyTables(group: CompetitionGroup) {
   return tablesByGroup[group].some((table) => table.p1 && table.p2)
+}
+
+function hasOpenTable(group: CompetitionGroup) {
+  return tablesByGroup[group].some((table) => !table.p1 && !table.p2)
+}
+
+function hasPlayedAgainstInGroup(group: CompetitionGroup, leftId: string, rightId: string) {
+  return getPlayedMatchesForGroup(group).some(
+    (match) =>
+      (match.p1 === leftId && match.p2 === rightId) || (match.p1 === rightId && match.p2 === leftId)
+  )
+}
+
+function getAvailableEligiblePlayersForGroup(group: CompetitionGroup) {
+  const busyIds = new Set<string>()
+  tablesByGroup[group].forEach((table) => {
+    if (table.p1?.id) busyIds.add(table.p1.id)
+    if (table.p2?.id) busyIds.add(table.p2.id)
+  })
+
+  return getEligiblePlayersForGroup(group).filter((player) => !busyIds.has(player.id))
+}
+
+function prioritizePlayerInQueue(group: CompetitionGroup, prioritizedPlayerId?: string | null) {
+  if (!prioritizedPlayerId) return
+
+  const prioritizedMatches = officialQueues[group].filter(
+    ([p1, p2]) => p1.id === prioritizedPlayerId || p2.id === prioritizedPlayerId
+  )
+  if (!prioritizedMatches.length) return
+
+  const remainingMatches = officialQueues[group].filter(
+    ([p1, p2]) => p1.id !== prioritizedPlayerId && p2.id !== prioritizedPlayerId
+  )
+
+  officialQueues[group].length = 0
+  prioritizedMatches.forEach((match) => officialQueues[group].push(match))
+  remainingMatches.forEach((match) => officialQueues[group].push(match))
+}
+
+function cancelRankingParticipation(group: CompetitionGroup, playerId: string) {
+  let prioritizedPlayerId: string | null = null
+
+  tablesByGroup[group] = tablesByGroup[group].map((table) => {
+    const playerIsInTable = table.p1?.id === playerId || table.p2?.id === playerId
+    if (!playerIsInTable) {
+      return table
+    }
+
+    prioritizedPlayerId = table.p1?.id === playerId ? table.p2?.id ?? null : table.p1?.id ?? null
+    return { id: table.id, group }
+  })
+
+  const remainingQueue = officialQueues[group].filter(([p1, p2]) => p1.id !== playerId && p2.id !== playerId)
+  officialQueues[group].length = 0
+  remainingQueue.forEach((match) => officialQueues[group].push(match))
+
+  return prioritizedPlayerId
+}
+
+function refreshRankingGroupQueue(group: CompetitionGroup, prioritizedPlayerId?: string | null) {
+  clearQueue(group)
+
+  if (!isGroupStarted(group) || getEligiblePlayersForGroup(group).length < 2) {
+    return
+  }
+
+  rankingSchedulerStateByGroup[group] = buildQueueForGroup(
+    group,
+    getEligiblePlayersForGroup(group),
+    rankingSchedulerStateByGroup[group]
+  )
+  prioritizePlayerInQueue(group, prioritizedPlayerId)
+  fillOpenTables(group)
+}
+
+function shouldSeatNewAthleteImmediately(group: CompetitionGroup, athleteId: string) {
+  if (!isGroupStarted(group) || !hasOpenTable(group)) {
+    return false
+  }
+
+  const availablePlayers = getAvailableEligiblePlayersForGroup(group)
+  const newAthlete = availablePlayers.find((player) => player.id === athleteId)
+  if (!newAthlete) {
+    return false
+  }
+
+  return availablePlayers.some(
+    (player) => player.id !== athleteId && !hasPlayedAgainstInGroup(group, athleteId, player.id)
+  )
 }
 
 function redirectByRole(userData?: User | null) {
@@ -1081,6 +1336,14 @@ async function requireAdminUserData(firebaseUserId: string) {
   closeFinalResultsModal()
 }
 
+;(window as any).closeHistoryModal = () => {
+  openHistoryPlayerId = null
+  const modal = document.getElementById("historyModal") as HTMLElement | null
+  if (modal) {
+    modal.style.display = "none"
+  }
+}
+
 ;(window as any).openTournamentRegistrations = () => {
   if (!currentTournament) return
   window.location.href = `/pages/tournament-registrations.html?id=${currentTournament.id}`
@@ -1088,6 +1351,14 @@ async function requireAdminUserData(firebaseUserId: string) {
 
 ;(window as any).closeAthleteActivationModal = () => {
   closeAthleteActivationModal()
+}
+
+;(window as any).openCreateRankingAthleteModal = () => {
+  openCreateAthleteModal()
+}
+
+;(window as any).closeCreateRankingAthleteModal = () => {
+  closeCreateAthleteModal()
 }
 
 onAuthStateChanged(auth, async (user) => {
@@ -1133,6 +1404,7 @@ window.addEventListener("beforeunload", () => {
   await loadPlayers()
 
   try {
+    let handledReactivationFeedback = false
     const selectedCandidate =
       (selectedAthleteId ? getAthleteSearchCandidates().find((entry) => entry.user.id === selectedAthleteId) : undefined) ??
       getAthleteSearchCandidates(name).find((entry) => normalizeText(entry.user.name) === normalizeText(name))
@@ -1168,16 +1440,24 @@ window.addEventListener("beforeunload", () => {
       inactiveUser.active = true
       selectedAthleteId = null
       const group = getPlayerCompetitionGroup(tournament, inactiveUser.registrationCategory)
-      if (isGroupStarted(group)) {
+      if (shouldSeatNewAthleteImmediately(group, inactiveUser.id)) {
+        refreshRankingGroupQueue(group, inactiveUser.id)
+        await persistRankingLiveState()
+        showToast("Atleta reativado e encaixado imediatamente na próxima mesa disponível.", "success")
+        handledReactivationFeedback = true
+      } else if (isGroupStarted(group)) {
         await persistRankingLiveState()
         showToast("Atleta reativado. Clique em 'Atualizar jogos' para incluir esse atleta na categoria.", "info")
+        handledReactivationFeedback = true
       }
 
       players.sort((a, b) => a.name.localeCompare(b.name))
       input.value = ""
       syncAthleteSearch()
       render()
-      showToast("Atleta reativado com sucesso.", "success")
+      if (!handledReactivationFeedback) {
+        showToast("Atleta reativado com sucesso.", "success")
+      }
       return
     }
 
@@ -1214,6 +1494,7 @@ window.addEventListener("beforeunload", () => {
   }
 
   try {
+    let handledApprovedFeedback = false
     await saveAthleteRegistration(candidate, status)
     await loadPlayers()
 
@@ -1224,15 +1505,24 @@ window.addEventListener("beforeunload", () => {
         return
       }
 
-      const group = getPlayerCompetitionGroup(tournament, candidate.user.category)
-      if (isGroupStarted(group)) {
+      const addedPlayer = players.find((entry) => entry.id === candidate.user.id)
+      const group = getPlayerCompetitionGroup(tournament, addedPlayer?.registrationCategory ?? candidate.user.category)
+      if (shouldSeatNewAthleteImmediately(group, candidate.user.id)) {
+        refreshRankingGroupQueue(group, candidate.user.id)
+        await persistRankingLiveState()
+        showToast("Atleta adicionado e encaixado imediatamente na próxima mesa disponível.", "success")
+        handledApprovedFeedback = true
+      } else if (isGroupStarted(group)) {
         await persistRankingLiveState()
         showToast("Atleta adicionado. Clique em 'Atualizar jogos' para incluir esse atleta na categoria.", "info")
+        handledApprovedFeedback = true
       }
     }
 
     if (status === "approved") {
-      showToast("Atleta adicionado automaticamente ao campeonato.", "success")
+      if (!handledApprovedFeedback) {
+        showToast("Atleta adicionado com sucesso.", "success")
+      }
     } else {
       showToast("Inscrição adicionada para análise no gerenciamento de inscrições.", "info")
     }
@@ -1589,15 +1879,15 @@ window.addEventListener("beforeunload", () => {
     return
   }
 
-  const pendingMatches = getActiveGroups().flatMap((group) => getPendingRoundRobinMatches(group))
-  if (pendingMatches.length) {
-    showToast("Ainda existem confrontos obrigatorios pendentes neste ranking.", "warning")
-    return
-  }
+  const activeTableMatches = getActiveGroups().flatMap((group) => getActiveTablePlayerPairs(group))
+  const pendingMatches = getActiveGroups().flatMap((group) => getPendingMatchesOutsideActiveTables(group))
+  const cancelledMatchesCount = activeTableMatches.length + pendingMatches.length
 
   const confirmed = await confirmAction({
     title: "Encerrar torneio",
-    message: `Encerrar o torneio "${tournament.title}"?\n\nEssa ação finaliza o ranking e grava a classificação dos atletas.`,
+    message: `Encerrar o torneio "${tournament.title}"?\n\nEssa ação finaliza o ranking e grava a classificação dos atletas${
+      cancelledMatchesCount ? `.\n\n${cancelledMatchesCount} confronto(s) ainda não concluído(s) será(ão) cancelado(s).` : "."
+    }`,
     confirmLabel: "Encerrar",
     tone: "danger"
   })
@@ -1606,6 +1896,11 @@ window.addEventListener("beforeunload", () => {
   try {
     const batch = writeBatch(db)
     const now = Date.now()
+    const finishedRankingLiveState = {
+      general: { queue: [], activeTables: tablesByGroup.general.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
+      A: { queue: [], activeTables: tablesByGroup.A.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } },
+      B: { queue: [], activeTables: tablesByGroup.B.map((table) => ({ id: table.id })), scheduler: { winnerPoolIds: [], loserPoolIds: [] } }
+    }
 
     standings.forEach((entry) => {
       const tournamentRecord: UserTournament = {
@@ -1636,12 +1931,20 @@ window.addEventListener("beforeunload", () => {
       isActive: false,
       status: "finished",
       finalStandings: standings,
+      rankingLiveState: finishedRankingLiveState,
       updatedAt: now,
       completedAt: now
     })
 
     await batch.commit()
-    currentTournament = { ...tournament, isActive: false, status: "finished", finalStandings: standings, updatedAt: now }
+    currentTournament = {
+      ...tournament,
+      isActive: false,
+      status: "finished",
+      finalStandings: standings,
+      rankingLiveState: finishedRankingLiveState,
+      updatedAt: now
+    }
     updateTournamentSummary()
     resetLocalChampionshipState()
     await persistRankingLiveState()
@@ -1720,17 +2023,29 @@ window.addEventListener("beforeunload", () => {
 }
 
 ;(window as any).togglePlayer = async (id: string) => {
+  const tournament = currentTournament
   const player = players.find((entry) => entry.id === id)
-  if (!player) return
+  if (!player || !tournament) return
 
-  player.active = !player.active
+  const nextActiveState = !player.active
+  const previousActiveState = player.active
+  const group = getPlayerCompetitionGroup(tournament, player.registrationCategory)
+  let prioritizedPlayerId: string | null = null
+
+  player.active = nextActiveState
 
   try {
-    await updateDoc(doc(db, "users", id), { "playerProfile.active": player.active })
-    clearQueue()
+    await updateDoc(doc(db, "users", id), { "playerProfile.active": nextActiveState })
+
+    if (!nextActiveState) {
+      prioritizedPlayerId = cancelRankingParticipation(group, id)
+    }
+
+    refreshRankingGroupQueue(group, prioritizedPlayerId)
     await persistRankingLiveState()
     render()
   } catch (error: any) {
+    player.active = previousActiveState
     showToast("Erro ao atualizar atleta: " + error.message, "error")
   }
 }
@@ -1739,7 +2054,10 @@ window.addEventListener("beforeunload", () => {
   const player = players.find((entry) => entry.id === playerId)
   if (!player) return
 
-  const history = matches.filter((match) => match.p1 === playerId || match.p2 === playerId)
+  openHistoryPlayerId = playerId
+  const history = matches
+    .filter((match) => match.tournamentId === currentTournament?.id && (match.p1 === playerId || match.p2 === playerId))
+    .sort((a, b) => b.createdAt - a.createdAt)
   const list = history
     .map((match) => {
       const isP1 = match.p1 === playerId
@@ -1751,8 +2069,14 @@ window.addEventListener("beforeunload", () => {
 
       return `
         <div class="history-item ${isWin ? "win" : "loss"}">
-          <div>vs ${opponent?.name ?? "Jogador removido"}</div>
-          <div>${myScore} x ${opponentScore}</div>
+          <div class="history-item-copy">
+            <strong>vs ${escapeHtml(opponent?.name ?? "Jogador removido")}</strong>
+            <span>${myScore} x ${opponentScore}</span>
+          </div>
+          <div class="history-item-actions">
+            <button class="btn secondary btn-sm" onclick="editHistoryMatch('${match.id}', '${playerId}')">Editar</button>
+            <button class="btn danger btn-sm" onclick="deleteHistoryMatch('${match.id}', '${playerId}')">Excluir</button>
+          </div>
         </div>
       `
     })
@@ -1773,6 +2097,143 @@ window.addEventListener("beforeunload", () => {
 
   document.getElementById("historyList")!.innerHTML = statsHtml + (list || "<div>Nenhum jogo ainda</div>")
   ;(document.getElementById("historyModal") as HTMLElement).style.display = "flex"
+}
+
+;(window as any).editHistoryMatch = async (matchId: string, viewerPlayerId: string) => {
+  const match = matches.find((entry) => entry.id === matchId)
+  const tournament = currentTournament
+  if (!match || !tournament) return
+
+  const p1 = players.find((entry) => entry.id === match.p1)
+  const p2 = players.find((entry) => entry.id === match.p2)
+  if (!p1 || !p2) {
+    showToast("Não foi possível localizar os atletas dessa partida.", "warning")
+    return
+  }
+
+  const nextScore1 = prompt(`Novo placar de ${p1.name}:`, String(match.score1))
+  if (nextScore1 === null) return
+  const nextScore2 = prompt(`Novo placar de ${p2.name}:`, String(match.score2))
+  if (nextScore2 === null) return
+
+  const score1 = Number.parseInt(nextScore1, 10)
+  const score2 = Number.parseInt(nextScore2, 10)
+
+  if (Number.isNaN(score1) || Number.isNaN(score2)) {
+    showToast("Preencha o placar corretamente.", "warning")
+    return
+  }
+
+  if (score1 < 0 || score2 < 0) {
+    showToast("O placar não pode ser negativo.", "warning")
+    return
+  }
+
+  if (score1 === score2) {
+    showToast("O jogo precisa ter um vencedor.", "warning")
+    return
+  }
+
+  const nextWinnerId = score1 > score2 ? p1.id : p2.id
+  const winner = nextWinnerId === p1.id ? p1 : p2
+  const loser = nextWinnerId === p1.id ? p2 : p1
+  const tableLabel = match.tableLabel
+
+  try {
+    const batch = writeBatch(db)
+
+    batch.update(doc(db, "matches", match.id), {
+      score1,
+      score2,
+      winner: nextWinnerId
+    })
+
+    const winnerMatch: UserMatchHistory = {
+      id: match.id,
+      tournamentId: tournament.id,
+      tournamentTitle: tournament.title,
+      opponentName: loser.name,
+      scoreLabel: `${score1} x ${score2}`,
+      tableLabel,
+      result: "win",
+      playedAt: match.createdAt
+    }
+
+    const loserMatch: UserMatchHistory = {
+      id: match.id,
+      tournamentId: tournament.id,
+      tournamentTitle: tournament.title,
+      opponentName: winner.name,
+      scoreLabel: `${score2} x ${score1}`,
+      tableLabel,
+      result: "loss",
+      playedAt: match.createdAt
+    }
+
+    batch.set(doc(db, "users", winner.id, "matches", match.id), winnerMatch)
+    batch.set(doc(db, "users", loser.id, "matches", match.id), loserMatch)
+
+    await batch.commit()
+
+    match.score1 = score1
+    match.score2 = score2
+    match.winner = nextWinnerId
+
+    await persistRankingSummariesForPlayers([p1.id, p2.id])
+    syncLocalPlayerStats([p1.id, p2.id])
+    await rebuildRankingAfterMatchMutation(match.group ?? "general")
+    render()
+    ;(window as any).showHistory(viewerPlayerId)
+    showToast("Partida atualizada com sucesso.", "success")
+  } catch (error: any) {
+    showToast("Erro ao atualizar partida: " + error.message, "error")
+  }
+}
+
+;(window as any).submitCreateRankingAthlete = async () => {
+  try {
+    const newUser = await createLooseRankingUser()
+    closeCreateAthleteModal()
+    openAthleteActivationModal({ user: newUser })
+    syncAthleteSearch()
+    showToast("Atleta fictício criado. Agora confirme a inscrição no torneio.", "success")
+  } catch (error: any) {
+    showToast("Erro ao criar atleta fictício: " + error.message, "error")
+  }
+}
+
+;(window as any).deleteHistoryMatch = async (matchId: string, viewerPlayerId: string) => {
+  const match = matches.find((entry) => entry.id === matchId)
+  if (!match) return
+
+  const confirmed = await confirmAction({
+    title: "Excluir partida",
+    message: "Deseja excluir essa partida finalizada?",
+    confirmLabel: "Excluir",
+    tone: "danger"
+  })
+  if (!confirmed) return
+
+  try {
+    const batch = writeBatch(db)
+    batch.delete(doc(db, "matches", match.id))
+    batch.delete(doc(db, "users", match.p1, "matches", match.id))
+    batch.delete(doc(db, "users", match.p2, "matches", match.id))
+    await batch.commit()
+
+    const nextMatches = matches.filter((entry) => entry.id !== match.id)
+    matches.length = 0
+    matches.push(...nextMatches)
+
+    await persistRankingSummariesForPlayers([match.p1, match.p2])
+    syncLocalPlayerStats([match.p1, match.p2])
+    await rebuildRankingAfterMatchMutation(match.group ?? "general")
+    render()
+    ;(window as any).showHistory(viewerPlayerId)
+    showToast("Partida excluída com sucesso.", "success")
+  } catch (error: any) {
+    showToast("Erro ao excluir partida: " + error.message, "error")
+  }
 }
 
 export function getPlayerStats(playerId: string) {
@@ -1846,6 +2307,8 @@ export function getPlayerStats(playerId: string) {
   const table = tablesByGroup[group][index]
   const tournament = currentTournament
   if (!table?.p1 || !table?.p2 || !tournament) return
+  const pendingKey = `${group}_${index}`
+  if (pendingMatchFinishKey === pendingKey) return
 
   const s1 = parseInt((document.getElementById(`s1_${group}_${index}`) as HTMLInputElement).value, 10)
   const s2 = parseInt((document.getElementById(`s2_${group}_${index}`) as HTMLInputElement).value, 10)
@@ -1865,16 +2328,12 @@ export function getPlayerStats(playerId: string) {
     return
   }
 
+  pendingMatchFinishKey = pendingKey
+  render()
+
   const winner = s1 > s2 ? table.p1 : table.p2
   const loser = s1 > s2 ? table.p2 : table.p1
   const now = Date.now()
-
-  winner.wins += 1
-  loser.losses += 1
-  winner.games += 1
-  loser.games += 1
-  winner.lastPlayed = now
-  loser.lastPlayed = now
 
   try {
     const matchPayload: Omit<Match, "id"> = {
@@ -1907,6 +2366,13 @@ export function getPlayerStats(playerId: string) {
 
     await batch.commit()
 
+    winner.wins += 1
+    loser.losses += 1
+    winner.games += 1
+    loser.games += 1
+    winner.lastPlayed = now
+    loser.lastPlayed = now
+
     const savedMatch: Match = { id: matchRef.id, ...matchPayload }
     await writeMatchHistoryForUsers(savedMatch, winner.id, loser.id)
 
@@ -1927,8 +2393,11 @@ export function getPlayerStats(playerId: string) {
     )
     fillOpenTables(group)
     await persistRankingLiveState()
+    pendingMatchFinishKey = null
     render()
   } catch (error: any) {
+    pendingMatchFinishKey = null
+    render()
     showToast("Erro ao finalizar partida: " + error.message, "error")
   }
 }

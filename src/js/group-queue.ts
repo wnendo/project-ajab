@@ -100,6 +100,17 @@ function getRemainingPlayers(players: Player[], used: Set<string>) {
   return players.filter((player) => !used.has(player.id))
 }
 
+function shufflePlayers(players: Player[]) {
+  const shuffled = [...players]
+
+  for (let index = shuffled.length - 1; index > 0; index--) {
+    const randomIndex = Math.floor(Math.random() * (index + 1))
+    ;[shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]]
+  }
+
+  return shuffled
+}
+
 function pairPriorityWaitingPlayers(
   underplayedPlayers: Player[],
   used: Set<string>,
@@ -263,6 +274,27 @@ export function buildQueueForGroup(
     used.add(left.id)
     used.add(right.id)
   })
+
+  const isInitialDraw =
+    matches.every((match) => (match.group ?? "general") !== group) &&
+    queue.length === 0 &&
+    !(schedulerState.winnerPoolIds ?? []).length &&
+    !(schedulerState.loserPoolIds ?? []).length
+
+  if (isInitialDraw) {
+    const shuffledPlayers = shufflePlayers(eligiblePlayers)
+
+    for (let index = 0; index < shuffledPlayers.length - 1; index += 2) {
+      queue.push([shuffledPlayers[index], shuffledPlayers[index + 1]])
+    }
+
+    officialQueues[group].length = 0
+    queue.forEach((match) => officialQueues[group].push(match))
+    return {
+      winnerPoolIds: [],
+      loserPoolIds: []
+    }
+  }
 
   const nextState: RankingSchedulerState = {
     winnerPoolIds: [...(schedulerState.winnerPoolIds ?? [])],

@@ -26,6 +26,9 @@
     <input id="name" placeholder="Busque por nome, email ou clube" oninput="searchAthletes()" onkeydown="if(event.key==='Enter')addPlayer()">
     <button class="add-btn" onclick="addPlayer()">Ativar</button>
   </div>
+  <div class="card-inline-actions">
+    <button class="btn secondary btn-sm" onclick="openCreateRankingAthleteModal()">Cadastrar atleta fictício</button>
+  </div>
   <div id="athleteSearchMessage" class="field-help">Digite para buscar atletas cadastrados.</div>
   <div id="athleteSearchResults" class="athlete-search-results"></div>
 </div>
@@ -118,7 +121,7 @@
   <div class="modal-card">
     <div class="modal-header">
       <span id="historyTitle"></span>
-      <button class="close-btn" onclick="historyModal.style.display='none'">Fechar</button>
+      <button class="close-btn" onclick="closeHistoryModal()">Fechar</button>
     </div>
     <div id="historyList" class="modal-body"></div>
   </div>
@@ -141,6 +144,38 @@
   </div>
 </div>
 
+<div id="createRankingAthleteModal" class="modal">
+  <div class="modal-card registration-modal-card add-athlete-modal-card">
+    <div class="modal-header">
+      <span>Cadastrar atleta fictício</span>
+      <button class="close-btn" onclick="closeCreateRankingAthleteModal()">Fechar</button>
+    </div>
+    <div class="modal-body registration-modal-body">
+      <p class="registration-modal-text">Informe apenas o nome real do atleta. O restante do cadastro será criado com dados fictícios.</p>
+      <div class="registration-category-list">
+        <label>
+          Nome do atleta
+          <input id="newRankingAthleteName" type="text" placeholder="Nome completo do atleta" onkeydown="if(event.key==='Enter')submitCreateRankingAthlete()">
+        </label>
+        <label>
+          Categoria base
+          <select id="newRankingAthleteCategory">
+            <option value="A">Categoria A</option>
+            <option value="B">Categoria B</option>
+            <option value="C">Categoria C</option>
+            <option value="D" selected>Categoria D</option>
+            <option value="Iniciante">Categoria Iniciante</option>
+          </select>
+        </label>
+      </div>
+      <div class="athlete-activation-actions">
+        <button class="btn primary" onclick="submitCreateRankingAthlete()">Criar atleta</button>
+        <button class="btn secondary" onclick="closeCreateRankingAthleteModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="athleteProfileModal" class="modal">
   <div class="modal-card athlete-profile-modal-card">
     <div class="modal-header">
@@ -155,7 +190,10 @@
   <div class="modal-card registration-modal-card tournament-results-modal-card">
     <div class="modal-header">
       <span>Resultado final do ranking</span>
-      <button class="close-btn" onclick="closeFinalResultsModal()">Fechar</button>
+      <div class="modal-header-actions">
+        <button id="finalResultsExpandButton" class="btn secondary btn-sm" onclick="toggleFinalResultsExpand()">Expandir resultados</button>
+        <button class="close-btn" onclick="closeFinalResultsModal()">Fechar</button>
+      </div>
     </div>
     <div id="finalResultsList" class="modal-body registration-modal-body"></div>
   </div>

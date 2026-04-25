@@ -152,7 +152,8 @@ function getChampionshipAthleteCandidates(search = "") {
 
 function renderChampionshipAthleteCategoryOptions(selectedCategory?: string) {
   const select = document.getElementById("championshipManualCategory") as HTMLSelectElement | null
-  if (!select || !currentTournament) return
+  const tournament = currentTournament
+  if (!select || !tournament) return
 
   const categories = getChampionshipAdminCategories()
   const preferredSelection = categories.includes(selectedCategory as ChampionshipCategory)
@@ -162,7 +163,7 @@ function renderChampionshipAthleteCategoryOptions(selectedCategory?: string) {
   select.innerHTML = categories
     .map((category) => {
       const count = getCategoryRegistrationCount(registrations, category)
-      const limit = getCategoryLimit(currentTournament, category)
+      const limit = getCategoryLimit(tournament, category)
       const full = Boolean(limit && count >= limit)
       const isSelected = preferredSelection === category
       return `<option value="${category}" ${isSelected ? "selected" : ""} ${full && !isSelected ? "disabled" : ""}>${escapeHtml(category)}${limit ? ` (${count}/${limit})` : ""}${full && !isSelected ? " - lotada" : ""}</option>`
@@ -499,6 +500,7 @@ function renderChampionshipResultsModalContent(category?: ChampionshipCategory) 
 async function finalizeChampionshipTournament() {
   const tournament = currentTournament
   if (!tournament) return
+  const updatedAt = Date.now()
 
   const categoryState = tournament.championshipState ?? {}
   const nextChampionshipState = getTournamentCategories().reduce((accumulator, category) => {
@@ -524,14 +526,14 @@ async function finalizeChampionshipTournament() {
     status: "finished",
     isActive: false,
     championshipState: nextChampionshipState,
-    updatedAt: Date.now()
+    updatedAt
   }
 
   await updateDoc(doc(db, "tournaments", tournament.id), {
     status: "finished",
     isActive: false,
     championshipState: nextChampionshipState,
-    updatedAt: currentTournament.updatedAt
+    updatedAt
   })
 }
 

@@ -24,6 +24,7 @@ let checked = false
 let currentTournament: UpcomingTournament | null = null
 let currentCategory: ChampionshipCategory | null = null
 let registrations: TournamentRegistration[] = []
+let pendingChampionshipMatchTableIndex: number | null = null
 
 function normalizeChampionshipCategory(value?: string): ChampionshipCategory | null {
   const normalized = (value ?? "").trim().toUpperCase()
@@ -169,9 +170,9 @@ function getKnockoutFinalStandings(state: ChampionshipCategoryState) {
 function getPlacementLabel(position: number) {
   if (position === 1) return "Campeão"
   if (position === 2) return "Vice-campeão"
-  if (position === 3) return "3o lugar"
-  if (position === 4) return "4o lugar"
-  return `${position}o lugar`
+  if (position === 3) return "3° lugar"
+  if (position === 4) return "4° lugar"
+  return `${position}° lugar`
 }
 
 function getPlayerStatsForCategory(state: ChampionshipCategoryState, playerId: string) {
@@ -210,7 +211,7 @@ function getTournamentRecordForPlayer(
     tournamentId: tournament.id,
     title: tournament.title,
     category,
-    ...(standingIndex >= 0 ? { placement: `${standingIndex + 1}o lugar` } : {}),
+    ...(standingIndex >= 0 ? { placement: `${standingIndex + 1}° lugar` } : {}),
     result: standingIndex >= 0 ? getPlacementLabel(standingIndex + 1) : "Participacao",
     matchCount: stats.matchCount,
     wins: stats.wins,
@@ -1360,11 +1361,13 @@ function renderPage() {
                         <div class="table-player"><strong>${getPlayerDisplayName(match.playerIds[1])}</strong><span>${getPlayerMeta(match.playerIds[1])}</span></div>
                       </div>
                       <div class="score-box compact-score-box">
-                        <input id="score1_${index}" type="number" min="0" step="1" value="${match.score1 ?? 0}">
+                        <input id="score1_${index}" type="number" min="0" step="1" value="${match.score1 ?? 0}" ${pendingChampionshipMatchTableIndex === index ? "disabled" : ""}>
                         <span>x</span>
-                        <input id="score2_${index}" type="number" min="0" step="1" value="${match.score2 ?? 0}">
+                        <input id="score2_${index}" type="number" min="0" step="1" value="${match.score2 ?? 0}" ${pendingChampionshipMatchTableIndex === index ? "disabled" : ""}>
                       </div>
-                      <button class="finish-btn compact-finish-btn" onclick="finishMatch(${index})">Finalizar</button>
+                      <button class="finish-btn compact-finish-btn ${pendingChampionshipMatchTableIndex === index ? "loading" : ""}" ${pendingChampionshipMatchTableIndex === index ? "disabled" : ""} onclick="finishMatch(${index})">
+                        ${pendingChampionshipMatchTableIndex === index ? '<span class="btn-inline-spinner" aria-hidden="true"></span> Salvando...' : "Finalizar"}
+                      </button>
                     </div>`
                   }).join("")}
                 </div>
@@ -1712,6 +1715,7 @@ async function finalizeCurrentCategory() {
 ;(window as any).finishMatch = async (tableIndex: number) => {
   const category = currentCategory
   if (!category) return
+  if (pendingChampionshipMatchTableIndex === tableIndex) return
 
   const state = getCategoryState(category)
   if (state.finished) {
@@ -1729,6 +1733,9 @@ async function finalizeCurrentCategory() {
     return
   }
 
+  pendingChampionshipMatchTableIndex = tableIndex
+  renderPage()
+
   const completedMatch: ChampionshipMatch = {
     ...table.match,
     score1,
@@ -1745,13 +1752,20 @@ async function finalizeCurrentCategory() {
     completedMatches
   })
 
-  await saveCategoryState({
-    activeTables: rebalanced.activeTables,
-    queue: rebalanced.queue,
-    completedMatches
-  })
-  await writeMatchHistoryForUsers(category, { ...state, completedMatches }, completedMatch)
-  renderPage()
+  try {
+    await saveCategoryState({
+      activeTables: rebalanced.activeTables,
+      queue: rebalanced.queue,
+      completedMatches
+    })
+    await writeMatchHistoryForUsers(category, { ...state, completedMatches }, completedMatch)
+    pendingChampionshipMatchTableIndex = null
+    renderPage()
+  } catch (error: any) {
+    pendingChampionshipMatchTableIndex = null
+    renderPage()
+    showToast("Erro ao finalizar partida: " + error.message, "error")
+  }
 }
 
 ;(window as any).openTournamentRegistrations = () => {
