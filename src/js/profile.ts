@@ -23,6 +23,7 @@ let registrationStatusByTournament = new Map<string, UserTournamentRegistration[
 let registrationMethodByTournament = new Map<string, UserTournamentRegistration["paymentMethod"] | undefined>()
 let openProfileResultTournamentId: string | null = null
 let openProfileResultGroupId: string | null = null
+let profileTournamentResultExpanded = false
 const CHAMPIONSHIP_CATEGORY_ORDER: ChampionshipCategory[] = ["A", "B", "C", "D", "Iniciante"]
 
 function formatDate(value?: number) {
@@ -225,45 +226,30 @@ function getRankingResultShowcase(tournament: UpcomingTournament) {
     return '<div class="empty-state">O resultado final deste ranking ainda não foi publicado.</div>'
   }
 
-  const podium = standings.slice(0, 3)
-  const others = standings.slice(3)
-
   return `
-    <div class="ranking-showcase">
-      <div class="ranking-showcase-podium">
-        ${podium
-          .map(
-            (entry, index) => `
-              <article class="ranking-showcase-podium-card place-${index + 1}">
-                <span class="ranking-showcase-place">${entry.placement}</span>
-                <strong>${escapeHtml(entry.name)}</strong>
-                <small>${escapeHtml(entry.category)}</small>
-                <div class="ranking-showcase-score">${entry.wins}V - ${entry.losses}D - ${entry.games} jogos</div>
+    <section class="final-results-section">
+      <div class="final-results-head">
+        <span class="section-label">Classificação geral</span>
+        <strong>${standings.length} atleta${standings.length === 1 ? "" : "s"}</strong>
+      </div>
+      <div class="final-results-ranking-list">
+        ${standings
+          .map((entry, index) => {
+            const podiumClass = index === 0 ? "podium-gold" : index === 1 ? "podium-silver" : index === 2 ? "podium-bronze" : ""
+            return `
+              <article class="ranking-athlete-card final-results-ranking-card ${podiumClass}">
+                <span>${escapeHtml(entry.placement)}</span>
+                <div class="final-results-ranking-copy">
+                  <strong>${escapeHtml(entry.name)}</strong>
+                  <small>${escapeHtml(entry.result)}</small>
+                </div>
+                <span class="ranking-athlete-stats">${entry.wins}V / ${entry.losses}D / ${entry.games}J</span>
               </article>
             `
-          )
+          })
           .join("")}
       </div>
-      <div class="ranking-showcase-table">
-        ${standings
-          .map(
-            (entry) => `
-              <div class="ranking-showcase-row">
-                <span>${escapeHtml(entry.placement)}</span>
-                <strong>${escapeHtml(entry.name)}</strong>
-                <small>${escapeHtml(entry.result)}</small>
-                <span>${entry.wins}V / ${entry.losses}D</span>
-              </div>
-            `
-          )
-          .join("")}
-      </div>
-      ${
-        others.length
-          ? `<div class="schema-note"><p>${others.length} atleta${others.length === 1 ? "" : "s"} adicional${others.length === 1 ? "" : "is"} aparecem na tabela completa do ranking.</p></div>`
-          : ""
-      }
-    </div>
+    </section>
   `
 }
 
@@ -834,11 +820,30 @@ async function loadUserProfile(uid: string) {
 
 ;(window as any).closeProfileTournamentResultModal = () => {
   const modal = document.getElementById("profileTournamentResultModal") as HTMLElement | null
+  const modalCard = document.querySelector("#profileTournamentResultModal .profile-tournament-result-modal-card") as HTMLElement | null
+  const expandButton = document.getElementById("profileTournamentResultExpandButton") as HTMLButtonElement | null
   if (modal) {
     modal.style.display = "none"
   }
+  profileTournamentResultExpanded = false
+  if (modalCard) {
+    modalCard.classList.remove("expanded")
+  }
+  if (expandButton) {
+    expandButton.textContent = "Expandir resultados"
+  }
   openProfileResultTournamentId = null
   openProfileResultGroupId = null
+}
+
+;(window as any).toggleProfileTournamentResultExpand = () => {
+  const modalCard = document.querySelector("#profileTournamentResultModal .profile-tournament-result-modal-card") as HTMLElement | null
+  const expandButton = document.getElementById("profileTournamentResultExpandButton") as HTMLButtonElement | null
+  if (!modalCard || !expandButton) return
+
+  profileTournamentResultExpanded = !profileTournamentResultExpanded
+  modalCard.classList.toggle("expanded", profileTournamentResultExpanded)
+  expandButton.textContent = profileTournamentResultExpanded ? "Recolher resultados" : "Expandir resultados"
 }
 
 ;(window as any).openProfileTournamentResult = async (tournamentId: string) => {
@@ -846,6 +851,8 @@ async function loadUserProfile(uid: string) {
   const title = document.getElementById("profileTournamentResultTitle")
   const content = document.getElementById("profileTournamentResultContent")
   const modal = document.getElementById("profileTournamentResultModal") as HTMLElement | null
+  const modalCard = document.querySelector("#profileTournamentResultModal .profile-tournament-result-modal-card") as HTMLElement | null
+  const expandButton = document.getElementById("profileTournamentResultExpandButton") as HTMLButtonElement | null
 
   if (!tournament || !title || !content || !modal) {
     showToast("Não foi possível abrir o resultado deste torneio.", "warning")
@@ -855,6 +862,13 @@ async function loadUserProfile(uid: string) {
   title.textContent = `Resultado - ${tournament.title}`
   content.innerHTML = '<div class="empty-state">Carregando resultado...</div>'
   modal.style.display = "flex"
+  profileTournamentResultExpanded = false
+  if (modalCard) {
+    modalCard.classList.remove("expanded")
+  }
+  if (expandButton) {
+    expandButton.textContent = "Expandir resultados"
+  }
   openProfileResultTournamentId = tournamentId
   openProfileResultGroupId = null
 

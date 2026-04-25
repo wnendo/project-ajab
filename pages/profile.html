@@ -155,7 +155,10 @@
     <div class="modal-card tournament-results-modal-card profile-tournament-result-modal-card">
       <div class="modal-header">
         <span id="profileTournamentResultTitle">Resultado do torneio</span>
-        <button class="close-btn" onclick="closeProfileTournamentResultModal()">Fechar</button>
+        <div class="modal-header-actions">
+          <button id="profileTournamentResultExpandButton" class="btn secondary btn-sm" onclick="toggleProfileTournamentResultExpand()">Expandir resultados</button>
+          <button class="close-btn" onclick="closeProfileTournamentResultModal()">Fechar</button>
+        </div>
       </div>
       <div id="profileTournamentResultContent" class="modal-body registration-modal-body"></div>
     </div>

@@ -287,38 +287,44 @@ export function render() {
         .map((group) => {
           const nextMatches = getQueueForGroup(group).filter(([p1, p2]) => !busy.has(p1.id) && !busy.has(p2.id))
           const visibleNextMatches = nextMatches.slice(0, 10)
+          const queueDensityClass =
+            visibleNextMatches.length >= 9 ? "dense-3" : visibleNextMatches.length >= 7 ? "dense-2" : visibleNextMatches.length >= 5 ? "dense-1" : ""
 
           return `
             <div class="group-section queue-section group-column">
               <div class="group-section-header queue-section-header compact">
                 <div>
                   <span class="section-label">${getGroupHeading(group)}</span>
-                  <h3>${visibleNextMatches.length ? `${visibleNextMatches.length} confronto(s) na fila` : "Fila de partidas"}</h3>
+                  <h3>${visibleNextMatches.length ? "Próximos confrontos" : "Fila de partidas"}</h3>
+                  <p class="queue-section-note">
+                    ${
+                      nextMatches.length > visibleNextMatches.length
+                        ? `Mostrando ${visibleNextMatches.length} de ${nextMatches.length} confronto(s) previstos.`
+                        : visibleNextMatches.length
+                          ? `${visibleNextMatches.length} confronto(s) aguardando liberação de mesa.`
+                          : "Assim que houver atletas livres, os confrontos aparecem aqui."
+                    }
+                  </p>
                 </div>
               </div>
               ${
                 visibleNextMatches.length === 0
                   ? `<div class="queue-empty rich">Nenhum jogo aguardando agora. Assim que uma mesa liberar, a proxima disputa aparece aqui.</div>`
-                  : `<div class="queue-grid compact-queue-grid">
+                  : `<div class="queue-grid compact-queue-grid ${queueDensityClass}">
                       ${visibleNextMatches
                         .map((match, index) => {
-                          const p1Stats = getPlayerStats(match[0].id)
-                          const p2Stats = getPlayerStats(match[1].id)
-
                           return `
                               <div class="queue-card next-match-card compact-next-match-card">
                               <div class="queue-card-top">
-                                <span class="queue-order">Proximo ${index + 1}</span>
-                                <span class="result-pill neutral">${getGroupHeading(group)}</span>
+                                <span class="queue-order-badge">${index + 1}</span>
+                                <span class="queue-order">Na sequencia</span>
                               </div>
                               <div class="queue-player-block">
                                 ${renderCompactPlayerName(match[0])}
-                                <span>${p1Stats.wins}V | ${p1Stats.losses}D</span>
                               </div>
-                              <div class="queue-versus">vs</div>
+                              <span class="queue-versus">vs</span>
                               <div class="queue-player-block">
                                 ${renderCompactPlayerName(match[1])}
-                                <span>${p2Stats.wins}V | ${p2Stats.losses}D</span>
                               </div>
                             </div>
                           `

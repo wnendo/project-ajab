@@ -1259,7 +1259,15 @@ function refreshRankingGroupQueue(group: CompetitionGroup, prioritizedPlayerId?:
 }
 
 function shouldSeatNewAthleteImmediately(group: CompetitionGroup, athleteId: string) {
-  if (!isGroupStarted(group) || !hasOpenTable(group)) {
+  if (!hasOpenTable(group)) {
+    return false
+  }
+
+  return shouldQueueNewAthleteImmediately(group, athleteId)
+}
+
+function shouldQueueNewAthleteImmediately(group: CompetitionGroup, athleteId: string) {
+  if (!isGroupStarted(group)) {
     return false
   }
 
@@ -1445,6 +1453,11 @@ window.addEventListener("beforeunload", () => {
         await persistRankingLiveState()
         showToast("Atleta reativado e encaixado imediatamente na próxima mesa disponível.", "success")
         handledReactivationFeedback = true
+      } else if (shouldQueueNewAthleteImmediately(group, inactiveUser.id)) {
+        refreshRankingGroupQueue(group, inactiveUser.id)
+        await persistRankingLiveState()
+        showToast("Atleta reativado e colocado imediatamente na fila de próximos jogos.", "success")
+        handledReactivationFeedback = true
       } else if (isGroupStarted(group)) {
         await persistRankingLiveState()
         showToast("Atleta reativado. Clique em 'Atualizar jogos' para incluir esse atleta na categoria.", "info")
@@ -1511,6 +1524,11 @@ window.addEventListener("beforeunload", () => {
         refreshRankingGroupQueue(group, candidate.user.id)
         await persistRankingLiveState()
         showToast("Atleta adicionado e encaixado imediatamente na próxima mesa disponível.", "success")
+        handledApprovedFeedback = true
+      } else if (shouldQueueNewAthleteImmediately(group, candidate.user.id)) {
+        refreshRankingGroupQueue(group, candidate.user.id)
+        await persistRankingLiveState()
+        showToast("Atleta adicionado e colocado imediatamente na fila de próximos jogos.", "success")
         handledApprovedFeedback = true
       } else if (isGroupStarted(group)) {
         await persistRankingLiveState()
@@ -1957,15 +1975,30 @@ window.addEventListener("beforeunload", () => {
 }
 
 ;(window as any).deletePlayer = async (id: string) => {
-  const confirmed = await confirmAction({
-    title: "Remover atleta",
-    message: "Remover este atleta do torneio atual?",
-    confirmLabel: "Remover",
-    tone: "danger"
-  })
+  const tournament = currentTournament
+  const player = players.find((entry) => entry.id === id)
+  if (!tournament || !player) {
+    showToast("Não foi possível localizar esse atleta no torneio.", "warning")
+    return
+  }
+
+  let confirmed = false
+
+  try {
+    confirmed = await confirmAction({
+      title: "Remover atleta",
+      message: "Remover este atleta do torneio atual?",
+      confirmLabel: "Remover",
+      tone: "danger"
+    })
+  } catch {
+    confirmed = window.confirm("Remover este atleta do torneio atual?")
+  }
   if (!confirmed) return
 
   try {
+    const group = getPlayerCompetitionGroup(tournament, player.registrationCategory)
+    const prioritizedPlayerId = cancelRankingParticipation(group, id)
     const batch = writeBatch(db)
     batch.update(doc(db, "users", id), {
       "playerProfile.active": false,
@@ -1975,30 +2008,23 @@ window.addEventListener("beforeunload", () => {
       "playerProfile.lastPlayed": null
     })
     removeTournamentRegistration(batch, id)
-    batch.delete(doc(db, "users", id, "tournaments", currentTournament!.id))
+    batch.delete(doc(db, "users", id, "tournaments", tournament.id))
     await batch.commit()
 
-    const player = players.find((entry) => entry.id === id)
-    if (player) {
-      player.active = false
-      player.games = 0
-      player.wins = 0
-      player.losses = 0
-      player.lastPlayed = undefined
-    }
+    player.active = false
+    player.games = 0
+    player.wins = 0
+    player.losses = 0
+    player.lastPlayed = undefined
 
-    clearQueue()
-    ;(["general", "A", "B"] as CompetitionGroup[]).forEach((group) => {
-      tablesByGroup[group].forEach((table) => {
-        if (table.p1?.id === id || table.p2?.id === id) {
-          table.p1 = undefined
-          table.p2 = undefined
-        }
-      })
-    })
+    const remainingPlayers = players.filter((entry) => entry.id !== id)
+    players.length = 0
+    players.push(...remainingPlayers)
 
+    refreshRankingGroupQueue(group, prioritizedPlayerId)
     await persistRankingLiveState()
     render()
+    showToast("Atleta removido do ranking com sucesso.", "success")
   } catch (error: any) {
     showToast("Erro ao remover atleta do torneio: " + error.message, "error")
   }
